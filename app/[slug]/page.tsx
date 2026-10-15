@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao, Loja, Produto } from "@/lib/tipos";
+import BotaoCarrinho from "@/components/BotaoCarrinho";
 
 // Next.js entrega o slug do endereço dentro de "params".
 type Props = { params: Promise<{ slug: string }> };
@@ -83,7 +84,7 @@ async function ConteudoDaLoja({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <main className="mx-auto max-w-3xl px-4 pt-6 pb-28">
       {/* 1) Cabeçalho */}
       <Link href="/" className="text-sm opacity-70">← Todas as lojas</Link>
       <h1 className="mt-2 text-3xl font-bold" style={{ color: cor }}>{loja.nome}</h1>
@@ -103,16 +104,16 @@ async function ConteudoDaLoja({ params }: Props) {
       {colecoes
         .filter((c) => c.em_destaque)
         .map((c) => (
-          <Secao key={c.id} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor}
+          <Secao key={c.id} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
             produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
         ))}
 
       {/* 4) Produtos marcados como destaque */}
-      <Secao titulo="Destaques" cor={cor} produtos={produtos.filter((p) => p.destaque)} />
+      <Secao titulo="Destaques" cor={cor} slug={slug} produtos={produtos.filter((p) => p.destaque)} />
 
       {/* 5) Uma seção por categoria (já inclui as subcategorias) */}
       {principais.map((cat) => (
-        <Secao key={cat.id} titulo={cat.nome} descricao={cat.descricao} cor={cor}
+        <Secao key={cat.id} titulo={cat.nome} descricao={cat.descricao} cor={cor} slug={slug}
           subcategorias={subsDe(cat.id).map((s) => s.nome)} produtos={produtosDaCategoria(cat)} />
       ))}
 
@@ -120,9 +121,12 @@ async function ConteudoDaLoja({ params }: Props) {
       {colecoes
         .filter((c) => !c.em_destaque)
         .map((c) => (
-          <Secao key={c.id} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor}
+          <Secao key={c.id} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
             produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
         ))}
+
+      {/* Barra "Ver carrinho" no rodapé, quando houver itens */}
+      <BotaoCarrinho slug={slug} cor={cor} />
     </main>
   );
 }
@@ -135,6 +139,7 @@ function Secao(props: {
   descricao?: string | null;
   subcategorias?: string[];
   cor: string;
+  slug: string;
   produtos: Produto[];
 }) {
   if (props.produtos.length === 0) return null;
@@ -147,7 +152,7 @@ function Secao(props: {
       )}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {props.produtos.map((p) => (
-          <CardDoProduto key={p.id} produto={p} cor={props.cor} />
+          <CardDoProduto key={p.id} produto={p} cor={props.cor} slug={props.slug} />
         ))}
       </div>
     </section>
@@ -157,7 +162,7 @@ function Secao(props: {
 // ---------------------------------------------------------------------
 // Cartão de um produto: foto, nome, preço "a partir de" e situação.
 // ---------------------------------------------------------------------
-function CardDoProduto({ produto, cor }: { produto: Produto; cor: string }) {
+function CardDoProduto({ produto, cor, slug }: { produto: Produto; cor: string; slug: string }) {
   // Primeira foto, pela ordem definida no cadastro.
   const foto = [...produto.midias].filter((m) => m.tipo === "foto").sort((a, b) => a.ordem - b.ordem)[0];
 
@@ -166,7 +171,8 @@ function CardDoProduto({ produto, cor }: { produto: Produto; cor: string }) {
   const menor = precos.length ? Math.min(...precos) : produto.preco;
 
   return (
-    <div className="rounded-xl border p-2" style={{ borderColor: "#0001" }}>
+    // O cartão inteiro é um link para a página do produto
+    <Link href={`/${slug}/p/${produto.id}`} className="block rounded-xl border p-2" style={{ borderColor: "#0001" }}>
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg text-xs opacity-80"
         style={{ background: `${cor}22` }}>
         {foto ? <img src={foto.url} alt={produto.nome} className="h-full w-full object-cover" /> : "sem foto"}
@@ -176,7 +182,7 @@ function CardDoProduto({ produto, cor }: { produto: Produto; cor: string }) {
         {menor != null ? `${precos.length > 1 ? "a partir de " : ""}${formatarPreco(menor)}` : "Sob consulta"}
       </span>
       <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>
-    </div>
+    </Link>
   );
 }
 
