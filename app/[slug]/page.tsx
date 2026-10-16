@@ -30,7 +30,7 @@ import { EsqueletoLoja } from "@/components/Esqueleto";
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
 
@@ -85,8 +85,10 @@ async function ConteudoDaLoja({ params }: Props) {
   // Atalhos do menu (lateral no computador, barra + gaveta no celular)
   const menu = montarMenu(categorias, colecoes, produtos);
 
-  // Efeito festivo: o da primeira coleção em destaque que tiver um (ex.: neve no Natal)
-  const efeito = colecoes.find((c) => c.em_destaque && c.efeito && c.efeito !== "nenhum")?.efeito;
+  // Efeito animado: o da primeira coleção em destaque que tiver um (ex.: neve no Natal);
+  // se nenhuma tiver, vale o efeito da própria loja.
+  const efeitoColecao = colecoes.find((c) => c.em_destaque && c.efeito && c.efeito !== "nenhum")?.efeito;
+  const efeito = efeitoColecao ?? (loja.efeito !== "nenhum" ? loja.efeito : undefined);
 
   return (
     // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)

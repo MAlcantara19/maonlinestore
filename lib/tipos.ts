@@ -4,6 +4,9 @@
 // Se acrescentar uma coluna no banco, acrescente aqui também.
 // =====================================================================
 
+// Efeitos animados possíveis (lojas e coleções).
+export type Efeito = "nenhum" | "neve" | "estrelas" | "brilhos" | "coracoes" | "confete" | "bolhas";
+
 // Tabela "lojas": uma linha por loja (VitraForma, Gallerie...).
 export type Loja = {
   id: string;
@@ -18,6 +21,8 @@ export type Loja = {
   cor_fundo?: string | null; // fundo da página da loja (vazio = padrão do site)
   fonte?: "moderna" | "elegante" | "divertida"; // estilo dos títulos
   instagram?: string | null; // usuário do Instagram, sem @ (aparece no rodapé)
+  efeito?: Efeito; // efeito da loja o ano todo
+  em_breve?: boolean; // true = aparece "Em breve" na página inicial
 };
 
 // Tabela "categorias": parent_id vazio = categoria; preenchido = subcategoria.
@@ -74,6 +79,6 @@ export type Colecao = {
   nome: string;
   descricao: string | null;
   em_destaque: boolean;
-  efeito?: "nenhum" | "neve" | "coracoes" | "estrelas"; // animação enquanto em destaque
+  efeito?: Efeito; // animação enquanto em destaque
   produtos_colecoes: { produto_id: string }[];
 };

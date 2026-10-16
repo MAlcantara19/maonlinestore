@@ -42,7 +42,7 @@ async function ListaDeLojas() {
 
   const { data: lojas, error } = await supabase
     .from("lojas") // tabela
-    .select("id, slug, nome, descricao, cor, logo_url") // colunas que a página usa
+    .select("id, slug, nome, descricao, cor, logo_url, em_breve") // colunas que a página usa
     .eq("ativa", true) // só lojas ativas
     .order("ordem"); // ordem dos círculos
 
@@ -58,26 +58,40 @@ async function ListaDeLojas() {
   return (
     // Celular: 2 colunas · tablet (sm): 3 · computador (lg): 5
     <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
-      {(lojas as Loja[]).map((loja) => (
-        // Cada círculo é um link para a página da loja: /vitraforma, /gallerie...
-        <Link key={loja.id} href={`/${loja.slug}`} className="clicavel cartao rounded-xl p-2 text-center">
-          {/* O círculo: com logo, se tiver; senão, a primeira letra do nome */}
+      {(lojas as Loja[]).map((loja) => {
+        // O círculo: com logo, se tiver; senão, a primeira letra do nome
+        const circulo = (
           <div
             className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-[3px] bg-white text-3xl font-bold"
             style={{ borderColor: loja.cor ?? "#999", color: loja.cor ?? "#333" }}
           >
-            {loja.logo_url ? (
-              <img src={loja.logo_url} alt={loja.nome} className="h-full w-full object-cover" />
-            ) : (
-              loja.nome.charAt(0)
-            )}
+            {loja.logo_url ? <img src={loja.logo_url} alt={loja.nome} className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
           </div>
+        );
 
-          {/* Nome e descrição curta embaixo do círculo */}
-          <b className="mt-2 block">{loja.nome}</b>
-          <span className="block text-xs opacity-70">{loja.descricao}</span>
-        </Link>
-      ))}
+        // Loja "em breve": aparece apagadinha, com selo, e não abre ao clicar
+        if (loja.em_breve) {
+          return (
+            <div key={loja.id} className="relative cursor-default p-2 text-center opacity-60 grayscale" title="Em breve">
+              {circulo}
+              <span className="absolute left-1/2 top-1 -translate-x-1/2 rounded-full bg-stone-800 px-2 py-0.5 text-[11px] font-bold text-white">
+                Em breve
+              </span>
+              <b className="mt-2 block">{loja.nome}</b>
+              <span className="block text-xs opacity-70">{loja.descricao}</span>
+            </div>
+          );
+        }
+
+        // Cada círculo é um link para a página da loja: /vitraforma, /gallerie...
+        return (
+          <Link key={loja.id} href={`/${loja.slug}`} className="clicavel cartao rounded-xl p-2 text-center">
+            {circulo}
+            <b className="mt-2 block">{loja.nome}</b>
+            <span className="block text-xs opacity-70">{loja.descricao}</span>
+          </Link>
+        );
+      })}
     </div>
   );
 }

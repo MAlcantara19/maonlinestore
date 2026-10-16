@@ -59,9 +59,17 @@ const ANIMACOES = `
     .parallax-fundo { animation: parallax-fundo linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
   }
 
-  /* Neve/corações/estrelas caindo */
-  @keyframes cair { to { transform: translateY(110vh) rotate(360deg); } }
-  .efeito-particula { animation-name: cair; animation-timing-function: linear; animation-iteration-count: infinite; }
+  /* EFEITOS ANIMADOS (neve, estrelas, brilhos, corações, confete, bolhas) */
+  .efeito-particula { position: absolute; animation-timing-function: linear; animation-iteration-count: infinite; }
+  @keyframes cair { to { transform: translateY(115vh) rotate(360deg); } }
+  .efeito-cair { animation-name: cair; }
+  @keyframes subir { to { transform: translateY(-120vh) scale(1.2); opacity: 0; } }
+  .efeito-subir { animation-name: subir; }
+  @keyframes piscar { 0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1.2) rotate(90deg); } }
+  .efeito-piscar { animation-name: piscar; animation-timing-function: ease-in-out; }
+  /* balançar para os lados enquanto cai/sobe */
+  @keyframes balancar { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
+  .efeito-balancar { display: inline-block; animation: balancar ease-in-out infinite alternate; }
 
   /* Quem pediu "menos movimento" no aparelho não vê animações */
   @media (prefers-reduced-motion: reduce) {
