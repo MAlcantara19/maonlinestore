@@ -10,6 +10,7 @@ import { buscarParceiros } from "@/lib/parceiros";
 import CartaoParceiro from "@/components/CartaoParceiro";
 import Rodape from "@/components/Rodape";
 import { SITE } from "@/lib/config";
+import EstilosAnimacao from "@/components/EstilosAnimacao";
 
 export const metadata: Metadata = { title: `Parceiros · ${SITE.nome}` };
 
@@ -25,8 +26,7 @@ export default function PaginaParceiros() {
         </Suspense>
       </main>
       <Rodape />
-      {/* animação de entrada dos cartões */}
-      <style>{`@keyframes aparecer { from { opacity: 0; transform: translateY(14px); } } .animar-entrada { animation: aparecer .45s ease-out backwards; }`}</style>
+      <EstilosAnimacao />
     </div>
   );
 }

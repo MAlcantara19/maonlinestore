@@ -99,6 +99,22 @@ export type Parceiro = {
   instagram: string | null;
   site: string | null;
   logo_url: string | null;
-  foto_url: string | null;
+  foto_url: string | null; // foto grande (fachada, local, pessoa)
   cor: string | null;
+  efeito?: Efeito;
+  destaque?: boolean; // aparece primeiro, com borda dourada
+  selo?: string | null; // etiqueta: "Patrocinado", "Desconto"...
+  ativo?: boolean;
+  ordem?: number;
+};
+
+// Tabela "site_config": configuração da página inicial (uma linha só).
+export type ConfigSite = {
+  titulo: string;
+  subtitulo: string | null;
+  cor: string | null;
+  cor_secundaria: string | null;
+  banner_url: string | null;
+  efeito: Efeito;
+  parceiros_na_home: number;
 };

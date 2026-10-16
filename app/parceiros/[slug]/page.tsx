@@ -15,6 +15,8 @@ import type { Parceiro } from "@/lib/tipos";
 import IconeInstagram from "@/components/IconeInstagram";
 import Rodape from "@/components/Rodape";
 import { SITE } from "@/lib/config";
+import EfeitoFestivo from "@/components/EfeitoFestivo";
+import EstilosAnimacao from "@/components/EstilosAnimacao";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -63,17 +65,30 @@ async function Conteudo({ params }: Props) {
 
   return (
     <>
-      {/* Banner com a foto do parceiro (ou só a cor) */}
+      <EstilosAnimacao />
+      {p.efeito && p.efeito !== "nenhum" && <EfeitoFestivo tipo={p.efeito} cor={cor} />}
+
+      {/* Banner: foto grande de fundo + logo redonda no meio + nome */}
       <header className="relative overflow-hidden text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
-        {p.foto_url && <img src={p.foto_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />}
-        <div className="relative mx-auto max-w-4xl px-4 pt-4 pb-10">
-          <Link href="/parceiros" className="rounded-full bg-white/15 px-3 py-1.5 text-sm">← Parceiros</Link>
-          <div className="mt-6 flex items-center gap-4">
-            {p.logo_url && <img src={p.logo_url} alt="" className="h-20 w-20 shrink-0 rounded-full bg-white object-cover shadow-lg" />}
-            <div>
+        {p.foto_url && (
+          <>
+            <img src={p.foto_url} alt="" className="parallax-fundo absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+          </>
+        )}
+        <div className="parallax-conteudo relative mx-auto max-w-4xl px-4 pt-4 pb-10 text-center">
+          <div className="text-left">
+            <Link href="/parceiros" className="rounded-full bg-white/15 px-3 py-1.5 text-sm">← Parceiros</Link>
+          </div>
+          <div className="mt-8 flex flex-col items-center">
+            {p.logo_url && (
+              <img src={p.logo_url} alt="" className="animar-entrada h-28 w-28 rounded-full border-4 border-white bg-white object-cover shadow-2xl" />
+            )}
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
               {p.categoria && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">{p.categoria}</span>}
-              <h1 className="mt-1 text-3xl font-bold drop-shadow">{p.nome}</h1>
+              {p.selo && <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-stone-900">{p.selo}</span>}
             </div>
+            <h1 className="animar-entrada mt-2 text-3xl font-bold drop-shadow-lg sm:text-4xl" style={{ animationDelay: "100ms" }}>{p.nome}</h1>
           </div>
         </div>
       </header>

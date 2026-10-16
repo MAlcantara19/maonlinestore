@@ -40,8 +40,13 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
         {menu.length > 0 && (
           <button type="button" onClick={abrirMenu} aria-label="Abrir menu" className="rounded-full bg-white/15 px-3 py-1.5 lg:hidden">☰</button>
         )}
-        {loja.logo_url && <img src={loja.logo_url} alt="" className="h-8 w-8 rounded-full bg-white object-cover" />}
-        <Link href={`/${loja.slug}`} className="min-w-0 flex-1 truncate font-bold">{loja.nome}</Link>
+        {/* Logo + nome: sempre mostram em qual loja a pessoa está */}
+        <Link href={`/${loja.slug}`} className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-bold shadow" style={{ color: cor }}>
+            {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+          </span>
+          <span className="truncate font-bold">{loja.nome}</span>
+        </Link>
         {insta && (
           <a href={`https://instagram.com/${insta}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram @${insta}`}
             className="clicavel rounded-full bg-white/15 p-2"><IconeInstagram /></a>

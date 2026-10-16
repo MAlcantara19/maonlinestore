@@ -36,6 +36,20 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
 
   return (
     <>
+      {/* Atalhos que só o master vê */}
+      {info.master && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          <Link href="/admin/site" className="clicavel rounded-2xl bg-white p-4 shadow-sm">
+            <b className="block">🏠 Página inicial</b>
+            <span className="text-xs opacity-60">Título, cores, imagem do topo, efeito e quantos parceiros mostrar</span>
+          </Link>
+          <Link href="/admin/parceiros" className="clicavel rounded-2xl bg-white p-4 shadow-sm">
+            <b className="block">🤝 Parceiros</b>
+            <span className="text-xs opacity-60">Adicionar, editar, destacar e desativar parceiros</span>
+          </Link>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold">Suas lojas</h1>
       <p className="mb-4 text-sm opacity-60">Escolha uma loja para configurar.</p>
       <div className="grid gap-3 sm:grid-cols-2">

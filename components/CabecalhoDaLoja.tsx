@@ -41,7 +41,10 @@ export default function CabecalhoDaLoja({ loja, menu, atalhos = true }: Props) {
             <Link href="/parceiros" className={botao}>🤝 Parceiros</Link>
           </nav>
           <div className="mt-5 flex items-center gap-4">
-            {loja.logo_url && <img src={loja.logo_url} alt="" className="h-16 w-16 shrink-0 rounded-full bg-white object-cover shadow-lg" />}
+            {/* Logo da loja (ou a inicial do nome, enquanto não houver logo) */}
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-2xl font-bold shadow-lg" style={{ color: cor }}>
+              {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+            </span>
             <div>
               <h1 className="text-3xl font-bold drop-shadow-sm">{loja.nome}</h1>
               {loja.descricao && <p className="text-sm opacity-90">{loja.descricao}</p>}

@@ -8,11 +8,12 @@
 // =====================================================================
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import AreaAdmin, { type InfoAdmin } from "@/components/admin/AreaAdmin";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO, OPCOES_FONTE } from "@/lib/opcoes";
 import type { Loja } from "@/lib/tipos";
+import { Bloco, Campo, Interruptor, BarraSalvar, type Mensagem } from "@/components/admin/Campos";
 
 const COLUNAS =
   "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, whatsapp, instagram, aviso_pedido, em_breve, ativa";
@@ -26,7 +27,7 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
   const [loja, setLoja] = useState<Loja | null>(null);
   const [naoAchou, setNaoAchou] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
+  const [mensagem, setMensagem] = useState<Mensagem>(null);
 
   // Carrega a loja do banco
   useEffect(() => {
@@ -130,48 +131,7 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         )}
       </Bloco>
 
-      {/* Barra de salvar presa no rodapé da tela */}
-      <div className="sticky bottom-0 -mx-4 mt-6 border-t bg-stone-100/95 px-4 py-3 backdrop-blur">
-        {mensagem && <p className={`mb-2 text-sm ${mensagem.tipo === "ok" ? "text-green-700" : "text-red-600"}`}>{mensagem.texto}</p>}
-        <button type="button" onClick={salvar} disabled={salvando} className="w-full rounded-xl p-3 font-semibold text-white disabled:opacity-50" style={{ background: cor }}>
-          {salvando ? "Salvando..." : "Salvar alterações"}
-        </button>
-      </div>
+      <BarraSalvar mensagem={mensagem} salvando={salvando} aoSalvar={salvar} cor={cor} />
     </>
-  );
-}
-
-// --- Pedacinhos do formulário ----------------------------------------
-function Bloco({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <section className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-      <h2 className="mb-3 font-bold">{titulo}</h2>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
-}
-
-function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-semibold">{rotulo}</span>
-      {children}
-    </label>
-  );
-}
-
-// Botão liga/desliga com animação
-function Interruptor({ rotulo, ajuda, ligado, aoMudar }: { rotulo: string; ajuda: string; ligado: boolean; aoMudar: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div>
-        <b className="block text-sm">{rotulo}</b>
-        <span className="text-xs opacity-60">{ajuda}</span>
-      </div>
-      <button type="button" role="switch" aria-checked={ligado} onClick={() => aoMudar(!ligado)}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${ligado ? "bg-green-600" : "bg-stone-300"}`}>
-        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${ligado ? "left-6" : "left-1"}`} />
-      </button>
-    </div>
   );
 }
