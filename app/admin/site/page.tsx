@@ -10,6 +10,7 @@ import AreaAdmin from "@/components/admin/AreaAdmin";
 import { Bloco, Campo, BarraSalvar, estiloInput, type Mensagem } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO } from "@/lib/opcoes";
+import CampoImagem from "@/components/admin/CampoImagem";
 import { CONFIG_PADRAO } from "@/lib/site";
 import type { ConfigSite } from "@/lib/tipos";
 
@@ -64,9 +65,7 @@ function Formulario() {
           <Campo rotulo="Cor 1 (início do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor ?? "#3B1260"} onChange={(e) => mudar("cor", e.target.value)} /></Campo>
           <Campo rotulo="Cor 2 (fim do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor_secundaria ?? "#C9B3EE"} onChange={(e) => mudar("cor_secundaria", e.target.value)} /></Campo>
         </div>
-        <Campo rotulo="Imagem de fundo do topo (endereço, opcional)">
-          <input className={estiloInput} value={c.banner_url ?? ""} onChange={(e) => mudar("banner_url", e.target.value || null)} placeholder="https://..." />
-        </Campo>
+        <CampoImagem rotulo="Imagem de fundo do topo (opcional)" valor={c.banner_url} aoMudar={(url) => mudar("banner_url", url)} pasta="site" />
         <Campo rotulo="Efeito animado">
           <select className={estiloInput} value={c.efeito} onChange={(e) => mudar("efeito", e.target.value as ConfigSite["efeito"])}>
             {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}

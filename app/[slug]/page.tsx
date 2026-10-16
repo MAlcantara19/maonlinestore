@@ -4,9 +4,9 @@
 // a mesma página serve para TODAS as lojas, e o slug do endereço diz qual.
 //
 // Ordem da página:
-//   1. Banner + menu (lateral no computador, barra + gaveta no celular)
-//   2. "Como funciona o pedido" (aviso_pedido)
-//   3. Busca e ordenação
+//   1. Banner com busca + menu lateral + painel direito (LayoutDaLoja)
+//   2. Ordenação (a busca fica no banner)
+//   3. "Como funciona o pedido" fica no painel direito (ou recolhível no celular)
 //   4. Coleções em destaque (ex.: Natal) — com efeito festivo, se tiver
 //   5. Destaques, categorias (com subcategorias) e coleções antigas
 // Tudo vem do banco: não precisa mexer aqui para cadastrar produto.
@@ -18,10 +18,8 @@ import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao, Loja, Produto } from "@/lib/tipos";
 import { montarMenu } from "@/lib/menu";
-import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
-import TemaDaLoja from "@/components/TemaDaLoja";
-import MenuLateral from "@/components/MenuLateral";
 import CardDoProduto from "@/components/CardDoProduto";
+import LayoutDaLoja from "@/components/LayoutDaLoja";
 import ConteudoComBusca from "@/components/ConteudoComBusca";
 import EfeitoFestivo from "@/components/EfeitoFestivo";
 import { EsqueletoLoja } from "@/components/Esqueleto";
@@ -91,55 +89,37 @@ async function ConteudoDaLoja({ params }: Props) {
   const efeito = efeitoColecao ?? (loja.efeito !== "nenhum" ? loja.efeito : undefined);
 
   return (
-    // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
-    <TemaDaLoja loja={loja}>
-      <CabecalhoDaLoja loja={loja} menu={menu} atalhos={false} />
+    // LayoutDaLoja: banner (com busca), menu lateral e painel direito
+    <LayoutDaLoja loja={loja} menu={menu}>
       {efeito && <EfeitoFestivo tipo={efeito} cor={cor} />}
 
-      {/* Computador: menu lateral + conteúdo lado a lado. Celular: um embaixo do outro */}
-      <div className="mx-auto w-full max-w-7xl lg:flex lg:items-start lg:gap-6 lg:px-4">
-        <MenuLateral slug={slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} />
+      {produtos.length === 0 ? (
+        <p className="mt-8 opacity-70">Nenhum produto cadastrado ainda.</p>
+      ) : (
+        // Busca/ordenação: enquanto não usa, mostra as seções abaixo normalmente
+        <ConteudoComBusca produtos={produtos} slug={slug} cor={cor}>
+          {/* Coleções em destaque */}
+          {colecoes.filter((c) => c.em_destaque).map((c) => (
+            <Secao key={c.id} id={`colecao-${c.id}`} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
+              produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
+          ))}
 
-        <main className="min-w-0 flex-1 px-4 pt-4 pb-28 lg:px-0">
-          {/* Como funciona o pedido (resumo no topo; no carrinho aparece de novo) */}
-          {loja.aviso_pedido && (
-            <div className="mt-4 w-fit max-w-full whitespace-pre-line rounded-xl border p-4 text-sm"
-              style={{ borderColor: cor, background: loja.cor_secundaria ? `${loja.cor_secundaria}55` : undefined }}>
-              <b className="mb-1 block">Como funciona o pedido</b>
-              {loja.aviso_pedido}
-            </div>
-          )}
+          {/* Produtos marcados como destaque */}
+          <Secao id="destaques" titulo="⭐ Destaques" cor={cor} slug={slug} produtos={produtos.filter((p) => p.destaque)} />
 
-          {produtos.length === 0 ? (
-            <p className="mt-8 opacity-70">Nenhum produto cadastrado ainda.</p>
-          ) : (
-            // Busca/ordenação: enquanto não usa, mostra as seções abaixo normalmente
-            <ConteudoComBusca produtos={produtos} slug={slug} cor={cor}>
-              {/* Coleções em destaque */}
-              {colecoes.filter((c) => c.em_destaque).map((c) => (
-                <Secao key={c.id} id={`colecao-${c.id}`} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
-                  produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
-              ))}
+          {/* Uma seção por categoria (com as subcategorias dentro) */}
+          {principais.map((cat) => (
+            <SecaoCategoria key={cat.id} categoria={cat} subcategorias={subsDe(cat.id)} produtos={produtos} cor={cor} slug={slug} />
+          ))}
 
-              {/* Produtos marcados como destaque */}
-              <Secao id="destaques" titulo="⭐ Destaques" cor={cor} slug={slug} produtos={produtos.filter((p) => p.destaque)} />
-
-              {/* Uma seção por categoria (com as subcategorias dentro) */}
-              {principais.map((cat) => (
-                <SecaoCategoria key={cat.id} categoria={cat} subcategorias={subsDe(cat.id)} produtos={produtos} cor={cor} slug={slug} />
-              ))}
-
-              {/* Coleções que não estão em destaque (ex.: Dia das Crianças, Santos) */}
-              {colecoes.filter((c) => !c.em_destaque).map((c) => (
-                <Secao key={c.id} id={`colecao-${c.id}`} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
-                  produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
-              ))}
-            </ConteudoComBusca>
-          )}
-
-        </main>
-      </div>
-    </TemaDaLoja>
+          {/* Coleções que não estão em destaque (ex.: Dia das Crianças, Santos) */}
+          {colecoes.filter((c) => !c.em_destaque).map((c) => (
+            <Secao key={c.id} id={`colecao-${c.id}`} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
+              produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
+          ))}
+        </ConteudoComBusca>
+      )}
+    </LayoutDaLoja>
   );
 }
 
@@ -148,7 +128,7 @@ async function ConteudoDaLoja({ params }: Props) {
 // ---------------------------------------------------------------------
 function Grade({ produtos, cor, slug }: { produtos: Produto[]; cor: string; slug: string }) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-4">
       {produtos.map((p, i) => <CardDoProduto key={p.id} produto={p} cor={cor} slug={slug} indice={i} />)}
     </div>
   );

@@ -12,6 +12,7 @@ import AreaAdmin from "@/components/admin/AreaAdmin";
 import { Bloco, Campo, Interruptor, BarraSalvar, estiloInput, type Mensagem } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO } from "@/lib/opcoes";
+import CampoImagem from "@/components/admin/CampoImagem";
 import type { Parceiro } from "@/lib/tipos";
 
 // Transforma o nome em endereço: "Judô Clube Denis" -> "judo-clube-denis"
@@ -109,8 +110,8 @@ function Formulario() {
       </Bloco>
 
       <Bloco titulo="🖼️ Imagens e aparência">
-        <Campo rotulo="Foto grande de fundo (fachada, local, pessoa) — endereço"><input className={estiloInput} value={p.foto_url ?? ""} onChange={(e) => mudar("foto_url", e.target.value || null)} placeholder="https://..." /></Campo>
-        <Campo rotulo="Logo (fica redonda, no meio da foto) — endereço"><input className={estiloInput} value={p.logo_url ?? ""} onChange={(e) => mudar("logo_url", e.target.value || null)} placeholder="https://..." /></Campo>
+        <CampoImagem rotulo="Foto grande de fundo (fachada, local, pessoa)" valor={p.foto_url} aoMudar={(url) => mudar("foto_url", url)} pasta="parceiros" />
+        <CampoImagem rotulo="Logo (fica redonda, no meio da foto)" valor={p.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="parceiros" redonda />
         <div className="grid gap-3 sm:grid-cols-3">
           <Campo rotulo="Cor"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={p.cor ?? "#1c1917"} onChange={(e) => mudar("cor", e.target.value)} /></Campo>
           <Campo rotulo="Efeito animado">

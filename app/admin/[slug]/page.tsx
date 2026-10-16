@@ -14,6 +14,8 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO, OPCOES_FONTE } from "@/lib/opcoes";
 import type { Loja } from "@/lib/tipos";
 import { Bloco, Campo, Interruptor, BarraSalvar, type Mensagem } from "@/components/admin/Campos";
+import AbasLoja from "@/components/admin/AbasLoja";
+import CampoImagem from "@/components/admin/CampoImagem";
 
 const COLUNAS =
   "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, whatsapp, instagram, aviso_pedido, em_breve, ativa";
@@ -57,11 +59,7 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
 
   return (
     <>
-      <Link href="/admin" className="text-sm opacity-60">← Suas lojas</Link>
-      <div className="mt-1 mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">{loja.nome}</h1>
-        <Link href={`/${loja.slug}`} target="_blank" className="rounded-full border px-3 py-1.5 text-sm">👁️ Ver loja</Link>
-      </div>
+      <AbasLoja slug={loja.slug} nome={loja.nome} cor={cor} />
 
       {/* Prévia do banner: muda na hora conforme as cores */}
       <div className="mb-6 overflow-hidden rounded-2xl shadow">
@@ -79,9 +77,7 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome da loja"><input className={input} value={loja.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <Campo rotulo="Descrição curta"><input className={input} value={loja.descricao ?? ""} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
-        <Campo rotulo="Endereço da logo (temporário, até o envio de fotos ficar pronto)">
-          <input className={input} value={loja.logo_url ?? ""} onChange={(e) => mudar("logo_url", e.target.value || null)} placeholder="https://..." />
-        </Campo>
+        <CampoImagem rotulo="Logo (fica redonda; use uma imagem quadrada)" valor={loja.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="logos" redonda />
       </Bloco>
 
       <Bloco titulo="📞 Contato">

@@ -71,7 +71,16 @@ export default function CarrinhoFlutuante({ loja }: { loja: Loja }) {
         className={`fixed inset-y-0 right-0 z-50 flex w-[26rem] max-w-[92vw] flex-col bg-white text-stone-900 shadow-2xl transition-transform duration-300 ease-out ${aberto ? "translate-x-0" : "translate-x-full"}`}
         style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <b className="text-lg" style={{ color: cor }}>🛒 Seu carrinho</b>
+          {/* Logo + nome: deixa claro de qual loja é o carrinho */}
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-white font-bold" style={{ borderColor: cor, color: cor }}>
+              {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+            </span>
+            <div className="leading-tight">
+              <b className="block text-lg" style={{ color: cor }}>🛒 Seu carrinho</b>
+              <span className="text-xs opacity-60">{loja.nome}</span>
+            </div>
+          </div>
           <button type="button" onClick={() => setAberto(false)} aria-label="Fechar carrinho" className="rounded-full px-2 text-xl">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-6">

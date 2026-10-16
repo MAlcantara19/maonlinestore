@@ -11,9 +11,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ItemMenu } from "@/lib/menu";
 
-type Props = { slug: string; cor: string; corSecundaria: string | null; menu: ItemMenu[] };
+type Props = { slug: string; cor: string; corSecundaria: string | null; menu: ItemMenu[]; whatsapp?: string | null };
 
-export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
+export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }: Props) {
   const [aberto, setAberto] = useState(true); // barra lateral do computador
   const [gaveta, setGaveta] = useState(false); // gaveta do celular
   const [expandidos, setExpandidos] = useState<string[]>([]); // categorias abertas
@@ -48,8 +48,24 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
   const alternarItem = (id: string) =>
     setExpandidos((lista) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]));
 
-  if (menu.length === 0) return null;
   const fundo = corSecundaria ?? "#f4f4f5";
+
+  // Atalhos fixos, embaixo das categorias
+  const atalhos = (aoClicar?: () => void) => {
+    const item = "clicavel flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/60";
+    return (
+      <div className="mt-3 border-t pt-3" style={{ borderColor: `${cor}33` }}>
+        <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide opacity-60">Atalhos</p>
+        <Link href={`/${slug}`} onClick={aoClicar} className={item}>🏠 Início da loja</Link>
+        <button type="button" onClick={() => { aoClicar?.(); window.dispatchEvent(new Event("abrir-carrinho")); }} className={`${item} w-full text-left`}>🛒 Meu carrinho</button>
+        {whatsapp && (
+          <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={item}>💬 Falar no WhatsApp</a>
+        )}
+        <Link href="/parceiros" onClick={aoClicar} className={item}>🤝 Parceiros</Link>
+        <Link href="/" onClick={aoClicar} className={item}>🏬 Todas as lojas</Link>
+      </div>
+    );
+  };
 
   // A lista de categorias (usada na gaveta e na barra do computador).
   const lista = (aoClicar?: () => void) => (
@@ -127,6 +143,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
             className="rounded-full px-3 py-1 text-lg" style={{ color: cor }}>✕</button>
         </div>
         {lista(() => setGaveta(false))}
+        {atalhos(() => setGaveta(false))}
       </aside>
 
       {/* ===== COMPUTADOR: barra lateral que abre e fecha ===== */}
@@ -137,10 +154,11 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
           className="mb-2 flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold"
           style={{ color: cor }}>
           <span className="text-lg">{aberto ? "«" : "☰"}</span>
-          {aberto && <span>Categorias</span>}
+          {aberto && <span>Menu</span>}
         </button>
         <div className={`w-60 transition-opacity duration-200 ${aberto ? "opacity-100" : "pointer-events-none opacity-0"}`}>
           {lista()}
+          {atalhos()}
         </div>
       </aside>
     </>

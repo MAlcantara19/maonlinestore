@@ -1,0 +1,314 @@
+"use client";
+// =====================================================================
+// PAINEL — CRIAR / EDITAR PRODUTO (endereço: /admin/vitraforma/produtos/<id>)
+// "/novo" abre vazio. Tudo do produto numa tela só:
+//   📝 informações · 💰 preço e situação · 🗂️ categoria e coleções
+//   📏 variações (tamanho + cor + preço + situação)
+//   📷 fotos e vídeos (escolher do celular, ordenar, remover)
+// Ao salvar, grava o produto e acerta variações, fotos e coleções.
+// =====================================================================
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import AreaAdmin from "@/components/admin/AreaAdmin";
+import AbasLoja from "@/components/admin/AbasLoja";
+import { Bloco, Campo, Interruptor, BarraSalvar, estiloInput, type Mensagem } from "@/components/admin/Campos";
+import { supabaseNavegador } from "@/lib/supabase-navegador";
+import { lojaPeloSlug, paraNumero, type LojaResumo } from "@/lib/admin";
+import { enviarArquivo } from "@/lib/upload";
+import type { Categoria, Disponibilidade } from "@/lib/tipos";
+
+// Formatos usados só nesta tela (preço como texto para digitar "25,90")
+type Dados = {
+  nome: string; descricao: string; restricoes: string; preco: string; disponibilidade: Disponibilidade;
+  prazo: string; selo: string; destaque: boolean; ativo: boolean; categoria_id: string | null;
+};
+type LinhaVariacao = { id?: string; tamanho: string; cor: string; preco: string; disponibilidade: Disponibilidade | ""; prazo: string; ativa: boolean };
+type LinhaMidia = { id?: string; tipo: "foto" | "video"; url: string };
+type ColecaoSimples = { id: string; nome: string };
+
+const VAZIO: Dados = { nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo: "", selo: "", destaque: false, ativo: true, categoria_id: null };
+const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
+  { valor: "pronta_entrega", rotulo: "Pronta entrega" },
+  { valor: "sob_encomenda", rotulo: "Sob encomenda" },
+  { valor: "esgotado", rotulo: "Esgotado" },
+];
+
+export default function PainelProduto() {
+  return <AreaAdmin>{() => <Formulario />}</AreaAdmin>;
+}
+
+function Formulario() {
+  const { slug, id } = useParams<{ slug: string; id: string }>();
+  const router = useRouter();
+  const novo = id === "novo";
+
+  const [loja, setLoja] = useState<LojaResumo | null>(null);
+  const [dados, setDados] = useState<Dados>(VAZIO);
+  const [variacoes, setVariacoes] = useState<LinhaVariacao[]>([]);
+  const [midias, setMidias] = useState<LinhaMidia[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [colecoes, setColecoes] = useState<ColecaoSimples[]>([]);
+  const [marcadas, setMarcadas] = useState<string[]>([]); // coleções do produto
+  const originais = useRef<{ variacoes: string[]; midias: string[] }>({ variacoes: [], midias: [] });
+  const [carregado, setCarregado] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [enviando, setEnviando] = useState(0); // quantos arquivos ainda enviando
+  const [mensagem, setMensagem] = useState<Mensagem>(null);
+  const entradaArquivos = useRef<HTMLInputElement>(null);
+
+  // Carrega a loja, as categorias/coleções e (se for edição) o produto
+  useEffect(() => {
+    (async () => {
+      const supabase = supabaseNavegador();
+      const l = await lojaPeloSlug(slug);
+      setLoja(l);
+      if (!l) return;
+      const [cat, col] = await Promise.all([
+        supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id).order("ordem"),
+        supabase.from("colecoes").select("id, nome").eq("loja_id", l.id).order("ordem"),
+      ]);
+      setCategorias((cat.data ?? []) as Categoria[]);
+      setColecoes((col.data ?? []) as ColecaoSimples[]);
+
+      if (!novo) {
+        const { data: p } = await supabase.from("produtos")
+          .select("*, variacoes(*), midias(*), produtos_colecoes(colecao_id)").eq("id", id).maybeSingle();
+        if (p) {
+          setDados({
+            nome: p.nome, descricao: p.descricao ?? "", restricoes: p.restricoes ?? "", preco: p.preco != null ? String(p.preco).replace(".", ",") : "",
+            disponibilidade: p.disponibilidade, prazo: p.prazo ?? "", selo: p.selo ?? "", destaque: p.destaque, ativo: p.ativo, categoria_id: p.categoria_id,
+          });
+          const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
+          setVariacoes(vs.map((v: Record<string, unknown>) => ({
+            id: v.id as string, tamanho: (v.tamanho as string) ?? "", cor: (v.cor as string) ?? "",
+            preco: v.preco != null ? String(v.preco).replace(".", ",") : "", disponibilidade: (v.disponibilidade as Disponibilidade) ?? "",
+            prazo: (v.prazo as string) ?? "", ativa: v.ativa as boolean,
+          })));
+          const ms = [...p.midias].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
+          setMidias(ms.map((m: { id: string; tipo: "foto" | "video"; url: string }) => ({ id: m.id, tipo: m.tipo, url: m.url })));
+          setMarcadas(p.produtos_colecoes.map((pc: { colecao_id: string }) => pc.colecao_id));
+          originais.current = { variacoes: vs.map((v: { id: string }) => v.id), midias: ms.map((m: { id: string }) => m.id) };
+        }
+      }
+      setCarregado(true);
+    })();
+  }, [slug, id, novo]);
+
+  if (!loja || !carregado) return <p className="opacity-60">Carregando...</p>;
+  const cor = loja.cor ?? "#333";
+  const mudar = <K extends keyof Dados>(campo: K, valor: Dados[K]) => { setDados({ ...dados, [campo]: valor }); setMensagem(null); };
+
+  // ---- Variações ----
+  const mudarVariacao = (i: number, campo: keyof LinhaVariacao, valor: string | boolean) =>
+    setVariacoes(variacoes.map((v, j) => (j === i ? { ...v, [campo]: valor } : v)));
+  const novaVariacao = () => setVariacoes([...variacoes, { tamanho: "", cor: "", preco: dados.preco, disponibilidade: "", prazo: "", ativa: true }]);
+
+  // ---- Fotos e vídeos ----
+  async function adicionarArquivos(lista: FileList | null) {
+    if (!lista || !loja) return;
+    const arquivos = Array.from(lista);
+    setEnviando((n) => n + arquivos.length);
+    for (const arquivo of arquivos) {
+      try {
+        const enviado = await enviarArquivo(arquivo, loja.slug);
+        setMidias((atual) => [...atual, enviado]);
+      } catch (e) {
+        setMensagem({ tipo: "erro", texto: (e as Error).message });
+      }
+      setEnviando((n) => n - 1);
+    }
+    if (entradaArquivos.current) entradaArquivos.current.value = "";
+  }
+  const moverMidia = (i: number, direcao: -1 | 1) => {
+    const j = i + direcao;
+    if (j < 0 || j >= midias.length) return;
+    const nova = [...midias];
+    [nova[i], nova[j]] = [nova[j], nova[i]];
+    setMidias(nova);
+  };
+
+  // ---- Salvar tudo ----
+  async function salvar() {
+    if (!loja) return;
+    if (!dados.nome.trim()) return setMensagem({ tipo: "erro", texto: "Coloque pelo menos o nome do produto." });
+    if (enviando > 0) return setMensagem({ tipo: "erro", texto: "Espere as fotos terminarem de enviar." });
+    setSalvando(true);
+    const supabase = supabaseNavegador();
+    try {
+      // 1) O produto
+      const linha = {
+        loja_id: loja.id, nome: dados.nome.trim(), descricao: dados.descricao || null, restricoes: dados.restricoes || null,
+        preco: paraNumero(dados.preco), disponibilidade: dados.disponibilidade, prazo: dados.prazo || null, selo: dados.selo || null,
+        destaque: dados.destaque, ativo: dados.ativo, categoria_id: dados.categoria_id,
+      };
+      const r = novo
+        ? await supabase.from("produtos").insert(linha).select("id").single()
+        : await supabase.from("produtos").update(linha).eq("id", id).select("id").single();
+      if (r.error) throw r.error;
+      const produtoId: string = r.data.id;
+
+      // 2) Variações: apaga as removidas, atualiza as que já existiam e cria as novas
+      const vMantidas = variacoes.filter((v) => v.id).map((v) => v.id!);
+      const vApagar = originais.current.variacoes.filter((x) => !vMantidas.includes(x));
+      if (vApagar.length) { const e = await supabase.from("variacoes").delete().in("id", vApagar); if (e.error) throw e.error; }
+      const paraBanco = (v: LinhaVariacao, ordem: number) => ({
+        produto_id: produtoId, tamanho: v.tamanho.trim() || null, cor: v.cor.trim() || null, preco: paraNumero(v.preco),
+        disponibilidade: v.disponibilidade || null, prazo: v.prazo.trim() || null, ativa: v.ativa, ordem,
+      });
+      const vExistentes = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => v.id).map(({ v, i }) => ({ id: v.id, ...paraBanco(v, i) }));
+      const vNovas = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => !v.id).map(({ v, i }) => paraBanco(v, i));
+      if (vExistentes.length) { const e = await supabase.from("variacoes").upsert(vExistentes); if (e.error) throw e.error; }
+      if (vNovas.length) { const e = await supabase.from("variacoes").insert(vNovas); if (e.error) throw e.error; }
+
+      // 3) Fotos e vídeos: mesma lógica, com a ordem da tela
+      const mMantidas = midias.filter((m) => m.id).map((m) => m.id!);
+      const mApagar = originais.current.midias.filter((x) => !mMantidas.includes(x));
+      if (mApagar.length) { const e = await supabase.from("midias").delete().in("id", mApagar); if (e.error) throw e.error; }
+      const mExistentes = midias.map((m, i) => ({ m, i })).filter(({ m }) => m.id).map(({ m, i }) => ({ id: m.id, produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i }));
+      const mNovas = midias.map((m, i) => ({ m, i })).filter(({ m }) => !m.id).map(({ m, i }) => ({ produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i }));
+      if (mExistentes.length) { const e = await supabase.from("midias").upsert(mExistentes); if (e.error) throw e.error; }
+      if (mNovas.length) { const e = await supabase.from("midias").insert(mNovas); if (e.error) throw e.error; }
+
+      // 4) Coleções: apaga as ligações e cria de novo com as marcadas
+      const e1 = await supabase.from("produtos_colecoes").delete().eq("produto_id", produtoId);
+      if (e1.error) throw e1.error;
+      if (marcadas.length) {
+        const e2 = await supabase.from("produtos_colecoes").insert(marcadas.map((c) => ({ produto_id: produtoId, colecao_id: c })));
+        if (e2.error) throw e2.error;
+      }
+
+      // Recarrega a tela para pegar os ids novos (evita duplicar ao salvar de novo)
+      if (novo) router.replace(`/admin/${slug}/produtos/${produtoId}`);
+      else window.location.reload();
+    } catch (e) {
+      setMensagem({ tipo: "erro", texto: `Não deu para salvar: ${(e as Error).message}` });
+      setSalvando(false);
+    }
+  }
+
+  async function excluir() {
+    if (novo || !confirm(`Excluir "${dados.nome}" para sempre? (Para só esconder, desligue "Visível na loja".)`)) return;
+    const { error } = await supabaseNavegador().from("produtos").delete().eq("id", id);
+    if (error) setMensagem({ tipo: "erro", texto: error.message });
+    else router.replace(`/admin/${slug}/produtos`);
+  }
+
+  const principais = categorias.filter((c) => !c.parent_id);
+  const celula = "w-full rounded-lg border bg-white px-2 py-1.5 text-sm";
+
+  return (
+    <>
+      <AbasLoja slug={slug} nome={loja.nome} cor={cor} />
+      <Link href={`/admin/${slug}/produtos`} className="text-sm opacity-60">← Produtos</Link>
+      <h2 className="mt-1 mb-4 text-xl font-bold">{novo ? "Novo produto" : dados.nome}</h2>
+
+      <Bloco titulo="📷 Fotos e vídeos">
+        <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas antes de enviar. Vídeos: curtos (até 20 MB).</p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {midias.map((m, i) => (
+            <div key={m.url} className="relative overflow-hidden rounded-xl border bg-stone-100">
+              {m.tipo === "video"
+                ? <video src={m.url} muted loop autoPlay playsInline className="aspect-square w-full object-cover" />
+                : <img src={m.url} alt="" className="aspect-square w-full object-cover" />}
+              {i === 0 && <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 text-[10px] text-white">Capa</span>}
+              <div className="flex justify-between bg-white text-sm">
+                <button type="button" onClick={() => moverMidia(i, -1)} className="px-2 py-1" aria-label="Mover para a esquerda">◀</button>
+                <button type="button" onClick={() => setMidias(midias.filter((_, j) => j !== i))} className="px-2 py-1 text-red-600" aria-label="Remover">🗑️</button>
+                <button type="button" onClick={() => moverMidia(i, 1)} className="px-2 py-1" aria-label="Mover para a direita">▶</button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={() => entradaArquivos.current?.click()}
+            className="flex aspect-square flex-col items-center justify-center rounded-xl border-2 border-dashed text-sm opacity-70">
+            <span className="text-2xl">＋</span>{enviando > 0 ? `Enviando ${enviando}...` : "Adicionar"}
+          </button>
+        </div>
+        <input ref={entradaArquivos} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => adicionarArquivos(e.target.files)} />
+      </Bloco>
+
+      <Bloco titulo="📝 Informações">
+        <Campo rotulo="Nome"><input className={estiloInput} value={dados.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
+        <Campo rotulo="Descrição (pode usar emojis 😊)"><textarea rows={4} className={estiloInput} value={dados.descricao} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
+        <Campo rotulo="Restrições / avisos (ex.: cores disponíveis, prazo maior para personalizados)">
+          <textarea rows={2} className={estiloInput} value={dados.restricoes} onChange={(e) => mudar("restricoes", e.target.value)} />
+        </Campo>
+        <Campo rotulo="Selo no cartão (ex.: Novo, Mais vendido, Últimas unidades)"><input className={estiloInput} value={dados.selo} onChange={(e) => mudar("selo", e.target.value)} /></Campo>
+      </Bloco>
+
+      <Bloco titulo="💰 Preço e situação">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Campo rotulo="Preço (vazio = sob consulta)"><input className={estiloInput} inputMode="decimal" value={dados.preco} onChange={(e) => mudar("preco", e.target.value)} placeholder="25,90" /></Campo>
+          <Campo rotulo="Situação">
+            <select className={estiloInput} value={dados.disponibilidade} onChange={(e) => mudar("disponibilidade", e.target.value as Disponibilidade)}>
+              {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
+            </select>
+          </Campo>
+          <Campo rotulo="Prazo (ex.: 10 dias)"><input className={estiloInput} value={dados.prazo} onChange={(e) => mudar("prazo", e.target.value)} /></Campo>
+        </div>
+        <p className="text-xs opacity-60">Se o produto tiver variações com preço, o cartão mostra "a partir de" o menor preço delas.</p>
+      </Bloco>
+
+      <Bloco titulo="🗂️ Categoria e coleções">
+        <Campo rotulo="Categoria">
+          <select className={estiloInput} value={dados.categoria_id ?? ""} onChange={(e) => mudar("categoria_id", e.target.value || null)}>
+            <option value="">Sem categoria</option>
+            {principais.map((c) => [
+              <option key={c.id} value={c.id}>{c.nome}</option>,
+              ...categorias.filter((s) => s.parent_id === c.id).map((s) => <option key={s.id} value={s.id}>{"   ↳ "}{s.nome}</option>),
+            ])}
+          </select>
+        </Campo>
+        {colecoes.length > 0 && (
+          <div>
+            <span className="text-sm font-semibold">Coleções</span>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {colecoes.map((c) => {
+                const ligada = marcadas.includes(c.id);
+                return (
+                  <button key={c.id} type="button" onClick={() => setMarcadas(ligada ? marcadas.filter((x) => x !== c.id) : [...marcadas, c.id])}
+                    className="rounded-full border px-3 py-1.5 text-sm" style={ligada ? { background: cor, color: "white", borderColor: cor } : {}}>
+                    {ligada ? "✓ " : ""}{c.nome}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <Link href={`/admin/${slug}/categorias`} className="inline-block text-xs underline opacity-70">Criar ou editar categorias e coleções →</Link>
+      </Bloco>
+
+      <Bloco titulo="📏 Variações (tamanho + cor)">
+        <p className="text-xs opacity-60">
+          Cada linha é uma opção que o cliente escolhe. Cor vazia = "todas as cores" (cliente escreve na observação).
+          Situação vazia = vale a do produto.
+        </p>
+        {variacoes.map((v, i) => (
+          <div key={v.id ?? `nova-${i}`} className={`grid grid-cols-2 gap-2 rounded-xl border p-2 sm:grid-cols-6 ${v.ativa ? "" : "opacity-50"}`}>
+            <input className={celula} placeholder="Tamanho (15 cm)" value={v.tamanho} onChange={(e) => mudarVariacao(i, "tamanho", e.target.value)} />
+            <input className={celula} placeholder="Cor (azul)" value={v.cor} onChange={(e) => mudarVariacao(i, "cor", e.target.value)} />
+            <input className={celula} placeholder="Preço" inputMode="decimal" value={v.preco} onChange={(e) => mudarVariacao(i, "preco", e.target.value)} />
+            <select className={celula} value={v.disponibilidade} onChange={(e) => mudarVariacao(i, "disponibilidade", e.target.value)}>
+              <option value="">(do produto)</option>
+              {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
+            </select>
+            <input className={celula} placeholder="Prazo" value={v.prazo} onChange={(e) => mudarVariacao(i, "prazo", e.target.value)} />
+            <div className="flex items-center justify-end gap-1">
+              <button type="button" onClick={() => mudarVariacao(i, "ativa", !v.ativa)} className="rounded-lg border px-2 py-1 text-xs">{v.ativa ? "Ativa" : "Oculta"}</button>
+              <button type="button" onClick={() => setVariacoes(variacoes.filter((_, j) => j !== i))} className="rounded-lg px-2 py-1 text-red-600" aria-label="Remover variação">🗑️</button>
+            </div>
+          </div>
+        ))}
+        <button type="button" onClick={novaVariacao} className="rounded-full border px-4 py-2 text-sm">+ Adicionar variação</button>
+      </Bloco>
+
+      <Bloco titulo="👀 Visibilidade">
+        <Interruptor rotulo="Visível na loja" ajuda="Desligado: o produto some da loja (sem apagar)." ligado={dados.ativo} aoMudar={(v) => mudar("ativo", v)} />
+        <Interruptor rotulo="⭐ Destaque" ajuda="Aparece na seção Destaques." ligado={dados.destaque} aoMudar={(v) => mudar("destaque", v)} />
+      </Bloco>
+
+      <BarraSalvar mensagem={mensagem} salvando={salvando} aoSalvar={salvar} cor={cor}
+        extra={!novo && <button type="button" onClick={excluir} className="rounded-xl border border-red-300 px-4 text-sm text-red-600">Excluir</button>} />
+    </>
+  );
+}

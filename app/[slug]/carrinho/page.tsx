@@ -9,8 +9,7 @@ import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Loja } from "@/lib/tipos";
 import Carrinho from "@/components/Carrinho";
-import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
-import TemaDaLoja from "@/components/TemaDaLoja";
+import LayoutDaLoja from "@/components/LayoutDaLoja";
 import { buscarMenuDaLoja } from "@/lib/menu";
 import { EsqueletoProduto } from "@/components/Esqueleto";
 
@@ -38,15 +37,17 @@ async function ConteudoDoCarrinho({ params }: Props) {
   const menu = await buscarMenuDaLoja(loja.id);
 
   return (
-    // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
-    <TemaDaLoja loja={loja}>
-      <CabecalhoDaLoja loja={loja} menu={menu} />
-    <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <h2 className="text-2xl font-bold" style={{ color: loja.cor ?? "#333" }}>
-        🛒 Seu carrinho
-      </h2>
-      <Carrinho loja={loja} />
-    </main>
-    </TemaDaLoja>
+    // LayoutDaLoja: banner, menu lateral e painel direito (iguais aos da loja)
+    <LayoutDaLoja loja={loja} menu={menu}>
+      <div className="mx-auto max-w-2xl">
+        <h2 className="mt-4 flex items-center gap-3 text-2xl font-bold" style={{ color: loja.cor ?? "#333" }}>
+          <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 bg-white text-lg" style={{ borderColor: loja.cor ?? "#333" }}>
+            {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+          </span>
+          🛒 Seu carrinho
+        </h2>
+        <Carrinho loja={loja} />
+      </div>
+    </LayoutDaLoja>
   );
 }

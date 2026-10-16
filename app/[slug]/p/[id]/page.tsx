@@ -13,8 +13,7 @@ import type { Loja, Produto } from "@/lib/tipos";
 import { buscarMenuDaLoja } from "@/lib/menu";
 import { formatarPreco, precoMinimo } from "@/lib/formato";
 import EscolhaDoProduto from "@/components/EscolhaDoProduto";
-import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
-import TemaDaLoja from "@/components/TemaDaLoja";
+import LayoutDaLoja from "@/components/LayoutDaLoja";
 import Galeria from "@/components/Galeria";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import { EsqueletoProduto } from "@/components/Esqueleto";
@@ -72,12 +71,10 @@ async function ConteudoDoProduto({ params }: Props) {
   const foto = midias.find((m) => m.tipo === "foto")?.url; // miniatura que "voa" até o carrinho
 
   return (
-    // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
-    <TemaDaLoja loja={loja}>
-      <CabecalhoDaLoja loja={loja} menu={menu} />
-      <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-28">
+    // LayoutDaLoja: banner, menu lateral e painel direito (iguais aos da loja)
+    <LayoutDaLoja loja={loja} menu={menu}>
         {/* Celular: uma coluna. Computador (md): fotos à esquerda, informações à direita */}
-        <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-8">
+        <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
           <Galeria midias={midias} nome={produto.nome} cor={cor} />
 
           <div>
@@ -104,7 +101,6 @@ async function ConteudoDoProduto({ params }: Props) {
             <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} />
           </div>
         </div>
-      </main>
-    </TemaDaLoja>
+    </LayoutDaLoja>
   );
 }

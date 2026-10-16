@@ -41,7 +41,7 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
           <button type="button" onClick={abrirMenu} aria-label="Abrir menu" className="rounded-full bg-white/15 px-3 py-1.5 lg:hidden">☰</button>
         )}
         {/* Logo + nome: sempre mostram em qual loja a pessoa está */}
-        <Link href={`/${loja.slug}`} className="flex min-w-0 flex-1 items-center gap-2">
+        <Link href={`/${loja.slug}`} className="flex min-w-0 flex-1 items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/60">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-bold shadow" style={{ color: cor }}>
             {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
           </span>
