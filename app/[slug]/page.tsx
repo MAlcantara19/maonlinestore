@@ -19,7 +19,9 @@ import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao, Loja, Produto } from "@/lib/tipos";
 import BotaoCarrinho from "@/components/BotaoCarrinho";
 import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
+import TemaDaLoja from "@/components/TemaDaLoja";
 import { montarMenu } from "@/lib/menu";
+import MenuLateral from "@/components/MenuLateral";
 
 // Next.js entrega o slug do endereço dentro de "params".
 type Props = { params: Promise<{ slug: string }> };
@@ -42,7 +44,7 @@ async function ConteudoDaLoja({ params }: Props) {
   // 1) A loja pelo slug. Se não existir ou estiver desativada: página 404.
   const { data: loja } = await supabase
     .from("lojas")
-    .select("id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido")
+    .select("id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte")
     .eq("slug", slug)
     .eq("ativa", true)
     .maybeSingle<Loja>();
@@ -79,21 +81,23 @@ async function ConteudoDaLoja({ params }: Props) {
   const principais = categorias.filter((c) => !c.parent_id);
   const subsDe = (id: string) => categorias.filter((c) => c.parent_id === id);
 
-  // Produtos de uma categoria INCLUINDO os das subcategorias dela.
-  const produtosDaCategoria = (cat: Categoria) => {
-    const ids = [cat.id, ...subsDe(cat.id).map((s) => s.id)];
-    return produtos.filter((p) => p.categoria_id && ids.includes(p.categoria_id));
-  };
+  // Atalhos do menu (lateral no computador, barra + gaveta no celular)
+  const menu = montarMenu(categorias, colecoes, produtos);
 
   return (
-    <>
+    // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
+    <TemaDaLoja loja={loja}>
       {/* 1) Banner + menu rápido (componente CabecalhoDaLoja) */}
-      <CabecalhoDaLoja loja={loja} menu={montarMenu(categorias, colecoes, produtos)} />
+      <CabecalhoDaLoja loja={loja} menu={[]} />
 
-    <main className="mx-auto max-w-6xl px-4 pt-4 pb-28">
+    {/* Computador: menu lateral + conteúdo lado a lado. Celular: um embaixo do outro */}
+    <div className="mx-auto max-w-7xl lg:flex lg:items-start lg:gap-6 lg:px-4">
+      <MenuLateral slug={slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} />
+    <main className="min-w-0 flex-1 px-4 pt-4 pb-28 lg:px-0">
       {/* 2) Como funciona o pedido (resumo no topo; no carrinho vai aparecer de novo) */}
       {loja.aviso_pedido && (
-        <div className="mt-4 whitespace-pre-line rounded-xl border p-4 text-sm" style={{ borderColor: cor }}>
+        <div className="mt-4 w-fit max-w-full whitespace-pre-line rounded-xl border p-4 text-sm"
+          style={{ borderColor: cor, background: loja.cor_secundaria ? `${loja.cor_secundaria}55` : undefined }}>
           <b className="mb-1 block">Como funciona o pedido</b>
           {loja.aviso_pedido}
         </div>
@@ -114,8 +118,7 @@ async function ConteudoDaLoja({ params }: Props) {
 
       {/* 5) Uma seção por categoria (já inclui as subcategorias) */}
       {principais.map((cat) => (
-        <Secao key={cat.id} id={`categoria-${cat.id}`} titulo={cat.nome} descricao={cat.descricao} cor={cor} slug={slug}
-          subcategorias={subsDe(cat.id).map((s) => s.nome)} produtos={produtosDaCategoria(cat)} />
+        <SecaoCategoria key={cat.id} categoria={cat} subcategorias={subsDe(cat.id)} produtos={produtos} cor={cor} slug={slug} />
       ))}
 
       {/* Coleções que não estão em destaque (ex.: Dia das Crianças, Santos) */}
@@ -129,7 +132,8 @@ async function ConteudoDaLoja({ params }: Props) {
       {/* Barra "Ver carrinho" no rodapé, quando houver itens */}
       <BotaoCarrinho slug={slug} cor={cor} />
     </main>
-    </>
+    </div>
+    </TemaDaLoja>
   );
 }
 
@@ -155,8 +159,8 @@ function Secao(props: {
       )}
       {/* Celular: 2 colunas · tablet (sm): 3 · computador (lg): 4 */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {props.produtos.map((p) => (
-          <CardDoProduto key={p.id} produto={p} cor={props.cor} slug={props.slug} />
+        {props.produtos.map((p, i) => (
+          <CardDoProduto key={p.id} produto={p} cor={props.cor} slug={props.slug} indice={i} />
         ))}
       </div>
     </section>
@@ -166,7 +170,7 @@ function Secao(props: {
 // ---------------------------------------------------------------------
 // Cartão de um produto: foto, nome, preço "a partir de" e situação.
 // ---------------------------------------------------------------------
-function CardDoProduto({ produto, cor, slug }: { produto: Produto; cor: string; slug: string }) {
+function CardDoProduto({ produto, cor, slug, indice = 0 }: { produto: Produto; cor: string; slug: string; indice?: number }) {
   // Primeira foto, pela ordem definida no cadastro.
   const foto = [...produto.midias].filter((m) => m.tipo === "foto").sort((a, b) => a.ordem - b.ordem)[0];
 
@@ -176,7 +180,9 @@ function CardDoProduto({ produto, cor, slug }: { produto: Produto; cor: string; 
 
   return (
     // O cartão inteiro é um link para a página do produto
-    <Link href={`/${slug}/p/${produto.id}`} className="clicavel cartao block rounded-xl border p-2" style={{ borderColor: "#0001" }}>
+    <Link href={`/${slug}/p/${produto.id}`} className="clicavel cartao animar-entrada block rounded-xl border p-2"
+      // Os cartões aparecem um depois do outro (efeito "cascata")
+      style={{ borderColor: "#0001", animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg text-xs opacity-80"
         style={{ background: `${cor}22` }}>
         {foto ? <img src={foto.url} alt={produto.nome} className="h-full w-full object-cover" /> : "sem foto"}
@@ -187,6 +193,45 @@ function CardDoProduto({ produto, cor, slug }: { produto: Produto; cor: string; 
       </span>
       <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>
     </Link>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Seção de uma CATEGORIA: primeiro os produtos dela mesma, depois um
+// bloco para cada subcategoria (com âncora própria para o menu lateral).
+// ---------------------------------------------------------------------
+function SecaoCategoria({ categoria, subcategorias, produtos, cor, slug }: {
+  categoria: Categoria;
+  subcategorias: Categoria[];
+  produtos: Produto[];
+  cor: string;
+  slug: string;
+}) {
+  const diretos = produtos.filter((p) => p.categoria_id === categoria.id);
+  const grupos = subcategorias
+    .map((sub) => ({ sub, itens: produtos.filter((p) => p.categoria_id === sub.id) }))
+    .filter((g) => g.itens.length > 0);
+  if (diretos.length === 0 && grupos.length === 0) return null;
+
+  const grade = (lista: Produto[]) => (
+    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {lista.map((p, i) => <CardDoProduto key={p.id} produto={p} cor={cor} slug={slug} indice={i} />)}
+    </div>
+  );
+
+  return (
+    <section id={`categoria-${categoria.id}`} className="mt-8 scroll-mt-16">
+      <h2 className="text-xl font-bold">{categoria.nome}</h2>
+      {categoria.descricao && <p className="text-sm opacity-70">{categoria.descricao}</p>}
+      {diretos.length > 0 && grade(diretos)}
+      {grupos.map(({ sub, itens }) => (
+        <div key={sub.id} id={`sub-${sub.id}`} className="mt-6 scroll-mt-16">
+          <h3 className="font-semibold" style={{ color: cor }}>{sub.nome}</h3>
+          {sub.descricao && <p className="text-xs opacity-70">{sub.descricao}</p>}
+          {grade(itens)}
+        </div>
+      ))}
+    </section>
   );
 }
 

@@ -7,7 +7,8 @@
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao } from "@/lib/tipos";
 
-export type ItemMenu = { id: string; rotulo: string }; // id = âncora da seção na página
+// id = âncora da seção na página; filhos = subcategorias (só nas categorias)
+export type ItemMenu = { id: string; rotulo: string; filhos?: ItemMenu[] };
 
 // O mínimo que precisamos saber de cada produto para montar o menu.
 type ProdutoResumo = { id: string; categoria_id: string | null; destaque: boolean };
@@ -26,9 +27,14 @@ export function montarMenu(categorias: Categoria[], colecoes: Colecao[], produto
 
   // 3) Categorias principais (contando os produtos das subcategorias)
   categorias.filter((c) => !c.parent_id).forEach((cat) => {
-    const ids = [cat.id, ...categorias.filter((s) => s.parent_id === cat.id).map((s) => s.id)];
+    const subs = categorias.filter((s) => s.parent_id === cat.id);
+    const ids = [cat.id, ...subs.map((s) => s.id)];
     if (produtos.some((p) => p.categoria_id && ids.includes(p.categoria_id))) {
-      itens.push({ id: `categoria-${cat.id}`, rotulo: cat.nome });
+      // Subcategorias que têm produto viram "filhos" (aparecem ao expandir no menu lateral)
+      const filhos = subs
+        .filter((s) => produtos.some((p) => p.categoria_id === s.id))
+        .map((s) => ({ id: `sub-${s.id}`, rotulo: s.nome }));
+      itens.push({ id: `categoria-${cat.id}`, rotulo: cat.nome, filhos });
     }
   });
 

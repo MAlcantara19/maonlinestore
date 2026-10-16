@@ -36,7 +36,13 @@ export default function TemaDaLoja({ loja, children }: { loja: Loja; children: R
   return (
     <div className="tema-loja min-h-screen" style={estilo}>
       {fonte.link && <link rel="stylesheet" href={fonte.link} precedence="default" />}
-      <style>{`.tema-loja h1, .tema-loja h2, .tema-loja h3 { font-family: var(--fonte-titulo); }`}</style>
+      <style>{`
+        .tema-loja h1, .tema-loja h2, .tema-loja h3 { font-family: var(--fonte-titulo); }
+        /* Entrada suave dos cartões: sobem e aparecem */
+        @keyframes aparecer { from { opacity: 0; transform: translateY(14px); } }
+        .animar-entrada { animation: aparecer 0.45s ease-out backwards; }
+        @media (prefers-reduced-motion: reduce) { .animar-entrada { animation: none; } }
+      `}</style>
       {children}
       <VoltarAoTopo cor={loja.cor ?? "#333"} />
     </div>

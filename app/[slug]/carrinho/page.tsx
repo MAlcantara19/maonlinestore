@@ -25,7 +25,7 @@ export default function PaginaDoCarrinho({ params }: Props) {
 
 async function ConteudoDoCarrinho({ params }: Props) {
   await connection();
-  const { slug } = await params;
+  const { slug } = await paqrams;
 
   const { data: loja } = await supabase
     .from("lojas")
