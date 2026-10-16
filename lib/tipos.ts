@@ -14,6 +14,9 @@ export type Loja = {
   logo_url: string | null; // endereço da logo (vazio = mostra a inicial)
   whatsapp?: string | null; // número que recebe os pedidos desta loja
   aviso_pedido?: string | null; // texto "Como funciona o pedido"
+  cor_secundaria?: string | null; // cor de apoio, mais clara (linha de atalhos, avisos)
+  cor_fundo?: string | null; // fundo da página da loja (vazio = padrão do site)
+  fonte?: "moderna" | "elegante" | "divertida"; // estilo dos títulos
 };
 
 // Tabela "categorias": parent_id vazio = categoria; preenchido = subcategoria.

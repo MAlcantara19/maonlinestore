@@ -5,7 +5,6 @@
 // Mostra: fotos e vídeos, nome, descrição, restrições e a escolha
 // de tamanho/cor (componente EscolhaDoProduto).
 // =====================================================================
-import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -13,6 +12,9 @@ import { supabase } from "@/lib/supabase";
 import type { Loja, Produto } from "@/lib/tipos";
 import EscolhaDoProduto from "@/components/EscolhaDoProduto";
 import BotaoCarrinho from "@/components/BotaoCarrinho";
+import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
+import TemaDaLoja from "@/components/TemaDaLoja";
+import { buscarMenuDaLoja } from "@/lib/menu";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
@@ -31,7 +33,7 @@ async function ConteudoDoProduto({ params }: Props) {
   // A loja (precisamos da cor e para garantir que o produto é dela).
   const { data: loja } = await supabase
     .from("lojas")
-    .select("id, slug, nome, cor, logo_url, descricao")
+    .select("id, slug, nome, cor, logo_url, descricao, cor_secundaria, cor_fundo, fonte")
     .eq("slug", slug)
     .eq("ativa", true)
     .maybeSingle<Loja>();
@@ -50,14 +52,19 @@ async function ConteudoDoProduto({ params }: Props) {
   if (!produto) notFound();
 
   const cor = loja.cor ?? "#333";
+  const menu = await buscarMenuDaLoja(loja.id); // atalhos do menu rápido
   const midias = [...produto.midias].sort((a, b) => a.ordem - b.ordem);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pt-6 pb-28">
-      <Link href={`/${slug}`} className="text-sm opacity-70">← {loja.nome}</Link>
+    // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
+    <TemaDaLoja loja={loja}>
+      <CabecalhoDaLoja loja={loja} menu={menu} />
+    <main className="mx-auto max-w-5xl px-4 pt-4 pb-28">
 
+      {/* Celular: uma coluna. Computador (md): duas colunas, fotos à esquerda e informações à direita */}
+      <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-8">
       {/* Galeria: arraste para o lado para ver as outras fotos/vídeos */}
-      <div className="mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto">
+      <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto">
         {midias.length === 0 && (
           <div className="flex aspect-square w-full shrink-0 items-center justify-center rounded-xl text-sm opacity-80"
             style={{ background: `${cor}22` }}>
@@ -76,7 +83,9 @@ async function ConteudoDoProduto({ params }: Props) {
         )}
       </div>
 
-      <h1 className="mt-4 text-2xl font-bold">{produto.nome}</h1>
+      {/* Coluna das informações */}
+      <div>
+      <h1 className="mt-4 text-2xl font-bold md:mt-0">{produto.nome}</h1>
       {produto.descricao && <p className="mt-2 whitespace-pre-line">{produto.descricao}</p>}
 
       {/* Restrições/avisos do produto, se houver */}
@@ -87,7 +96,10 @@ async function ConteudoDoProduto({ params }: Props) {
       )}
 
       <EscolhaDoProduto produto={produto} slug={slug} cor={cor} />
+      </div>
+      </div>
       <BotaoCarrinho slug={slug} cor={cor} />
     </main>
+    </TemaDaLoja>
   );
 }

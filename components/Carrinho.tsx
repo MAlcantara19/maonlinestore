@@ -77,7 +77,8 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
       {/* Como funciona o pedido: aparece logo antes de enviar */}
       {loja.aviso_pedido && (
-        <div className="mt-4 whitespace-pre-line rounded-xl border p-4 text-sm" style={{ borderColor: cor }}>
+        <div className="mt-4 w-fit max-w-full whitespace-pre-line rounded-xl border p-4 text-sm"
+          style={{ borderColor: cor, background: loja.cor_secundaria ? `${loja.cor_secundaria}55` : undefined }}>
           <b className="mb-1 block">Antes de enviar, fique atento:</b>
           {loja.aviso_pedido}
         </div>

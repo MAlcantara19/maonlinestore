@@ -18,6 +18,8 @@ import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao, Loja, Produto } from "@/lib/tipos";
 import BotaoCarrinho from "@/components/BotaoCarrinho";
+import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
+import { montarMenu } from "@/lib/menu";
 
 // Next.js entrega o slug do endereço dentro de "params".
 type Props = { params: Promise<{ slug: string }> };
@@ -84,12 +86,11 @@ async function ConteudoDaLoja({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pt-6 pb-28">
-      {/* 1) Cabeçalho */}
-      <Link href="/" className="text-sm opacity-70">← Todas as lojas</Link>
-      <h1 className="mt-2 text-3xl font-bold" style={{ color: cor }}>{loja.nome}</h1>
-      {loja.descricao && <p className="text-sm opacity-70">{loja.descricao}</p>}
+    <>
+      {/* 1) Banner + menu rápido (componente CabecalhoDaLoja) */}
+      <CabecalhoDaLoja loja={loja} menu={montarMenu(categorias, colecoes, produtos)} />
 
+    <main className="mx-auto max-w-6xl px-4 pt-4 pb-28">
       {/* 2) Como funciona o pedido (resumo no topo; no carrinho vai aparecer de novo) */}
       {loja.aviso_pedido && (
         <div className="mt-4 whitespace-pre-line rounded-xl border p-4 text-sm" style={{ borderColor: cor }}>
@@ -104,16 +105,16 @@ async function ConteudoDaLoja({ params }: Props) {
       {colecoes
         .filter((c) => c.em_destaque)
         .map((c) => (
-          <Secao key={c.id} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
+          <Secao key={c.id} id={`colecao-${c.id}`} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
             produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
         ))}
 
       {/* 4) Produtos marcados como destaque */}
-      <Secao titulo="Destaques" cor={cor} slug={slug} produtos={produtos.filter((p) => p.destaque)} />
+      <Secao id="destaques" titulo="Destaques" cor={cor} slug={slug} produtos={produtos.filter((p) => p.destaque)} />
 
       {/* 5) Uma seção por categoria (já inclui as subcategorias) */}
       {principais.map((cat) => (
-        <Secao key={cat.id} titulo={cat.nome} descricao={cat.descricao} cor={cor} slug={slug}
+        <Secao key={cat.id} id={`categoria-${cat.id}`} titulo={cat.nome} descricao={cat.descricao} cor={cor} slug={slug}
           subcategorias={subsDe(cat.id).map((s) => s.nome)} produtos={produtosDaCategoria(cat)} />
       ))}
 
@@ -121,13 +122,14 @@ async function ConteudoDaLoja({ params }: Props) {
       {colecoes
         .filter((c) => !c.em_destaque)
         .map((c) => (
-          <Secao key={c.id} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
+          <Secao key={c.id} id={`colecao-${c.id}`} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
             produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
         ))}
 
       {/* Barra "Ver carrinho" no rodapé, quando houver itens */}
       <BotaoCarrinho slug={slug} cor={cor} />
     </main>
+    </>
   );
 }
 
@@ -135,6 +137,7 @@ async function ConteudoDaLoja({ params }: Props) {
 // Uma seção da página: título + grade de produtos. Se não houver produto, some.
 // ---------------------------------------------------------------------
 function Secao(props: {
+  id: string; // âncora usada pelo menu rápido (ex.: #destaques)
   titulo: string;
   descricao?: string | null;
   subcategorias?: string[];
@@ -144,13 +147,14 @@ function Secao(props: {
 }) {
   if (props.produtos.length === 0) return null;
   return (
-    <section className="mt-8">
+    <section id={props.id} className="mt-8 scroll-mt-16">
       <h2 className="text-xl font-bold">{props.titulo}</h2>
       {props.descricao && <p className="text-sm opacity-70">{props.descricao}</p>}
       {props.subcategorias && props.subcategorias.length > 0 && (
         <p className="mt-1 text-xs opacity-60">{props.subcategorias.join(" · ")}</p>
       )}
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {/* Celular: 2 colunas · tablet (sm): 3 · computador (lg): 4 */}
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {props.produtos.map((p) => (
           <CardDoProduto key={p.id} produto={p} cor={props.cor} slug={props.slug} />
         ))}
@@ -172,7 +176,7 @@ function CardDoProduto({ produto, cor, slug }: { produto: Produto; cor: string; 
 
   return (
     // O cartão inteiro é um link para a página do produto
-    <Link href={`/${slug}/p/${produto.id}`} className="block rounded-xl border p-2" style={{ borderColor: "#0001" }}>
+    <Link href={`/${slug}/p/${produto.id}`} className="clicavel cartao block rounded-xl border p-2" style={{ borderColor: "#0001" }}>
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg text-xs opacity-80"
         style={{ background: `${cor}22` }}>
         {foto ? <img src={foto.url} alt={produto.nome} className="h-full w-full object-cover" /> : "sem foto"}

@@ -15,7 +15,7 @@ export default function BotaoCarrinho({ slug, cor }: { slug: string; cor: string
     <div className="fixed inset-x-0 bottom-0 p-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}>
       <Link
         href={`/${slug}/carrinho`}
-        className="mx-auto block max-w-3xl rounded-xl p-4 text-center font-semibold text-white shadow-lg"
+        className="clicavel mx-auto block max-w-3xl rounded-xl p-4 text-center font-semibold text-white shadow-lg"
         style={{ background: cor }}
       >
         🛒 Ver carrinho ({total} {total === 1 ? "item" : "itens"})

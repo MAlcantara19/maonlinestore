@@ -24,3 +24,43 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+
+
+
+
+/* =====================================================================
+   ANIMAÇÕES DOS BOTÕES E CARTÕES
+   mais visível, e vale também para os botões do carrinho).
+   - .clicavel = links que parecem botão (cartões, círculos, menus)
+   - .cartao   = cartões que sobem ao passar o mouse (computador)
+   ===================================================================== */
+button,
+.clicavel {
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+/* Ao clicar/tocar: "afunda" */
+button:active:not(:disabled),
+.clicavel:active {
+  transform: scale(0.94);
+}
+/* Só em quem tem mouse (computador): sobe um pouco e ganha sombra */
+@media (hover: hover) {
+  button:hover:not(:disabled),
+  .clicavel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgb(0 0 0 / 0.15);
+  }
+  .cartao:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgb(0 0 0 / 0.15);
+  }
+}
+/* Quem pediu "menos movimento" no aparelho não vê animação */
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .clicavel {
+    transition: none;
+  }
+}
