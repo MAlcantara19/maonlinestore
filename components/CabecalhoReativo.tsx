@@ -9,6 +9,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Loja } from "@/lib/tipos";
 import type { ItemMenu } from "@/lib/menu";
+import IconeInstagram from "@/components/IconeInstagram";
+import { usuarioInstagram } from "@/lib/formato";
 
 export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: ItemMenu[] }) {
   const cor = loja.cor ?? "#333";
@@ -28,6 +30,7 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
   }, []);
 
   const abrirMenu = () => window.dispatchEvent(new Event("abrir-menu"));
+  const insta = usuarioInstagram(loja.instagram);
 
   return (
     <div className="fixed inset-x-0 top-0 z-30 text-white shadow-lg transition-transform duration-300 ease-out"
@@ -39,6 +42,10 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
         )}
         {loja.logo_url && <img src={loja.logo_url} alt="" className="h-8 w-8 rounded-full bg-white object-cover" />}
         <Link href={`/${loja.slug}`} className="min-w-0 flex-1 truncate font-bold">{loja.nome}</Link>
+        {insta && (
+          <a href={`https://instagram.com/${insta}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram @${insta}`}
+            className="clicavel rounded-full bg-white/15 p-2"><IconeInstagram /></a>
+        )}
         <Link href="/" className="clicavel rounded-full bg-white/15 px-3 py-1.5 text-sm">🏬 Lojas</Link>
       </div>
 

@@ -30,7 +30,7 @@ import { EsqueletoLoja } from "@/components/Esqueleto";
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
 
@@ -95,7 +95,7 @@ async function ConteudoDaLoja({ params }: Props) {
       {efeito && <EfeitoFestivo tipo={efeito} cor={cor} />}
 
       {/* Computador: menu lateral + conteúdo lado a lado. Celular: um embaixo do outro */}
-      <div className="mx-auto max-w-7xl lg:flex lg:items-start lg:gap-6 lg:px-4">
+      <div className="mx-auto w-full max-w-7xl lg:flex lg:items-start lg:gap-6 lg:px-4">
         <MenuLateral slug={slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} />
 
         <main className="min-w-0 flex-1 px-4 pt-4 pb-28 lg:px-0">

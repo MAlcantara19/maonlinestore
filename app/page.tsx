@@ -9,10 +9,13 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Loja } from "@/lib/tipos";
+import Rodape from "@/components/Rodape";
 
 export default function PaginaInicial() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    // flex-col + min-h-screen: o rodapé fica sempre no fim da tela
+    <div className="flex min-h-screen flex-col">
+    <main className="mx-auto w-full max-w-5xl px-4 py-8">
       {/* Cabeçalho do site */}
       <h1 className="text-3xl font-bold">MA Online Store</h1>
       <p className="mt-1 mb-6 text-sm opacity-70">
@@ -24,6 +27,8 @@ export default function PaginaInicial() {
         <ListaDeLojas />
       </Suspense>
     </main>
+    <Rodape />
+    </div>
   );
 }
 

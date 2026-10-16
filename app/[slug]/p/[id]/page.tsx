@@ -21,7 +21,7 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
 
@@ -75,7 +75,7 @@ async function ConteudoDoProduto({ params }: Props) {
     // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
     <TemaDaLoja loja={loja}>
       <CabecalhoDaLoja loja={loja} menu={menu} />
-      <main className="mx-auto max-w-5xl px-4 pt-4 pb-28">
+      <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-28">
         {/* Celular: uma coluna. Computador (md): fotos à esquerda, informações à direita */}
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-8">
           <Galeria midias={midias} nome={produto.nome} cor={cor} />

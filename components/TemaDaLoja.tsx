@@ -12,6 +12,7 @@ import type { Loja } from "@/lib/tipos";
 import VoltarAoTopo from "@/components/VoltarAoTopo";
 import BotaoDuvidas from "@/components/BotaoDuvidas";
 import CarrinhoFlutuante from "@/components/CarrinhoFlutuante";
+import Rodape from "@/components/Rodape";
 
 // Cada opção de fonte: o endereço no Google Fonts e o nome da família.
 const FONTES = {
@@ -80,10 +81,12 @@ export default function TemaDaLoja({ loja, children }: { loja: Loja; children: R
   } as CSSProperties;
 
   return (
-    <div className="tema-loja min-h-screen" style={estilo}>
+    // flex-col + min-h-screen: a página ocupa no mínimo a tela toda, e o rodapé fica no fim
+    <div className="tema-loja flex min-h-screen flex-col" style={estilo}>
       {fonte.link && <link rel="stylesheet" href={fonte.link} precedence="default" />}
       <style>{ANIMACOES}</style>
       {children}
+      <Rodape loja={loja} />
       <CarrinhoFlutuante loja={loja} />
       {loja.whatsapp && <BotaoDuvidas whatsapp={loja.whatsapp} nomeDaLoja={loja.nome} />}
       <VoltarAoTopo cor={cor} />

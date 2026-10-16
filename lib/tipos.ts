@@ -17,6 +17,7 @@ export type Loja = {
   cor_secundaria?: string | null; // cor de apoio, mais clara (linha de atalhos, avisos)
   cor_fundo?: string | null; // fundo da página da loja (vazio = padrão do site)
   fonte?: "moderna" | "elegante" | "divertida"; // estilo dos títulos
+  instagram?: string | null; // usuário do Instagram, sem @ (aparece no rodapé)
 };
 
 // Tabela "categorias": parent_id vazio = categoria; preenchido = subcategoria.

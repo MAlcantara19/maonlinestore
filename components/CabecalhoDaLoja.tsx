@@ -10,6 +10,8 @@ import Link from "next/link";
 import type { Loja } from "@/lib/tipos";
 import type { ItemMenu } from "@/lib/menu";
 import CabecalhoReativo from "@/components/CabecalhoReativo";
+import IconeInstagram from "@/components/IconeInstagram";
+import { usuarioInstagram } from "@/lib/formato";
 
 type Props = { loja: Loja; menu: ItemMenu[]; atalhos?: boolean };
 
@@ -22,6 +24,7 @@ const BOLHAS =
 export default function CabecalhoDaLoja({ loja, menu, atalhos = true }: Props) {
   const cor = loja.cor ?? "#333";
   const botao = "clicavel rounded-full bg-white/15 px-3 py-1.5 hover:bg-white/25";
+  const insta = usuarioInstagram(loja.instagram); // aceita @loja, loja ou o link
 
   return (
     <>
@@ -41,6 +44,13 @@ export default function CabecalhoDaLoja({ loja, menu, atalhos = true }: Props) {
             <div>
               <h1 className="text-3xl font-bold drop-shadow-sm">{loja.nome}</h1>
               {loja.descricao && <p className="text-sm opacity-90">{loja.descricao}</p>}
+              {/* Instagram da loja, logo abaixo do nome */}
+              {insta && (
+                <a href={`https://instagram.com/${insta}`} target="_blank" rel="noopener noreferrer"
+                  className="clicavel mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm hover:bg-white/25">
+                  <IconeInstagram /> @{insta}
+                </a>
+              )}
             </div>
           </div>
         </div>

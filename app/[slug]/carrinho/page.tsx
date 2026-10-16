@@ -30,7 +30,7 @@ async function ConteudoDoCarrinho({ params }: Props) {
 
   const { data: loja } = await supabase
     .from("lojas")
-    .select("id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte")
+    .select("id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram")
     .eq("slug", slug)
     .eq("ativa", true)
     .maybeSingle<Loja>();
@@ -41,7 +41,7 @@ async function ConteudoDoCarrinho({ params }: Props) {
     // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
     <TemaDaLoja loja={loja}>
       <CabecalhoDaLoja loja={loja} menu={menu} />
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <main className="mx-auto w-full max-w-3xl px-4 py-6">
       <h2 className="text-2xl font-bold" style={{ color: loja.cor ?? "#333" }}>
         🛒 Seu carrinho
       </h2>

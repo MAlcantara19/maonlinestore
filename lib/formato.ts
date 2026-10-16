@@ -22,3 +22,20 @@ export function textoDisponibilidade(d: Produto["disponibilidade"]) {
   if (d === "esgotado") return "Esgotado";
   return "Pronta entrega";
 }
+
+// Limpa o Instagram digitado: aceita "@loja", "loja" ou o link inteiro
+// ("https://instagram.com/loja/") e devolve só "loja".
+export function usuarioInstagram(valor: string | null | undefined): string | null {
+  if (!valor) return null;
+  const limpo = valor.trim().replace(/\/+$/, "").split("/").pop()?.replace("@", "").split("?")[0] ?? "";
+  return limpo || null;
+}
+
+// "5524992924519" -> "(24) 99292-4519"
+export function telefoneBonito(numero: string): string {
+  const d = numero.replace(/\D/g, "").replace(/^55/, "");
+  if (d.length < 10) return numero;
+  const ddd = d.slice(0, 2);
+  const resto = d.slice(2);
+  return `(${ddd}) ${resto.slice(0, resto.length - 4)}-${resto.slice(-4)}`;
+}
