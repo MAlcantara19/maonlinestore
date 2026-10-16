@@ -61,6 +61,7 @@ export type Produto = {
   disponibilidade: Disponibilidade;
   prazo: string | null;
   destaque: boolean;
+  selo: string | null; // fitinha no canto da foto (ex.: Novo)
   categoria_id: string | null;
   variacoes: Variacao[];
   midias: Midia[];
@@ -72,5 +73,6 @@ export type Colecao = {
   nome: string;
   descricao: string | null;
   em_destaque: boolean;
+  efeito?: "nenhum" | "neve" | "coracoes" | "estrelas"; // animação enquanto em destaque
   produtos_colecoes: { produto_id: string }[];
 };

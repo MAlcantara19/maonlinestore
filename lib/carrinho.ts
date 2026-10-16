@@ -46,6 +46,8 @@ export function adicionarAoCarrinho(slug: string, novo: ItemCarrinho) {
   if (igual) igual.quantidade += novo.quantidade;
   else itens.push(novo);
   salvarCarrinho(slug, itens);
+  // Avisa outras partes do site que um item entrou (útil para efeitos futuros)
+  window.dispatchEvent(new CustomEvent("item-adicionado", { detail: novo.nome }));
 }
 
 // "Gancho" do React: devolve os itens e se atualiza sozinho quando o carrinho muda.
@@ -64,7 +66,5 @@ export function usarCarrinho(slug: string) {
   return itens;
 }
 
-// Formata número como dinheiro brasileiro: 25 -> "R$ 25,00".
-export function formatarPreco(valor: number) {
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+// formatarPreco agora mora em lib/formato.ts (serve também para páginas do servidor)
+export { formatarPreco } from "@/lib/formato";

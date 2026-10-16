@@ -1,23 +1,34 @@
 "use client";
 // =====================================================================
 // ESCOLHA DO PRODUTO — tamanho, cor, quantidade, observação e o botão
-// "Adicionar ao carrinho". Roda no navegador (por isso o "use client").
+// "Adicionar ao carrinho". Usado na página do produto E no popup de
+// "adicionar rápido".
 //
 // Regra das variações (tabela "variacoes"):
 //   - o cliente escolhe o TAMANHO;
 //   - aparecem só as CORES que existem para aquele tamanho;
 //   - preço, disponibilidade e prazo vêm da variação escolhida
 //     (se a variação não tiver, vale o que está no produto).
+// Ao adicionar: a miniatura "voa" até o carrinho, que abre de lado.
 // =====================================================================
-import Link from "next/link";
-import { useState } from "react";
-import { adicionarAoCarrinho, formatarPreco } from "@/lib/carrinho";
+import { useState, type MouseEvent } from "react";
+import { adicionarAoCarrinho } from "@/lib/carrinho";
+import { formatarPreco } from "@/lib/formato";
+import { voarParaCarrinho } from "@/lib/efeitos";
 import type { Produto } from "@/lib/tipos";
 
 const TAMANHO_UNICO = "Tamanho único";
 const TODAS_AS_CORES = "Todas as cores";
 
-export default function EscolhaDoProduto({ produto, slug, cor }: { produto: Produto; slug: string; cor: string }) {
+type Props = {
+  produto: Produto;
+  slug: string;
+  cor: string;
+  foto?: string; // miniatura usada na animação de "voar"
+  aoAdicionar?: () => void; // ex.: fechar o popup
+};
+
+export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar }: Props) {
   // Só variações ativas, na ordem do cadastro.
   const variacoes = produto.variacoes.filter((v) => v.ativa).sort((a, b) => a.ordem - b.ordem);
 
@@ -41,9 +52,9 @@ export default function EscolhaDoProduto({ produto, slug, cor }: { produto: Prod
 
   const [quantidade, setQuantidade] = useState(1);
   const [observacao, setObservacao] = useState("");
-  const [adicionado, setAdicionado] = useState(false);
 
-  function adicionar() {
+  function adicionar(e: MouseEvent<HTMLButtonElement>) {
+    const origem = e.currentTarget.getBoundingClientRect(); // de onde a miniatura sai voando
     adicionarAoCarrinho(slug, {
       chave: `${produto.id}|${variacao?.id ?? "unico"}`,
       produtoId: produto.id,
@@ -55,20 +66,16 @@ export default function EscolhaDoProduto({ produto, slug, cor }: { produto: Prod
       observacao: observacao.trim(),
       prazo,
     });
-    setAdicionado(true);
     setObservacao("");
     setQuantidade(1);
+    aoAdicionar?.();
+    voarParaCarrinho(origem, foto, cor);
   }
 
   // Botãozinho de opção (tamanho ou cor). Marcado = borda grossa na cor da loja.
   const opcao = (texto: string, marcado: boolean, aoClicar: () => void) => (
-    <button
-      key={texto}
-      type="button"
-      onClick={aoClicar}
-      className="rounded-lg border px-3 py-2 text-sm"
-      style={marcado ? { borderColor: cor, borderWidth: 2, fontWeight: 600 } : { borderColor: "#0003" }}
-    >
+    <button key={texto} type="button" onClick={aoClicar} className="rounded-lg border px-3 py-2 text-sm"
+      style={marcado ? { borderColor: cor, borderWidth: 2, fontWeight: 600 } : { borderColor: "#0003" }}>
       {texto}
     </button>
   );
@@ -88,9 +95,7 @@ export default function EscolhaDoProduto({ produto, slug, cor }: { produto: Prod
       {tamanhos.length > 1 && (
         <>
           <p className="mt-4 mb-2 text-sm font-semibold">Tamanho</p>
-          <div className="flex flex-wrap gap-2">
-            {tamanhos.map((t) => opcao(t, t === tamanho, () => { setTamanho(t); setAdicionado(false); }))}
-          </div>
+          <div className="flex flex-wrap gap-2">{tamanhos.map((t) => opcao(t, t === tamanho, () => setTamanho(t)))}</div>
         </>
       )}
 
@@ -98,9 +103,7 @@ export default function EscolhaDoProduto({ produto, slug, cor }: { produto: Prod
       {variacoes.length > 0 && (cores.length > 1 || cores[0] !== TODAS_AS_CORES) && (
         <>
           <p className="mt-4 mb-2 text-sm font-semibold">Cor</p>
-          <div className="flex flex-wrap gap-2">
-            {cores.map((c) => opcao(c, c === corValida, () => { setCorEscolhida(c); setAdicionado(false); }))}
-          </div>
+          <div className="flex flex-wrap gap-2">{cores.map((c) => opcao(c, c === corValida, () => setCorEscolhida(c)))}</div>
         </>
       )}
       {corValida === TODAS_AS_CORES && variacoes.length > 0 && (
@@ -116,35 +119,15 @@ export default function EscolhaDoProduto({ produto, slug, cor }: { produto: Prod
       </div>
 
       {/* Observação livre */}
-      <label className="mt-4 mb-2 block text-sm font-semibold" htmlFor="obs">Observação</label>
-      <textarea
-        id="obs"
-        rows={2}
-        value={observacao}
-        onChange={(e) => setObservacao(e.target.value)}
-        placeholder="Cor desejada, nome para personalizar, detalhes..."
-        className="w-full rounded-lg border p-3 text-sm"
-      />
+      <label className="mt-4 mb-2 block text-sm font-semibold" htmlFor={`obs-${produto.id}`}>Observação</label>
+      <textarea id={`obs-${produto.id}`} rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)}
+        placeholder="Cor desejada, nome para personalizar, detalhes..." className="w-full rounded-lg border bg-white/70 p-3 text-sm" />
 
       {/* Adicionar */}
-      <button
-        type="button"
-        disabled={esgotado}
-        onClick={adicionar}
-        className="mt-4 w-full rounded-xl p-4 font-semibold text-white disabled:opacity-40"
-        style={{ background: cor }}
-      >
+      <button type="button" disabled={esgotado} onClick={adicionar}
+        className="mt-4 w-full rounded-xl p-4 font-semibold text-white disabled:opacity-40" style={{ background: cor }}>
         {esgotado ? "Esgotado" : "Adicionar ao carrinho"}
       </button>
-
-      {adicionado && (
-        <p className="mt-3 text-center text-sm">
-          Adicionado ✓{" "}
-          <Link href={`/${slug}/carrinho`} className="font-semibold underline">Ver carrinho</Link>
-          {" · "}
-          <Link href={`/${slug}`} className="underline">Continuar comprando</Link>
-        </p>
-      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@ import type { Loja } from "@/lib/tipos";
 
 export default function PaginaInicial() {
   return (
-    <main className="mx-auto max-w-xl px-4 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-8">
       {/* Cabeçalho do site */}
       <h1 className="text-3xl font-bold">MA Online Store</h1>
       <p className="mt-1 mb-6 text-sm opacity-70">
@@ -51,10 +51,11 @@ async function ListaDeLojas() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-6">
+    // Celular: 2 colunas · tablet (sm): 3 · computador (lg): 5
+    <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
       {(lojas as Loja[]).map((loja) => (
         // Cada círculo é um link para a página da loja: /vitraforma, /gallerie...
-        <Link key={loja.id} href={`/${loja.slug}`} className="text-center">
+        <Link key={loja.id} href={`/${loja.slug}`} className="clicavel cartao rounded-xl p-2 text-center">
           {/* O círculo: com logo, se tiver; senão, a primeira letra do nome */}
           <div
             className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-[3px] bg-white text-3xl font-bold"

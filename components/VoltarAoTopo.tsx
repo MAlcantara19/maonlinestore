@@ -22,9 +22,9 @@ export default function VoltarAoTopo({ cor }: { cor: string }) {
       type="button"
       aria-label="Voltar ao topo"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full text-xl text-white shadow-lg"
-      // fica acima da barra "Ver carrinho"
-      style={{ background: cor, bottom: "calc(6rem + env(safe-area-inset-bottom))" }}
+      className="fixed z-20 flex h-12 w-12 items-center justify-center rounded-full text-xl text-white shadow-lg"
+      // fica acima do botão flutuante do carrinho
+      style={{ background: cor, bottom: "calc(5.5rem + env(safe-area-inset-bottom))", right: "1.25rem" }}
     >
       ↑
     </button>

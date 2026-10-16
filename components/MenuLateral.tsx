@@ -3,7 +3,7 @@
 // MENU LATERAL DA LOJA
 //   Computador: barra na lateral esquerda, que abre e fecha
 //               (lembra a escolha da pessoa na próxima visita).
-//   Celular:    barra presa no topo com o botão "☰ Menu", que abre
+//   Celular:    barra de atalhos com o botão "☰ Menu", que abre
 //               uma gaveta deslizando da esquerda.
 // Categorias com subcategorias têm uma setinha › para expandir.
 // =====================================================================
@@ -24,6 +24,13 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
       const salvo = localStorage.getItem("menu-lateral-aberto");
       if (salvo !== null) setAberto(salvo === "1");
     } catch {}
+  }, []);
+
+  // O botão ☰ do cabeçalho reativo pede para abrir a gaveta (evento "abrir-menu").
+  useEffect(() => {
+    const abrir = () => setGaveta(true);
+    window.addEventListener("abrir-menu", abrir);
+    return () => window.removeEventListener("abrir-menu", abrir);
   }, []);
 
   // Com a gaveta aberta, a página de trás não rola.
@@ -92,7 +99,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
   return (
     <>
       {/* ===== CELULAR: barra presa no topo ===== */}
-      <div className="sticky top-0 z-10 shadow-sm lg:hidden" style={{ background: fundo }}>
+      <div className="shadow-sm lg:hidden" style={{ background: fundo }}>
         <div className="flex gap-2 overflow-x-auto px-4 py-2">
           <button type="button" onClick={() => setGaveta(true)}
             className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white" style={{ background: cor }}>
@@ -124,7 +131,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu }: Props) {
 
       {/* ===== COMPUTADOR: barra lateral que abre e fecha ===== */}
       <aside
-        className="sticky top-4 mt-4 hidden max-h-[calc(100vh-2rem)] shrink-0 overflow-x-hidden overflow-y-auto rounded-2xl p-2 shadow-sm transition-[width] duration-300 ease-out lg:block"
+        className="sticky top-20 mt-4 hidden max-h-[calc(100vh-6rem)] shrink-0 overflow-x-hidden overflow-y-auto rounded-2xl p-2 shadow-sm transition-[width] duration-300 ease-out lg:block"
         style={{ background: fundo, color: "#1c1917", width: aberto ? "16rem" : "3.5rem" }}>
         <button type="button" onClick={alternarBarra} aria-label={aberto ? "Fechar menu" : "Abrir menu"}
           className="mb-2 flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold"

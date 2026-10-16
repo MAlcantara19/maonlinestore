@@ -12,12 +12,13 @@ import Carrinho from "@/components/Carrinho";
 import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
 import TemaDaLoja from "@/components/TemaDaLoja";
 import { buscarMenuDaLoja } from "@/lib/menu";
+import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export default function PaginaDoCarrinho({ params }: Props) {
   return (
-    <Suspense fallback={<p className="p-8 text-sm opacity-70">Carregando carrinho...</p>}>
+    <Suspense fallback={<EsqueletoProduto />}>
       <ConteudoDoCarrinho params={params} />
     </Suspense>
   );
@@ -25,7 +26,7 @@ export default function PaginaDoCarrinho({ params }: Props) {
 
 async function ConteudoDoCarrinho({ params }: Props) {
   await connection();
-  const { slug } = await paqrams;
+  const { slug } = await params;
 
   const { data: loja } = await supabase
     .from("lojas")
