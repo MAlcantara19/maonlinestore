@@ -10,6 +10,8 @@ import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Loja } from "@/lib/tipos";
 import Rodape from "@/components/Rodape";
+import CartaoParceiro from "@/components/CartaoParceiro";
+import { buscarParceiros } from "@/lib/parceiros";
 
 export default function PaginaInicial() {
   return (
@@ -25,6 +27,11 @@ export default function PaginaInicial() {
       {/* Suspense: mostra "Carregando..." enquanto busca as lojas no banco */}
       <Suspense fallback={<p className="text-sm opacity-70">Carregando lojas...</p>}>
         <ListaDeLojas />
+      </Suspense>
+
+      {/* Parceiros (só aparece se houver algum ativo) */}
+      <Suspense fallback={null}>
+        <FaixaDeParceiros />
       </Suspense>
     </main>
     <Rodape />
@@ -93,5 +100,29 @@ async function ListaDeLojas() {
         );
       })}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Faixa "Parceiros" da página inicial: até 3 cartões + "Ver todos".
+// ---------------------------------------------------------------------
+async function FaixaDeParceiros() {
+  await connection();
+  const parceiros = await buscarParceiros(3);
+  if (parceiros.length === 0) return null;
+  return (
+    <section className="mt-14">
+      <div className="mb-3 flex items-end justify-between gap-2">
+        <div>
+          <h2 className="text-2xl font-bold">🤝 Parceiros</h2>
+          <p className="text-sm opacity-70">Gente e lugares que a gente conhece, confia e indica.</p>
+        </div>
+        <Link href="/parceiros" className="shrink-0 text-sm font-semibold underline">Ver todos →</Link>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {parceiros.map((p, i) => <CartaoParceiro key={p.id} parceiro={p} indice={i} />)}
+      </div>
+      <style>{`@keyframes aparecer { from { opacity: 0; transform: translateY(14px); } } .animar-entrada { animation: aparecer .45s ease-out backwards; }`}</style>
+    </section>
   );
 }

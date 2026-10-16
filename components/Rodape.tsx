@@ -55,6 +55,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             <Link href={`/${loja.slug}`} className={link}>🏠 Início da loja</Link>
             <Link href={`/${loja.slug}/carrinho`} className={link}>🛒 Carrinho</Link>
             <Link href="/" className={link}>🏬 Todas as lojas</Link>
+            <Link href="/parceiros" className={link}>🤝 Parceiros</Link>
           </div>
         </div>
       )}

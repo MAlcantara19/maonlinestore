@@ -38,6 +38,7 @@ export default function CabecalhoDaLoja({ loja, menu, atalhos = true }: Props) {
             <Link href="/" className={botao}>🏬 Todas as lojas</Link>
             <Link href={`/${loja.slug}`} className={botao}>🏠 Início</Link>
             <Link href={`/${loja.slug}/carrinho`} className={botao}>🛒 Carrinho</Link>
+            <Link href="/parceiros" className={botao}>🤝 Parceiros</Link>
           </nav>
           <div className="mt-5 flex items-center gap-4">
             {loja.logo_url && <img src={loja.logo_url} alt="" className="h-16 w-16 shrink-0 rounded-full bg-white object-cover shadow-lg" />}

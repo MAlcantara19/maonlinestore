@@ -5,7 +5,9 @@
 // =====================================================================
 
 // Efeitos animados possíveis (lojas e coleções).
-export type Efeito = "nenhum" | "neve" | "estrelas" | "brilhos" | "coracoes" | "confete" | "bolhas";
+export type Efeito =
+  | "nenhum" | "neve" | "estrelas" | "brilhos" | "coracoes" | "confete" | "bolhas"
+  | "chocolate" | "doces" | "flores" | "presentes";
 
 // Tabela "lojas": uma linha por loja (VitraForma, Gallerie...).
 export type Loja = {
@@ -23,6 +25,7 @@ export type Loja = {
   instagram?: string | null; // usuário do Instagram, sem @ (aparece no rodapé)
   efeito?: Efeito; // efeito da loja o ano todo
   em_breve?: boolean; // true = aparece "Em breve" na página inicial
+  ativa?: boolean; // false = a loja some do site
 };
 
 // Tabela "categorias": parent_id vazio = categoria; preenchido = subcategoria.
@@ -81,4 +84,21 @@ export type Colecao = {
   em_destaque: boolean;
   efeito?: Efeito; // animação enquanto em destaque
   produtos_colecoes: { produto_id: string }[];
+};
+
+// Tabela "parceiros": locais e pessoas indicados no site.
+export type Parceiro = {
+  id: string;
+  slug: string;
+  nome: string;
+  categoria: string | null;
+  descricao: string | null;
+  horarios: string | null;
+  endereco: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  site: string | null;
+  logo_url: string | null;
+  foto_url: string | null;
+  cor: string | null;
 };

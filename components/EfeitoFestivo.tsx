@@ -7,6 +7,7 @@
 //   coracoes ❤  sobem flutuando
 //   confete  ■● caem coloridos, girando
 //   bolhas   ○  sobem e somem
+//   chocolate 🍫 · doces 🍭 · flores 🌸 · presentes 🎁  caem balançando
 // Liga pela coleção em destaque (ex.: Natal) ou pela própria loja.
 // Não atrapalha cliques (pointer-events: none).
 // =====================================================================
@@ -24,6 +25,11 @@ const EFEITOS: Record<string, Config> = {
   coracoes: { simbolos: ["❤", "♥", "💕"], movimento: "subir", quantidade: 14 },
   confete: { simbolos: ["■", "●", "▲"], movimento: "cair", cores: ["#ef5350", "#42a5f5", "#66bb6a", "#f5c542", "#ab47bc"], quantidade: 26 },
   bolhas: { simbolos: ["○", "◯"], movimento: "subir", quantidade: 14 },
+  // Emojis já têm cor própria (a cor aqui é ignorada)
+  chocolate: { simbolos: ["🍫", "🍫", "🍬"], movimento: "cair", quantidade: 14 },
+  doces: { simbolos: ["🍭", "🍬", "🧁", "🍩"], movimento: "cair", quantidade: 14 },
+  flores: { simbolos: ["🌸", "🌷", "🌼"], movimento: "cair", quantidade: 14 },
+  presentes: { simbolos: ["🎁", "🎀"], movimento: "cair", quantidade: 12 },
 };
 
 export default function EfeitoFestivo({ tipo, cor }: { tipo: string; cor: string }) {
