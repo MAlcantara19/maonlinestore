@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import type { EfeitoPersonalizado } from "@/lib/tipos";
 
 type Movimento = "cair" | "subir" | "piscar" | "voar";
-type Config = { simbolos: string[]; movimento: Movimento; cores?: string[]; quantidade: number; imagens?: string[]; tamanhoImagem?: number };
+type Config = { simbolos: string[]; movimento: Movimento; cores?: string[]; quantidade: number; imagens?: string[]; tamanhoImagem?: number; redondo?: boolean };
 
 const EFEITOS: Record<string, Config> = {
   neve: { simbolos: ["❄", "❅", "•"], movimento: "cair", cores: ["#9cc3ee", "#c4dcf5"], quantidade: 22 },
@@ -48,7 +48,8 @@ export default function EfeitoFestivo({ tipo, cor, logo, personalizado, contido 
     config = { simbolos: [], movimento: personalizado.movimento, quantidade: personalizado.quantidade, imagens: personalizado.imagens, tamanhoImagem: personalizado.tamanho };
   } else if (tipo && EFEITOS[tipo]) {
     config = { ...EFEITOS[tipo] };
-    if ((tipo === "logo" || tipo === "logo_voando") && logo) { config.imagens = [logo]; config.tamanhoImagem = 34; }
+    // Logo da loja/da MA: sempre REDONDA, com bordinha branca
+    if ((tipo === "logo" || tipo === "logo_voando") && logo) { config.imagens = [logo]; config.tamanhoImagem = 34; config.redondo = true; }
   }
   if (!montado || !config) return null;
   const cores = config.cores ?? [cor];
@@ -65,7 +66,9 @@ export default function EfeitoFestivo({ tipo, cor, logo, personalizado, contido 
         const atraso = -(sorteio(i, 4) * duracao);
 
         const conteudo = usaImagem ? (
-          <img src={config.imagens![i % config.imagens!.length]} alt="" className="object-contain drop-shadow-md" style={{ width: tamanho, height: tamanho }} />
+          <img src={config.imagens![i % config.imagens!.length]} alt=""
+            className={config.redondo ? "rounded-full border-2 border-white bg-white object-cover shadow-lg" : "object-contain drop-shadow-md"}
+            style={{ width: tamanho, height: tamanho }} />
         ) : (
           config.simbolos[i % config.simbolos.length]
         );

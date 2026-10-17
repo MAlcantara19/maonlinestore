@@ -161,10 +161,14 @@ const ANIMACOES = `
   @keyframes deslizar-fundo { from { transform: scale(1.2) translateX(-6%); } to { transform: scale(1.2) translateX(6%); } }
   .fundo-deslizar { animation: deslizar-fundo 25s ease-in-out infinite alternate; }
 
+  /* Mosaico de logos redondas andando na diagonal (loop perfeito) */
+  @keyframes mosaico-grade { to { transform: translate(var(--passo), var(--passo)); } }
+  .mosaico-grade { animation: mosaico-grade 14s linear infinite; }
+
   /* Quem pediu "menos movimento" no aparelho não vê animações */
   @media (prefers-reduced-motion: reduce) {
     .animar-entrada, .pular, .deslizar, .surgir, .subir, .parallax-conteudo, .parallax-fundo, .pulsar, .brilho-texto::after,
-    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher, .mosaico-andando, .fundo-respirar, .fundo-zoom_lento, .fundo-deslizar { animation: none !important; }
+    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher, .mosaico-andando, .mosaico-grade, .fundo-respirar, .fundo-zoom_lento, .fundo-deslizar { animation: none !important; }
     ::view-transition-new(root) { animation: none; }
     .efeito-particula { display: none; }
   }

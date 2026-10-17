@@ -5,6 +5,7 @@
 //   video   → vídeo curto em looping, sem som
 // A "opacidade" deixa mais forte ou mais suave (marca d'água).
 // =====================================================================
+import MosaicoRedondo from "@/components/MosaicoRedondo";
 import type { AnimacaoFundo, TipoFundo } from "@/lib/tipos";
 
 type Props = { tipo?: TipoFundo | null; url?: string | null; logo?: string | null; opacidade?: number | null; corBase?: string | null; animacao?: AnimacaoFundo | null };
@@ -22,10 +23,11 @@ export default function FundoDaPagina({ tipo, url, logo, opacidade, corBase, ani
         {tipo === "video" && <video src={fonte} autoPlay muted loop playsInline className="h-full w-full object-cover" />}
         {/* Foto: pode "respirar", aproximar devagar ou passear para o lado */}
         {tipo === "imagem" && <img src={fonte} alt="" className={`h-full w-full object-cover fundo-${animacao ?? "nenhuma"}`} />}
-        {/* Logo repetida, com espaço entre elas, andando devagar na diagonal */}
+        {/* Logo repetida em BOLINHAS (redondas), andando devagar na diagonal */}
         {tipo === "mosaico" && (
-          <div className={`mosaico-andando h-full w-full fundo-${animacao ?? "nenhuma"}`}
-            style={{ backgroundImage: `url(${fonte})`, backgroundSize: "80px 80px", backgroundRepeat: "space" }} />
+          <div className={`absolute inset-0 fundo-${animacao ?? "nenhuma"}`}>
+            <MosaicoRedondo src={fonte} />
+          </div>
         )}
       </div>
     </div>
