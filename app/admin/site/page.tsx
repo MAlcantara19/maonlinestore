@@ -13,7 +13,7 @@ import { OPCOES_EFEITO } from "@/lib/opcoes";
 import CampoImagem from "@/components/admin/CampoImagem";
 import EditorFundo from "@/components/admin/EditorFundo";
 import { TAMANHOS } from "@/lib/tamanhos";
-import { CONFIG_PADRAO } from "@/lib/site";
+import { CONFIG_PADRAO } from "@/lib/site-padrao";
 import type { ConfigSite } from "@/lib/tipos";
 
 export default function PainelSite() {
