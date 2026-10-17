@@ -24,7 +24,7 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 

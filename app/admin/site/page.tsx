@@ -4,6 +4,7 @@
 // Título, subtítulo, cores do topo, imagem de fundo, efeito animado e
 // quantos parceiros aparecem na página inicial.
 // =====================================================================
+import EditorBordaLogo from "@/components/admin/EditorBordaLogo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
@@ -68,6 +69,8 @@ function Formulario() {
           <Campo rotulo="Cor 2 (fim do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor_secundaria ?? "#C9B3EE"} onChange={(e) => mudar("cor_secundaria", e.target.value)} /></Campo>
         </div>
         <CampoImagem rotulo="Logo da MA Online Store (aparece no topo, acima do título)" valor={c.logo_url ?? null} aoMudar={(url) => mudar("logo_url", url)} pasta="site" dica={TAMANHOS.logoSite} redonda recorte={{ proporcao: 1, largura: 600, cores: [c.cor, c.cor_secundaria] }} />
+        <EditorBordaLogo logo={c.logo_url ?? null} cor={c.logo_borda_cor ?? null} largura={c.logo_borda ?? 3} corDaLoja={cor}
+          aoMudar={(v) => setC({ ...c, logo_borda_cor: v.cor, logo_borda: v.largura })} />
         <CampoImagem rotulo="Imagem de fundo do topo (opcional)" valor={c.banner_url} aoMudar={(url) => mudar("banner_url", url)} pasta="site" dica={TAMANHOS.bannerTopo} recorte={{ proporcao: 16 / 5, largura: 1920, cores: [c.cor, c.cor_secundaria] }} />
         <Campo rotulo="Efeito animado">
           <select className={estiloInput} value={c.efeito} onChange={(e) => mudar("efeito", e.target.value as ConfigSite["efeito"])}>
@@ -78,8 +81,8 @@ function Formulario() {
 
       <Bloco titulo="🌄 Fundo da página inicial inteira">
         <EditorFundo cor={cor} pasta="site" logo={c.logo_url ?? null}
-          valor={{ fundo_tipo: c.fundo_tipo ?? "nenhum", fundo_url: c.fundo_url ?? null, fundo_opacidade: c.fundo_opacidade ?? 15, fundo_animacao: c.fundo_animacao ?? "nenhuma" }}
-          aoMudar={(v) => setC({ ...c, ...v })} />
+          valor={{ fundo_tipo: c.fundo_tipo ?? "nenhum", fundo_url: c.fundo_url ?? null, fundo_opacidade: c.fundo_opacidade ?? 15, fundo_animacao: c.fundo_animacao ?? "nenhuma", fundo_cor: c.fundo_cor ?? null }}
+          borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} aoMudar={(v) => setC({ ...c, ...v })} />
       </Bloco>
 
       <Bloco titulo="🤝 Página de parceiros">
@@ -92,8 +95,9 @@ function Formulario() {
         </Campo>
         <span className="text-sm font-semibold">Fundo da página de parceiros</span>
         <EditorFundo cor={cor} pasta="site/parceiros" logo={c.logo_url ?? null}
-          valor={{ fundo_tipo: c.parceiros_fundo_tipo ?? "nenhum", fundo_url: c.parceiros_fundo_url ?? null, fundo_opacidade: c.parceiros_fundo_opacidade ?? 15, fundo_animacao: c.parceiros_fundo_animacao ?? "nenhuma" }}
-          aoMudar={(v) => setC({ ...c, parceiros_fundo_tipo: v.fundo_tipo, parceiros_fundo_url: v.fundo_url, parceiros_fundo_opacidade: v.fundo_opacidade, parceiros_fundo_animacao: v.fundo_animacao })} />
+          valor={{ fundo_tipo: c.parceiros_fundo_tipo ?? "nenhum", fundo_url: c.parceiros_fundo_url ?? null, fundo_opacidade: c.parceiros_fundo_opacidade ?? 15, fundo_animacao: c.parceiros_fundo_animacao ?? "nenhuma", fundo_cor: c.parceiros_fundo_cor ?? null }}
+          borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }}
+          aoMudar={(v) => setC({ ...c, parceiros_fundo_tipo: v.fundo_tipo, parceiros_fundo_url: v.fundo_url, parceiros_fundo_opacidade: v.fundo_opacidade, parceiros_fundo_animacao: v.fundo_animacao, parceiros_fundo_cor: v.fundo_cor ?? null })} />
       </Bloco>
 
       <Bloco titulo="⚙️ Efeito do painel de administração">

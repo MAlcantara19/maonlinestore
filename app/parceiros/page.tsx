@@ -44,12 +44,13 @@ async function Conteudo() {
   return (
     <>
       {/* Fundo e efeito escolhidos no painel */}
-      <FundoDaPagina tipo={c.parceiros_fundo_tipo} url={c.parceiros_fundo_url} logo={c.logo_url} opacidade={c.parceiros_fundo_opacidade} animacao={c.parceiros_fundo_animacao} />
-      {c.parceiros_efeito && c.parceiros_efeito !== "nenhum" && <EfeitoFestivo tipo={c.parceiros_efeito} cor={cor} logo={c.logo_url} />}
+      <FundoDaPagina tipo={c.parceiros_fundo_tipo} url={c.parceiros_fundo_url} logo={c.logo_url} opacidade={c.parceiros_fundo_opacidade} animacao={c.parceiros_fundo_animacao}
+        corMosaico={c.parceiros_fundo_cor} borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} />
+      {c.parceiros_efeito && c.parceiros_efeito !== "nenhum" && <EfeitoFestivo tipo={c.parceiros_efeito} cor={cor} logo={c.logo_url} borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} />}
 
       <div className="mt-4 flex items-center gap-4">
         {c.logo_url && (
-          <span className="block h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 bg-white shadow" style={{ borderColor: cor }}>
+          <span className="block h-16 w-16 shrink-0 overflow-hidden rounded-full bg-white shadow" style={{ border: `${c.logo_borda ?? 3}px solid ${c.logo_borda_cor ?? cor}` }}>
             <img src={c.logo_url} alt="" className="h-full w-full object-cover" />
           </span>
         )}

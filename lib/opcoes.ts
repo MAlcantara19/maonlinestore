@@ -21,6 +21,27 @@ export const OPCOES_EFEITO: { valor: Efeito; rotulo: string }[] = [
   { valor: "logo_voando", rotulo: "🖼️ Logo da loja voando pela tela" },
   { valor: "borboletas", rotulo: "🦋 Borboletas voando" },
   { valor: "baloes", rotulo: "🎈 Balões subindo" },
+  // Datas especiais
+  { valor: "natal", rotulo: "🎄 Natal (árvores, Papai Noel, bonecos de neve)" },
+  { valor: "pascoa", rotulo: "🐰 Páscoa (coelhos e ovos)" },
+  { valor: "halloween", rotulo: "🎃 Halloween (abóboras e fantasminhas)" },
+  { valor: "namorados", rotulo: "💘 Dia dos Namorados" },
+  { valor: "maes", rotulo: "💐 Dia das Mães" },
+  { valor: "brasil", rotulo: "🇧🇷 Brasil (verde e amarelo)" },
+  { valor: "futebol", rotulo: "⚽ Futebol (bolas e troféus)" },
+  // Natureza e clima
+  { valor: "folhas", rotulo: "🍂 Folhas de outono" },
+  { valor: "chuva", rotulo: "💧 Chuvinha" },
+  { valor: "nuvens", rotulo: "☁️ Nuvens passeando" },
+  // Outros
+  { valor: "fogos", rotulo: "🎆 Fogos de artifício" },
+  { valor: "joias", rotulo: "💎 Joias brilhando" },
+  { valor: "notas", rotulo: "🎵 Notas musicais" },
+  { valor: "patinhas", rotulo: "🐾 Patinhas" },
+  { valor: "foguetes", rotulo: "🚀 Foguetes subindo" },
+  { valor: "dinheiro", rotulo: "💸 Dinheiro (promoção!)" },
+  { valor: "sorvete", rotulo: "🍦 Sorvetes" },
+  { valor: "cafe", rotulo: "☕ Cafezinho" },
 ];
 
 export const OPCOES_FONTE = [

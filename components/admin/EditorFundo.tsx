@@ -8,7 +8,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import { TAMANHOS } from "@/lib/tamanhos";
 import type { AnimacaoFundo, TipoFundo } from "@/lib/tipos";
 
-type Valor = { fundo_tipo: TipoFundo; fundo_url: string | null; fundo_opacidade: number; fundo_animacao?: AnimacaoFundo };
+type Valor = { fundo_tipo: TipoFundo; fundo_url: string | null; fundo_opacidade: number; fundo_animacao?: AnimacaoFundo; fundo_cor?: string | null };
 const OPCOES: { valor: TipoFundo; rotulo: string }[] = [
   { valor: "nenhum", rotulo: "Nenhum" },
   { valor: "imagem", rotulo: "🖼️ Foto" },
@@ -16,7 +16,7 @@ const OPCOES: { valor: TipoFundo; rotulo: string }[] = [
   { valor: "video", rotulo: "🎬 Vídeo em looping" },
 ];
 
-export default function EditorFundo({ valor, aoMudar, logo, pasta, cor }: { valor: Valor; aoMudar: (v: Valor) => void; logo: string | null; pasta: string; cor: string }) {
+export default function EditorFundo({ valor, aoMudar, logo, pasta, cor, borda }: { valor: Valor; aoMudar: (v: Valor) => void; logo: string | null; pasta: string; cor: string; borda?: { cor?: string | null; largura?: number | null } }) {
   const mudar = (parte: Partial<Valor>) => aoMudar({ ...valor, ...parte });
   const fonte = valor.fundo_tipo === "mosaico" ? valor.fundo_url || logo : valor.fundo_url;
 
@@ -48,6 +48,18 @@ export default function EditorFundo({ valor, aoMudar, logo, pasta, cor }: { valo
               </div>
             </div>
           )}
+          {/* Cor que aparece ENTRE as bolinhas do mosaico */}
+          {valor.fundo_tipo === "mosaico" && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold">Cor entre as logos:</span>
+              <button type="button" onClick={() => mudar({ fundo_cor: null })} className="rounded-full border px-2 py-1 text-xs" style={!valor.fundo_cor ? { outline: "2px solid #111" } : {}}>Transparente</button>
+              {[cor, "#ffffff", "#000000"].map((c) => (
+                <button key={c} type="button" onClick={() => mudar({ fundo_cor: c })} aria-label={`Cor ${c}`} className="h-7 w-7 rounded-full border"
+                  style={{ background: c, outline: valor.fundo_cor === c ? "2px solid #111" : "none", outlineOffset: 2 }} />
+              ))}
+              <input type="color" value={valor.fundo_cor ?? "#ffffff"} onChange={(e) => mudar({ fundo_cor: e.target.value })} className="h-7 w-9 rounded" title="Outra cor" />
+            </div>
+          )}
           <label className="block text-sm">
             Força do fundo: <b>{valor.fundo_opacidade}%</b> <span className="opacity-60">(10–20% = marca d'água suave, recomendado)</span>
             <input type="range" min={3} max={100} value={valor.fundo_opacidade} onChange={(e) => mudar({ fundo_opacidade: Number(e.target.value) })} className="block w-full" />
@@ -59,7 +71,7 @@ export default function EditorFundo({ valor, aoMudar, logo, pasta, cor }: { valo
               <div className="absolute inset-0" style={{ opacity: valor.fundo_opacidade / 100 }}>
                 {valor.fundo_tipo === "video" && <video src={fonte} autoPlay muted loop playsInline className="h-full w-full object-cover" />}
                 {valor.fundo_tipo === "imagem" && <img src={fonte} alt="" className={`h-full w-full object-cover fundo-${valor.fundo_animacao ?? "nenhuma"}`} />}
-                {valor.fundo_tipo === "mosaico" && <div className={`absolute inset-0 fundo-${valor.fundo_animacao ?? "nenhuma"}`}><MosaicoRedondo src={fonte} tamanho={56} quantidade={120} /></div>}
+                {valor.fundo_tipo === "mosaico" && <div className={`absolute inset-0 fundo-${valor.fundo_animacao ?? "nenhuma"}`}><MosaicoRedondo src={fonte} tamanho={56} quantidade={120} corFundo={valor.fundo_cor} borda={borda} /></div>}
               </div>
               <div className="absolute left-1/2 top-1/2 w-40 -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-white/80 p-3 text-center text-xs shadow">
                 <div className="mb-2 h-14 rounded-lg" style={{ background: `${cor}33` }} />

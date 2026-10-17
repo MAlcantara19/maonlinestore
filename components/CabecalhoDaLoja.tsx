@@ -57,7 +57,8 @@ export default function CabecalhoDaLoja({ loja, menu }: { loja: Loja; menu: Item
           <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-center gap-4">
               {/* Logo + nome: levam para o início da loja */}
-              <LinkTopo href={`/${loja.slug}`} className="clicavel flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/70 bg-white text-3xl font-bold shadow-xl sm:h-28 sm:w-28 sm:text-4xl" style={{ color: cor }} aria-label={`Início da ${loja.nome}`}>
+              <LinkTopo href={`/${loja.slug}`} className="clicavel flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-3xl font-bold shadow-xl sm:h-28 sm:w-28 sm:text-4xl"
+                style={{ color: cor, border: `${loja.logo_borda ?? 3}px solid ${loja.logo_borda_cor ?? "#ffffff"}` }} aria-label={`Início da ${loja.nome}`}>
                 {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
               </LinkTopo>
               <div>

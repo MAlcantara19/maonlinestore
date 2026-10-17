@@ -35,7 +35,8 @@ export default function TemaDaLoja({ loja, children }: { loja: Loja; children: R
   return (
     // flex-col + min-h-screen: a página ocupa no mínimo a tela toda, e o rodapé fica no fim
     <div className={`tema-loja flex min-h-screen flex-col ${temFundo ? "com-fundo" : ""}`} style={estilo}>
-      <FundoDaPagina tipo={loja.fundo_tipo} url={loja.fundo_url} logo={loja.logo_url} opacidade={loja.fundo_opacidade} corBase={loja.cor_fundo} animacao={loja.fundo_animacao} />
+      <FundoDaPagina tipo={loja.fundo_tipo} url={loja.fundo_url} logo={loja.logo_url} opacidade={loja.fundo_opacidade} corBase={loja.cor_fundo} animacao={loja.fundo_animacao}
+        corMosaico={loja.fundo_cor} borda={{ cor: loja.logo_borda_cor, largura: loja.logo_borda }} />
       {fonte.link && <link rel="stylesheet" href={fonte.link} precedence="default" />}
       <style>{`.tema-loja h1, .tema-loja h2, .tema-loja h3 { font-family: var(--fonte-titulo); }`}</style>
       <EstilosAnimacao />

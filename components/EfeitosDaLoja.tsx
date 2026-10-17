@@ -16,9 +16,10 @@ type Props = {
   tipoPadrao?: string | null;
   personalizadoPadrao?: EfeitoPersonalizado | null;
   secoes: Record<string, EfeitoPersonalizado>;
+  borda?: { cor?: string | null; largura?: number | null };
 };
 
-export default function EfeitosDaLoja({ cor, logo, tipoPadrao, personalizadoPadrao, secoes }: Props) {
+export default function EfeitosDaLoja({ cor, logo, tipoPadrao, personalizadoPadrao, secoes, borda }: Props) {
   const [ativo, setAtivo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,5 +43,5 @@ export default function EfeitosDaLoja({ cor, logo, tipoPadrao, personalizadoPadr
 
   // key: troca de efeito "reinicia" a animação
   if (ativo && secoes[ativo]) return <EfeitoFestivo key={ativo} cor={cor} personalizado={secoes[ativo]} />;
-  return <EfeitoFestivo key="padrao" cor={cor} logo={logo} tipo={tipoPadrao} personalizado={personalizadoPadrao} />;
+  return <EfeitoFestivo key="padrao" cor={cor} logo={logo} tipo={tipoPadrao} personalizado={personalizadoPadrao} borda={borda} />;
 }

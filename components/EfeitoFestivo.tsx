@@ -26,6 +26,24 @@ const EFEITOS: Record<string, Config> = {
   presentes: { simbolos: ["🎁", "🎀"], movimento: "cair", quantidade: 12 },
   borboletas: { simbolos: ["🦋"], movimento: "voar", quantidade: 8 },
   baloes: { simbolos: ["🎈", "🎈", "🎉"], movimento: "subir", quantidade: 10 },
+  natal: { simbolos: ["🎄", "🎅", "⛄", "🎁", "❄"], movimento: "cair", quantidade: 16 },
+  pascoa: { simbolos: ["🐰", "🥚", "🐣", "🌷"], movimento: "cair", quantidade: 14 },
+  halloween: { simbolos: ["🎃", "👻", "🦇", "🕸️"], movimento: "voar", quantidade: 10 },
+  namorados: { simbolos: ["💘", "💌", "❤️", "🌹"], movimento: "subir", quantidade: 14 },
+  maes: { simbolos: ["💐", "🌷", "❤️", "🌸"], movimento: "subir", quantidade: 14 },
+  brasil: { simbolos: ["🇧🇷", "💚", "💛", "⭐"], movimento: "cair", quantidade: 16 },
+  futebol: { simbolos: ["⚽", "🏆", "⚽"], movimento: "cair", quantidade: 12 },
+  folhas: { simbolos: ["🍂", "🍁", "🍃"], movimento: "cair", quantidade: 16 },
+  chuva: { simbolos: ["💧", "│"], movimento: "cair", cores: ["#7fb3e6", "#a9cdf0"], quantidade: 30 },
+  nuvens: { simbolos: ["☁️"], movimento: "voar", quantidade: 6 },
+  fogos: { simbolos: ["🎆", "🎇", "✨", "💥"], movimento: "piscar", quantidade: 18 },
+  joias: { simbolos: ["💎", "💍", "✨"], movimento: "piscar", quantidade: 18 },
+  notas: { simbolos: ["🎵", "🎶", "♪", "♫"], movimento: "subir", cores: ["#7c3aed", "#ec4899"], quantidade: 14 },
+  patinhas: { simbolos: ["🐾"], movimento: "subir", quantidade: 12 },
+  foguetes: { simbolos: ["🚀", "⭐"], movimento: "subir", quantidade: 10 },
+  dinheiro: { simbolos: ["💸", "💰", "🤑"], movimento: "cair", quantidade: 14 },
+  sorvete: { simbolos: ["🍦", "🍧", "🍨"], movimento: "cair", quantidade: 14 },
+  cafe: { simbolos: ["☕", "🥐", "🍪"], movimento: "subir", quantidade: 12 },
   logo: { simbolos: ["✨"], movimento: "cair", quantidade: 10 },
   logo_voando: { simbolos: ["✨"], movimento: "voar", quantidade: 7 },
 };
@@ -36,9 +54,10 @@ const sorteio = (i: number, semente: number) => {
   return x - Math.floor(x);
 };
 
-type Props = { tipo?: string | null; cor: string; logo?: string | null; personalizado?: EfeitoPersonalizado | null; contido?: boolean };
+export type BordaLogo = { cor?: string | null; largura?: number | null };
+type Props = { tipo?: string | null; cor: string; logo?: string | null; personalizado?: EfeitoPersonalizado | null; contido?: boolean; borda?: BordaLogo };
 
-export default function EfeitoFestivo({ tipo, cor, logo, personalizado, contido }: Props) {
+export default function EfeitoFestivo({ tipo, cor, logo, personalizado, contido, borda }: Props) {
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []); // só desenha no navegador
 
@@ -67,8 +86,8 @@ export default function EfeitoFestivo({ tipo, cor, logo, personalizado, contido 
 
         const conteudo = usaImagem ? (
           <img src={config.imagens![i % config.imagens!.length]} alt=""
-            className={config.redondo ? "rounded-full border-2 border-white bg-white object-cover shadow-lg" : "object-contain drop-shadow-md"}
-            style={{ width: tamanho, height: tamanho }} />
+            className={config.redondo ? "rounded-full bg-white object-cover shadow-lg" : "object-contain drop-shadow-md"}
+            style={{ width: tamanho, height: tamanho, ...(config.redondo ? { border: `${Math.min(borda?.largura ?? 2, 4)}px solid ${borda?.cor ?? "#ffffff"}` } : {}) }} />
         ) : (
           config.simbolos[i % config.simbolos.length]
         );

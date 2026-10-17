@@ -86,12 +86,14 @@ async function Topo() {
       {/* Modo claro / escuro */}
       <BotaoTema className="clicavel absolute right-4 top-4 z-10 rounded-full bg-white/15 px-3 py-1.5 text-lg hover:bg-white/25" />
       {/* Fundo da página inteira (foto, logo repetida ou vídeo) */}
-      <FundoDaPagina tipo={c.fundo_tipo} url={c.fundo_url} logo={c.logo_url} opacidade={c.fundo_opacidade} animacao={c.fundo_animacao} />
+      <FundoDaPagina tipo={c.fundo_tipo} url={c.fundo_url} logo={c.logo_url} opacidade={c.fundo_opacidade} animacao={c.fundo_animacao}
+        corMosaico={c.fundo_cor} borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} />
       <div className="parallax-conteudo relative mx-auto max-w-5xl px-4 py-14 text-center">
         {/* Logo redonda da MA Online Store AO LADO do título (no celular fica em cima) */}
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
           {c.logo_url && (
-            <span className="animar-entrada block h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-white/70 bg-white shadow-2xl sm:h-32 sm:w-32">
+            <span className="animar-entrada block h-24 w-24 shrink-0 overflow-hidden rounded-full bg-white shadow-2xl sm:h-32 sm:w-32"
+              style={{ border: `${c.logo_borda ?? 3}px solid ${c.logo_borda_cor ?? "#ffffff"}` }}>
               <img src={c.logo_url} alt="" className="h-full w-full object-cover" />
             </span>
           )}
@@ -106,7 +108,7 @@ async function Topo() {
           🤝 Conheça nossos parceiros
         </Link>
       </div>
-      {c.efeito !== "nenhum" && <EfeitoFestivo tipo={c.efeito} cor={cor} logo={c.logo_url} />}
+      {c.efeito !== "nenhum" && <EfeitoFestivo tipo={c.efeito} cor={cor} logo={c.logo_url} borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} />}
     </header>
   );
 }

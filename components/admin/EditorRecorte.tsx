@@ -68,7 +68,7 @@ export default function EditorRecorte({ arquivo, proporcao, largura, cores = [],
     <div className="surgir fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" onClick={aoCancelar}>
       <div onClick={(e) => e.stopPropagation()} className="subir w-full max-w-xl rounded-2xl bg-white p-4 text-stone-900 shadow-2xl">
         <b className="text-lg">✂️ Ajustar imagem</b>
-        <p className="mb-3 text-xs opacity-60">Arraste para posicionar · zoom para aproximar/afastar · escolha a cor das sobras. Sai em {largura} × {altura} px.</p>
+        <p className="mb-3 text-xs opacity-60">Arraste para posicionar · zoom para aproximar/afastar. A <b>cor das sobras</b> só aparece onde a imagem não cobre (diminuindo o zoom abaixo de 100% ou em partes transparentes). Sai em {largura} × {altura} px.</p>
 
         {/* Área de recorte (fundo quadriculado = transparente) */}
         <div className="relative mx-auto overflow-hidden rounded-xl bg-[repeating-conic-gradient(#e7e5e4_0_25%,#fff_0_50%)] bg-[length:16px_16px]"
@@ -89,7 +89,7 @@ export default function EditorRecorte({ arquivo, proporcao, largura, cores = [],
         </label>
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-          Fundo:
+          <span title="Só aparece onde a imagem não cobre: ao diminuir o zoom (sobras nas bordas) ou nas partes transparentes de um PNG">Cor das sobras ⓘ:</span>
           <button type="button" onClick={() => setFundo("transparente")} className="rounded-full border px-2 py-1 text-xs" style={fundo === "transparente" ? { outline: "2px solid #111" } : {}}>Transparente</button>
           {paleta.map((c) => (
             <button key={c} type="button" onClick={() => setFundo(c)} aria-label={`Fundo ${c}`} className="h-7 w-7 rounded-full border"

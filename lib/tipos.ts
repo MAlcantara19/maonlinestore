@@ -7,7 +7,8 @@
 // Efeitos animados possíveis (lojas e coleções).
 export type Efeito =
   | "nenhum" | "neve" | "estrelas" | "brilhos" | "coracoes" | "confete" | "bolhas"
-  | "chocolate" | "doces" | "flores" | "presentes" | "logo" | "logo_voando" | "borboletas" | "baloes";
+  | "chocolate" | "doces" | "flores" | "presentes" | "logo" | "logo_voando" | "borboletas" | "baloes"
+  | "natal" | "pascoa" | "halloween" | "namorados" | "maes" | "folhas" | "chuva" | "nuvens" | "fogos" | "joias" | "notas" | "patinhas" | "futebol" | "brasil" | "foguetes" | "dinheiro" | "sorvete" | "cafe";
 
 // Tabela "lojas": uma linha por loja (VitraForma, Gallerie...).
 export type Loja = {
@@ -35,6 +36,9 @@ export type Loja = {
   fundo_url?: string | null;
   fundo_opacidade?: number;
   fundo_animacao?: AnimacaoFundo;
+  fundo_cor?: string | null; // cor entre as logos do mosaico
+  logo_borda_cor?: string | null; // borda da logo redonda
+  logo_borda?: number; // grossura da borda (px)
   lancamento_em?: string | null; // inauguração (contagem regressiva das lojas em breve)
   efeito_personalizado_id?: string | null;
   ativa?: boolean; // false = a loja some do site
@@ -146,6 +150,9 @@ export type ConfigSite = {
   fundo_url?: string | null;
   fundo_opacidade?: number;
   fundo_animacao?: AnimacaoFundo;
+  fundo_cor?: string | null; // cor entre as logos do mosaico
+  logo_borda_cor?: string | null; // borda da logo redonda
+  logo_borda?: number; // grossura da borda (px)
   parceiros_titulo?: string | null;
   parceiros_subtitulo?: string | null;
   parceiros_fundo_tipo?: TipoFundo;
@@ -153,6 +160,7 @@ export type ConfigSite = {
   parceiros_fundo_opacidade?: number;
   parceiros_fundo_animacao?: AnimacaoFundo;
   parceiros_efeito?: Efeito;
+  parceiros_fundo_cor?: string | null;
 };
 
 export type AnimacaoFundo = "nenhuma" | "respirar" | "zoom_lento" | "deslizar";

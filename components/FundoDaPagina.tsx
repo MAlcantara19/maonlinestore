@@ -8,9 +8,13 @@
 import MosaicoRedondo from "@/components/MosaicoRedondo";
 import type { AnimacaoFundo, TipoFundo } from "@/lib/tipos";
 
-type Props = { tipo?: TipoFundo | null; url?: string | null; logo?: string | null; opacidade?: number | null; corBase?: string | null; animacao?: AnimacaoFundo | null };
+type Props = {
+  tipo?: TipoFundo | null; url?: string | null; logo?: string | null; opacidade?: number | null; corBase?: string | null; animacao?: AnimacaoFundo | null;
+  corMosaico?: string | null; // cor entre as logos
+  borda?: { cor?: string | null; largura?: number | null }; // borda de cada logo
+};
 
-export default function FundoDaPagina({ tipo, url, logo, opacidade, corBase, animacao }: Props) {
+export default function FundoDaPagina({ tipo, url, logo, opacidade, corBase, animacao, corMosaico, borda }: Props) {
   const fonte = tipo === "mosaico" ? url || logo : url;
   if (!tipo || tipo === "nenhum" || !fonte) return null;
   const op = Math.max(3, Math.min(100, opacidade ?? 15)) / 100;
@@ -26,7 +30,7 @@ export default function FundoDaPagina({ tipo, url, logo, opacidade, corBase, ani
         {/* Logo repetida em BOLINHAS (redondas), andando devagar na diagonal */}
         {tipo === "mosaico" && (
           <div className={`absolute inset-0 fundo-${animacao ?? "nenhuma"}`}>
-            <MosaicoRedondo src={fonte} />
+            <MosaicoRedondo src={fonte} corFundo={corMosaico} borda={borda} />
           </div>
         )}
       </div>
