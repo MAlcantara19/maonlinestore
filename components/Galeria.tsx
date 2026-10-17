@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Midia } from "@/lib/tipos";
 
-export default function Galeria({ midias, nome, cor }: { midias: Midia[]; nome: string; cor: string }) {
+export default function Galeria({ midias, nome, cor, produtoId }: { midias: Midia[]; nome: string; cor: string; produtoId?: string }) {
   const trilho = useRef<HTMLDivElement>(null);
   const [atual, setAtual] = useState(0);
   const [rolando, setRolando] = useState(false);
@@ -29,6 +29,19 @@ export default function Galeria({ midias, nome, cor }: { midias: Midia[]; nome: 
     const el = trilho.current;
     if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
   };
+
+  // Escolheu uma cor (evento vindo da escolha do produto)? Pula para a foto daquela cor
+  useEffect(() => {
+    const aoEscolher = (e: Event) => {
+      const { produto, cor: escolhida } = (e as CustomEvent<{ produto: string; cor: string | null }>).detail;
+      if (produto !== produtoId || !escolhida) return;
+      const i = midias.findIndex((m) => m.cor && m.cor.toLowerCase().trim() === escolhida.toLowerCase().trim());
+      const el = trilho.current;
+      if (i >= 0 && el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+    };
+    window.addEventListener("cor-escolhida", aoEscolher);
+    return () => window.removeEventListener("cor-escolhida", aoEscolher);
+  }, [midias, produtoId]);
 
   // Tela cheia: Esc fecha, setas trocam a foto
   useEffect(() => {

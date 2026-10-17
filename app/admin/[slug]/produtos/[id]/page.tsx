@@ -26,7 +26,7 @@ type Dados = {
   prazo: string; selo: string; destaque: boolean; ativo: boolean; categoria_id: string | null;
 };
 type LinhaVariacao = { id?: string; tamanho: string; cor: string; preco: string; disponibilidade: Disponibilidade | ""; prazo: string; ativa: boolean };
-type LinhaMidia = { id?: string; tipo: "foto" | "video"; url: string };
+type LinhaMidia = { id?: string; tipo: "foto" | "video"; url: string; cor?: string | null };
 type ColecaoSimples = { id: string; nome: string };
 
 const VAZIO: Dados = { nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo: "", selo: "", destaque: false, ativo: true, categoria_id: null };
@@ -98,7 +98,7 @@ function Formulario() {
             prazo: (v.prazo as string) ?? "", ativa: v.ativa as boolean,
           })));
           const ms = [...p.midias].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
-          setMidias(ms.map((m: { id: string; tipo: "foto" | "video"; url: string }) => ({ id: m.id, tipo: m.tipo, url: m.url })));
+          setMidias(ms.map((m: { id: string; tipo: "foto" | "video"; url: string; cor: string | null }) => ({ id: m.id, tipo: m.tipo, url: m.url, cor: m.cor })));
           setMarcadas(p.produtos_colecoes.map((pc: { colecao_id: string }) => pc.colecao_id));
           setAutoria({ criado_por: p.criado_por, criado_em: p.criado_em, atualizado_por: p.atualizado_por, atualizado_em: p.atualizado_em });
           originais.current = { variacoes: vs.map((v: { id: string }) => v.id), midias: ms.map((m: { id: string }) => m.id) };
@@ -178,8 +178,8 @@ function Formulario() {
       const mMantidas = midias.filter((m) => m.id).map((m) => m.id!);
       const mApagar = originais.current.midias.filter((x) => !mMantidas.includes(x));
       if (mApagar.length) { const e = await supabase.from("midias").delete().in("id", mApagar); if (e.error) throw e.error; }
-      const mExistentes = midias.map((m, i) => ({ m, i })).filter(({ m }) => m.id).map(({ m, i }) => ({ id: m.id, produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i }));
-      const mNovas = midias.map((m, i) => ({ m, i })).filter(({ m }) => !m.id).map(({ m, i }) => ({ produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i }));
+      const mExistentes = midias.map((m, i) => ({ m, i })).filter(({ m }) => m.id).map(({ m, i }) => ({ id: m.id, produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i, cor: m.cor ?? null }));
+      const mNovas = midias.map((m, i) => ({ m, i })).filter(({ m }) => !m.id).map(({ m, i }) => ({ produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i, cor: m.cor ?? null }));
       if (mExistentes.length) { const e = await supabase.from("midias").upsert(mExistentes); if (e.error) throw e.error; }
       if (mNovas.length) { const e = await supabase.from("midias").insert(mNovas); if (e.error) throw e.error; }
 
@@ -233,6 +233,8 @@ function Formulario() {
   }
 
   const principais = categorias.filter((c) => !c.parent_id);
+  // Cores usadas nas variações deste produto (para ligar cada foto a uma cor)
+  const coresDasVariacoes = [...new Set(variacoes.map((v) => v.cor.trim()).filter(Boolean))];
   const celula = "w-full rounded-lg border bg-white px-2 py-1.5 text-sm";
 
   return (
@@ -250,7 +252,8 @@ function Formulario() {
       {!autoria && <div className="mb-4" />}
 
       <Bloco titulo="📷 Fotos e vídeos">
-        <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas antes de enviar. Vídeos: curtos (até 20 MB).</p>
+        <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas antes de enviar. Vídeos: curtos (até 20 MB).
+          Depois de criar as variações, escolha embaixo de cada foto a <b>cor</b> que ela mostra: na loja, ao escolher a cor, a foto troca sozinha.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {midias.map((m, i) => (
             <div key={m.url} className="relative overflow-hidden rounded-xl border bg-stone-100">
@@ -258,6 +261,14 @@ function Formulario() {
                 ? <video src={m.url} muted loop autoPlay playsInline className="aspect-square w-full object-cover" />
                 : <img src={m.url} alt="" className="aspect-square w-full object-cover" />}
               {i === 0 && <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 text-[10px] text-white">Capa</span>}
+              {/* Qual cor esta foto mostra (na loja, escolher a cor pula para ela) */}
+              {coresDasVariacoes.length > 0 && (
+                <select value={m.cor ?? ""} onChange={(e) => setMidias(midias.map((x, j) => (j === i ? { ...x, cor: e.target.value || null } : x)))}
+                  className="w-full border-t bg-white px-1 py-1 text-xs" aria-label="Cor desta foto">
+                  <option value="">🎨 Todas as cores</option>
+                  {coresDasVariacoes.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
               <div className="flex justify-between bg-white text-sm">
                 <button type="button" onClick={() => moverMidia(i, -1)} className="px-2 py-1" aria-label="Mover para a esquerda">◀</button>
                 <button type="button" onClick={() => setMidias(midias.filter((_, j) => j !== i))} className="px-2 py-1 text-red-600" aria-label="Remover">🗑️</button>

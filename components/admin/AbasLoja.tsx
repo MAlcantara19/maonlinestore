@@ -15,6 +15,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
     { href: `${base}/categorias`, rotulo: "🗂️ Categorias e coleções" },
     { href: `${base}/opcoes`, rotulo: "🎨 Cores e tamanhos" },
     { href: `${base}/cupons`, rotulo: "🏷️ Cupons" },
+    { href: `${base}/efeitos`, rotulo: "✨ Efeitos" },
     { href: `${base}/historico`, rotulo: "📜 Histórico" },
   ].map((a) => ({ ...a, ativa: a.ativa ?? caminho.startsWith(a.href) }));
 

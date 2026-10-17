@@ -93,6 +93,8 @@ function Conteudo() {
                 {vencido ? " · vencido" : ""}
               </span>
               <span className="flex-1" />
+              <button type="button" className="rounded-lg border px-3 py-1.5 text-sm" title="Quem entrar por este link já ganha o cupom"
+                onClick={async () => { await navigator.clipboard.writeText(`${window.location.origin}/${slug}?cupom=${c.codigo}`); setAviso(`✓ Link do cupom ${c.codigo} copiado! Use nos stories.`); }}>🔗 Link</button>
               <button type="button" onClick={() => alternar(c)} className="rounded-lg border px-3 py-1.5 text-sm">{c.ativo ? "Pausar" : "Ativar"}</button>
               <button type="button" onClick={() => excluir(c)} className="rounded-lg border px-3 py-1.5 text-sm text-red-600">🗑️</button>
             </div>

@@ -12,9 +12,10 @@ import type { Parceiro } from "@/lib/tipos";
 export default function CartaoParceiro({ parceiro, indice = 0 }: { parceiro: Parceiro; indice?: number }) {
   const cor = parceiro.cor ?? "#1c1917";
   return (
-    <div className="animar-entrada" style={{ animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
+    // Em destaque: moldura colorida girando em volta do cartão
+    <div className={`animar-entrada rounded-[1.1rem] ${parceiro.destaque ? "borda-girando p-[3px]" : ""}`} style={{ animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
       <Link href={`/parceiros/${parceiro.slug}`}
-        className={`clicavel cartao group block overflow-hidden rounded-2xl border bg-white text-stone-900 shadow-sm ${parceiro.destaque ? "ring-2 ring-amber-400" : ""}`}>
+        className="clicavel cartao group block overflow-hidden rounded-2xl border bg-white text-stone-900 shadow-sm">
         <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden"
           style={{ background: `linear-gradient(135deg, ${cor}, ${cor}bb)` }}>
           {/* Foto de fundo, com um véu escuro para a logo aparecer bem */}

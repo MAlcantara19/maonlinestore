@@ -19,6 +19,13 @@ import EfeitoFestivo from "@/components/EfeitoFestivo";
 import EstilosAnimacao from "@/components/EstilosAnimacao";
 import ParallaxMouse from "@/components/ParallaxMouse";
 import BotaoTema from "@/components/BotaoTema";
+import BuscaGlobal from "@/components/BuscaGlobal";
+import Inclinar3D from "@/components/Inclinar3D";
+import ContagemRegressiva from "@/components/ContagemRegressiva";
+import ContadorAnimado from "@/components/ContadorAnimado";
+import CardDoProduto from "@/components/CardDoProduto";
+import { DESENVOLVEDOR } from "@/lib/config";
+import type { Produto } from "@/lib/tipos";
 
 export default function PaginaInicial() {
   return (
@@ -34,10 +41,16 @@ export default function PaginaInicial() {
           <ListaDeLojas />
         </Suspense>
         <Suspense fallback={null}>
+          <VitrineDoDia />
+        </Suspense>
+        <Suspense fallback={null}>
           <FaixaDeMarcas />
         </Suspense>
         <Suspense fallback={null}>
           <FaixaDeParceiros />
+        </Suspense>
+        <Suspense fallback={null}>
+          <Numeros />
         </Suspense>
       </main>
       <Rodape />
@@ -52,6 +65,7 @@ export default function PaginaInicial() {
 async function Topo() {
   await connection();
   const c: ConfigSite = await buscarConfigSite().catch(() => CONFIG_PADRAO);
+  const { data: lojasBusca } = await supabase.from("lojas").select("slug, nome, cor").eq("ativa", true).eq("em_breve", false);
   const cor = c.cor ?? "#3B1260";
   const cor2 = c.cor_secundaria ?? cor;
   const bolhas =
@@ -75,6 +89,7 @@ async function Topo() {
         {c.subtitulo && (
           <p className="animar-entrada mt-3 text-lg opacity-90" style={{ animationDelay: "120ms" }}>{c.subtitulo}</p>
         )}
+        <BuscaGlobal lojas={((lojasBusca ?? []) as Loja[]).map((l) => ({ slug: l.slug, nome: l.nome, cor: l.cor }))} />
         <Link href="/parceiros" className="animar-entrada clicavel mt-6 inline-block rounded-full bg-white/15 px-4 py-2 text-sm hover:bg-white/25"
           style={{ animationDelay: "240ms" }}>
           🤝 Conheça nossos parceiros
@@ -92,7 +107,7 @@ async function ListaDeLojas() {
   await connection(); // dados novos a cada visita
   const { data: lojas, error } = await supabase
     .from("lojas")
-    .select("id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, em_breve")
+    .select("id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, em_breve, whatsapp, lancamento_em")
     .eq("ativa", true)
     .order("ordem");
 
@@ -116,22 +131,31 @@ async function ListaDeLojas() {
           // Loja "em breve": apagadinha, com selo, sem abrir
           if (loja.em_breve) {
             return (
-              <div key={loja.id} className="animar-entrada relative cursor-default p-2 text-center opacity-60 grayscale" style={atraso} title="Em breve">
+              <div key={loja.id} className="animar-entrada relative cursor-default p-2 text-center" style={atraso} title="Em breve">
                 {circulo}
                 <span className="absolute left-1/2 top-1 -translate-x-1/2 rounded-full bg-stone-800 px-2 py-0.5 text-[11px] font-bold text-white">Em breve</span>
                 <b className="mt-2 block">{loja.nome}</b>
                 <span className="block text-xs opacity-70">{loja.descricao}</span>
+                {loja.lancamento_em && <ContagemRegressiva ate={loja.lancamento_em} cor={loja.cor ?? "#333"} />}
+                {/* "Me avise": abre o WhatsApp da loja (ou o seu) pedindo para ser avisado */}
+                <a href={`https://wa.me/${(loja.whatsapp ?? DESENVOLVEDOR.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(`Oi! Quero ser avisado(a) quando a ${loja.nome} lançar 😊`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="mt-2 inline-block rounded-full bg-white/80 px-3 py-1 text-xs font-semibold shadow backdrop-blur" style={{ color: loja.cor ?? "#333" }}>
+                  🔔 Me avise
+                </a>
               </div>
             );
           }
 
           return (
             <div key={loja.id} className="animar-entrada" style={atraso}>
-              <Link href={`/${loja.slug}`} className="clicavel cartao block rounded-xl p-2 text-center">
+              <Inclinar3D graus={10}>
+              <Link href={`/${loja.slug}`} className="clicavel block rounded-xl p-2 text-center">
                 {circulo}
                 <b className="mt-2 block">{loja.nome}</b>
                 <span className="block text-xs opacity-70">{loja.descricao}</span>
               </Link>
+              </Inclinar3D>
             </div>
           );
         })}
@@ -195,6 +219,61 @@ async function FaixaDeMarcas() {
           </Link>
         ))}
       </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// VITRINE DO DIA: os produtos em DESTAQUE de todas as lojas, numa fileira
+// que desliza para o lado. Quem entrou por uma loja descobre as outras.
+// ---------------------------------------------------------------------
+async function VitrineDoDia() {
+  await connection();
+  const { data } = await supabase.from("produtos")
+    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve)")
+    .eq("destaque", true).eq("ativo", true).eq("lojas.ativa", true).eq("lojas.em_breve", false).limit(16);
+  const produtos = (data ?? []) as unknown as (Produto & { lojas: { slug: string; nome: string; cor: string | null } })[];
+  if (produtos.length === 0) return null;
+  return (
+    <section className="mt-14">
+      <h2 className="text-2xl font-bold">🌟 Vitrine do dia</h2>
+      <p className="text-sm opacity-70">Os queridinhos de cada loja</p>
+      <div className="mt-3 flex snap-x gap-3 overflow-x-auto pb-3">
+        {produtos.map((p, i) => (
+          <div key={p.id} className="w-44 shrink-0 snap-start sm:w-52">
+            <span className="mb-1 block truncate text-xs font-bold" style={{ color: p.lojas.cor ?? "#333" }}>{p.lojas.nome}</span>
+            <CardDoProduto produto={p} cor={p.lojas.cor ?? "#333"} slug={p.lojas.slug} indice={i} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// NÚMEROS: contam até o valor quando aparecem na tela
+// ---------------------------------------------------------------------
+async function Numeros() {
+  await connection();
+  const { data } = await supabase.rpc("estatisticas_publicas");
+  const n = (data as { lojas: number; parceiros: number; produtos: number; pedidos: number }[] | null)?.[0];
+  if (!n) return null;
+  const itens = [
+    { valor: Number(n.lojas), rotulo: "lojas", icone: "🏬" },
+    { valor: Number(n.produtos), rotulo: "produtos", icone: "📦" },
+    { valor: Number(n.parceiros), rotulo: "parceiros", icone: "🤝" },
+    { valor: Number(n.pedidos), rotulo: "pedidos pelo WhatsApp", icone: "💬" },
+  ].filter((i) => i.valor > 0);
+  if (itens.length === 0) return null;
+  return (
+    <section className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {itens.map((i) => (
+        <div key={i.rotulo} className="rounded-2xl border bg-white/70 p-4 text-center shadow-sm">
+          <span className="text-2xl">{i.icone}</span>
+          <b className="block text-3xl"><ContadorAnimado valor={i.valor} /></b>
+          <span className="text-xs opacity-70">{i.rotulo}</span>
+        </div>
+      ))}
     </section>
   );
 }

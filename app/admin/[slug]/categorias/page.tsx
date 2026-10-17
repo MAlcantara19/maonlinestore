@@ -19,9 +19,9 @@ import { Bloco } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
 import { OPCOES_EFEITO } from "@/lib/opcoes";
-import type { Categoria, Efeito } from "@/lib/tipos";
+import type { Categoria, Efeito, EfeitoPersonalizado } from "@/lib/tipos";
 
-type Colecao = { id: string; nome: string; descricao: string | null; em_destaque: boolean; ativa: boolean; efeito: Efeito; ordem: number };
+type Colecao = { id: string; nome: string; descricao: string | null; em_destaque: boolean; ativa: boolean; efeito: Efeito; ordem: number; efeito_personalizado_id: string | null };
 const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
 
 export default function PainelCategorias() {
@@ -34,13 +34,16 @@ function Conteudo() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [colecoes, setColecoes] = useState<Colecao[]>([]);
   const [aviso, setAviso] = useState("");
+  const [personalizados, setPersonalizados] = useState<EfeitoPersonalizado[]>([]);
 
   const recarregar = useCallback(async (l: LojaResumo) => {
     const supabase = supabaseNavegador();
-    const [cat, col] = await Promise.all([
-      supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id),
-      supabase.from("colecoes").select("id, nome, descricao, em_destaque, ativa, efeito, ordem").eq("loja_id", l.id).order("ordem").order("nome"),
+    const [cat, col, ef] = await Promise.all([
+      supabase.from("categorias").select("id, nome, descricao, parent_id, ordem, efeito_personalizado_id").eq("loja_id", l.id),
+      supabase.from("colecoes").select("id, nome, descricao, em_destaque, ativa, efeito, ordem, efeito_personalizado_id").eq("loja_id", l.id).order("ordem").order("nome"),
+      supabase.from("efeitos_personalizados").select("id, nome, imagens, movimento, quantidade, tamanho").eq("loja_id", l.id),
     ]);
+    setPersonalizados((ef.data ?? []) as EfeitoPersonalizado[]);
     setCategorias(((cat.data ?? []) as Categoria[]).sort(porNome));
     setColecoes((col.data ?? []) as Colecao[]);
   }, []);
@@ -60,7 +63,7 @@ function Conteudo() {
     avisar("✓ Criada! (já entrou na ordem alfabética)"); recarregar(loja);
   }
   async function salvarCategoria(c: Categoria) {
-    const { error } = await supabase().from("categorias").update({ nome: c.nome.trim(), descricao: c.descricao }).eq("id", c.id);
+    const { error } = await supabase().from("categorias").update({ nome: c.nome.trim(), descricao: c.descricao, efeito_personalizado_id: c.efeito_personalizado_id ?? null }).eq("id", c.id);
     avisar(error ? `Erro: ${error.message}` : "✓ Salva!");
     if (!error && loja) recarregar(loja); // reordena se o nome mudou
   }
@@ -109,12 +112,28 @@ function Conteudo() {
   const celula = "rounded-lg border bg-white px-2 py-1.5 text-sm";
   const botao = "rounded-lg border px-3 py-1.5 text-sm";
 
+  // Copia o link direto para a categoria (para anúncios e stories)
+  const copiarLink = async (ancora: string) => {
+    await navigator.clipboard.writeText(`${window.location.origin}/${slug}#${ancora}`);
+    avisar("✓ Link copiado! Cole no Instagram, WhatsApp...");
+  };
+  // Seletor de efeito personalizado (liga quando o cliente chega nessa parte da loja)
+  const seletorEfeito = (valor: string | null | undefined, aoMudar: (v: string | null) => void) =>
+    personalizados.length > 0 && (
+      <select className={celula} value={valor ?? ""} onChange={(e) => aoMudar(e.target.value || null)} title="Efeito personalizado nesta parte da loja">
+        <option value="">✨ Sem efeito próprio</option>
+        {personalizados.map((e) => <option key={e.id} value={e.id}>✨ {e.nome}</option>)}
+      </select>
+    );
+
   // Uma linha de categoria/subcategoria, com o número automático (1, 1.1...)
   const linhaCategoria = (c: Categoria, numero: string, sub = false) => (
     <div key={c.id} className={`flex flex-wrap items-center gap-2 ${sub ? "ml-6 border-l-2 pl-3" : ""}`} style={sub ? { borderColor: cor } : {}}>
       <span className="w-10 shrink-0 text-right font-mono text-sm font-bold" style={{ color: cor }}>{numero}</span>
       <input className={`${celula} min-w-0 flex-1 font-semibold`} value={c.nome} onChange={(e) => mudarCat(c.id, "nome", e.target.value)} />
       <input className={`${celula} min-w-0 flex-[2]`} placeholder="Descrição (opcional)" value={c.descricao ?? ""} onChange={(e) => mudarCat(c.id, "descricao", e.target.value || null)} />
+      {seletorEfeito(c.efeito_personalizado_id, (v) => setCategorias(categorias.map((x) => (x.id === c.id ? { ...x, efeito_personalizado_id: v } : x))))}
+      <button type="button" className={botao} onClick={() => copiarLink(sub ? `sub-${c.id}` : `categoria-${c.id}`)} title="Copiar link direto">🔗</button>
       <button type="button" className={botao} onClick={() => salvarCategoria(c)}>Salvar</button>
       <button type="button" className={`${botao} text-red-600`} onClick={() => excluirCategoria(c)}>🗑️</button>
     </div>
@@ -158,7 +177,9 @@ function Conteudo() {
               <select className={celula} value={c.efeito} onChange={(e) => mudarCol(c.id, "efeito", e.target.value as Efeito)}>
                 {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
               </select>
+              {seletorEfeito(c.efeito_personalizado_id, (v) => mudarCol(c.id, "efeito_personalizado_id", v))}
               <span className="flex-1" />
+              <button type="button" className={botao} onClick={() => copiarLink(`colecao-${c.id}`)} title="Copiar link direto">🔗</button>
               <button type="button" className={botao} onClick={() => salvarColecao(c)}>Salvar</button>
               <button type="button" className={`${botao} text-red-600`} onClick={() => excluirColecao(c)}>🗑️</button>
             </div>

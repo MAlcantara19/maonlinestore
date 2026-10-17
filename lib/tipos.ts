@@ -30,6 +30,8 @@ export type Loja = {
   em_breve?: boolean; // true = aparece "Em breve" na página inicial
   sobre?: string | null; // texto da página "Sobre nós" da loja
   unidade_tamanho?: string; // unidade padrão dos tamanhos (cm, ml, g...)
+  lancamento_em?: string | null; // inauguração (contagem regressiva das lojas em breve)
+  efeito_personalizado_id?: string | null;
   ativa?: boolean; // false = a loja some do site
 };
 
@@ -40,6 +42,7 @@ export type Categoria = {
   descricao: string | null;
   parent_id: string | null;
   ordem: number;
+  efeito_personalizado_id?: string | null;
 };
 
 // Situação do produto ou da variação.
@@ -63,6 +66,7 @@ export type Midia = {
   tipo: "foto" | "video";
   url: string;
   ordem: number;
+  cor?: string | null; // cor da variação que a foto mostra (vazio = todas)
 };
 
 // Tabela "produtos", já com as variações e mídias junto.
@@ -88,6 +92,7 @@ export type Colecao = {
   descricao: string | null;
   em_destaque: boolean;
   efeito?: Efeito; // animação enquanto em destaque
+  efeito_personalizado_id?: string | null;
   produtos_colecoes: { produto_id: string }[];
 };
 
@@ -125,4 +130,14 @@ export type ConfigSite = {
   banner_url: string | null;
   efeito: Efeito;
   parceiros_na_home: number;
+};
+
+// Tabela "efeitos_personalizados": efeitos feitos com imagens enviadas pela loja.
+export type EfeitoPersonalizado = {
+  id: string;
+  nome: string;
+  imagens: string[];
+  movimento: "cair" | "subir" | "voar" | "piscar";
+  quantidade: number;
+  tamanho: number;
 };

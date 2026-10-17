@@ -129,10 +129,27 @@ const ANIMACOES = `
     to { clip-path: circle(150vmax at var(--cortina-x, 50%) var(--cortina-y, 50%)); }
   }
 
+
+  /* Foto "flutuando" de leve no visualizador 3D */
+  @keyframes flutuar { 0%, 100% { transform: translateY(0) rotateY(-4deg); } 50% { transform: translateY(-8px) rotateY(4deg); } }
+  .flutuar { animation: flutuar 5s ease-in-out infinite; }
+
+  /* Borda colorida girando (parceiro em destaque, ex.: o seu card) */
+  @property --angulo { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+  .borda-girando { background: conic-gradient(from var(--angulo), #f5c542, #ef5350, #a855f7, #42a5f5, #f5c542); animation: girar-borda 4s linear infinite; }
+  @keyframes girar-borda { to { --angulo: 360deg; } }
+
+  /* Barra de "preparando seu pedido" */
+  @keyframes encher { from { width: 0; } to { width: 100%; } }
+  .encher { animation: encher 1.1s ease-in-out forwards; }
+
+  /* Troca de tema suave (fundo e texto mudam devagar) */
+  body, .tema-loja { transition: background-color .5s ease, color .5s ease; }
+
   /* Quem pediu "menos movimento" no aparelho não vê animações */
   @media (prefers-reduced-motion: reduce) {
     .animar-entrada, .pular, .deslizar, .surgir, .subir, .parallax-conteudo, .parallax-fundo, .pulsar, .brilho-texto::after,
-    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar { animation: none !important; }
+    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher { animation: none !important; }
     ::view-transition-new(root) { animation: none; }
     .efeito-particula { display: none; }
   }

@@ -3,6 +3,7 @@
 // selo, nome, preço "a partir de", situação e o botão "+" de adicionar
 // rápido. Usado na página da loja e no resultado da busca.
 // =====================================================================
+import Inclinar3D from "@/components/Inclinar3D";
 import Link from "next/link";
 import type { Produto } from "@/lib/tipos";
 import { formatarPreco, precoMinimo, textoDisponibilidade } from "@/lib/formato";
@@ -19,8 +20,9 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
 
   return (
     // Os cartões aparecem um depois do outro (efeito "cascata")
-    // @container: permite posicionar a "Espiadinha" no pé da foto · group: efeitos ao passar o mouse
-    <div className="animar-entrada group @container relative" style={{ animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
+    <div className="animar-entrada group relative" style={{ animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
+      {/* Inclina em 3D acompanhando o mouse (computador) */}
+      <Inclinar3D graus={6}>
       <Link href={`/${slug}/p/${produto.id}`} className="clicavel cartao group block rounded-xl border bg-white/60 p-2" style={{ borderColor: "#0001" }}>
         <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg text-xs" style={{ background: `${cor}22` }}>
           {foto ? (
@@ -52,6 +54,7 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
         </span>
         <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>
       </Link>
+      </Inclinar3D>
 
       {/* Botão "+" de adicionar rápido (fora do link, para não abrir a página do produto) */}
       {!esgotado && <AdicionarRapido produto={produto} slug={slug} cor={cor} foto={foto?.url} />}

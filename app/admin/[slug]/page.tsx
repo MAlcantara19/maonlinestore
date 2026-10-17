@@ -12,14 +12,14 @@ import { useEffect, useState } from "react";
 import AreaAdmin, { type InfoAdmin } from "@/components/admin/AreaAdmin";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO, OPCOES_FONTE, OPCOES_UNIDADE } from "@/lib/opcoes";
-import type { Loja } from "@/lib/tipos";
+import type { EfeitoPersonalizado, Loja } from "@/lib/tipos";
 import { Bloco, Campo, Interruptor, BarraSalvar, type Mensagem } from "@/components/admin/Campos";
 import AbasLoja from "@/components/admin/AbasLoja";
 import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, lancamento_em, efeito_personalizado_id, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -31,12 +31,20 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
   const [naoAchou, setNaoAchou] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<Mensagem>(null);
+  const [personalizados, setPersonalizados] = useState<{ id: string; nome: string }[]>([]);
 
   // Carrega a loja do banco
   useEffect(() => {
     supabaseNavegador().from("lojas").select(COLUNAS).eq("slug", slug).maybeSingle()
       .then(({ data }: { data: Loja | null }) => (data ? setLoja(data) : setNaoAchou(true)));
   }, [slug]);
+
+  // Efeitos personalizados desta loja (para escolher na Aparência)
+  useEffect(() => {
+    if (!loja?.id) return;
+    supabaseNavegador().from("efeitos_personalizados").select("id, nome").eq("loja_id", loja.id)
+      .then(({ data }: { data: Pick<EfeitoPersonalizado, "id" | "nome">[] | null }) => setPersonalizados(data ?? []));
+  }, [loja?.id]);
 
   if (naoAchou) return <p>Loja não encontrada. <Link href="/admin" className="underline">Voltar</Link></p>;
   if (!loja) return <p className="opacity-60">Carregando...</p>;
@@ -124,6 +132,16 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         </div>
       </Bloco>
 
+      <Bloco titulo="✨ Efeito personalizado (com as suas imagens)">
+        <Campo rotulo="Efeito na loja toda (tem prioridade sobre os efeitos prontos)">
+          <select className={input} value={loja.efeito_personalizado_id ?? ""} onChange={(e) => mudar("efeito_personalizado_id", e.target.value || null)}>
+            <option value="">Nenhum (usa o efeito pronto acima)</option>
+            {personalizados.map((e) => <option key={e.id} value={e.id}>✨ {e.nome}</option>)}
+          </select>
+        </Campo>
+        <p className="text-xs opacity-60">Crie efeitos na aba ✨ Efeitos. Para usar só numa categoria ou coleção, escolha lá em Categorias e coleções.</p>
+      </Bloco>
+
       <Bloco titulo="📏 Tamanhos">
         <Campo rotulo="Unidade padrão (digitou só o número, o sistema completa: 20 → 20 cm)">
           <select className={input} value={loja.unidade_tamanho ?? "cm"} onChange={(e) => mudar("unidade_tamanho", e.target.value)}>
@@ -133,6 +151,13 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
       </Bloco>
 
       <Bloco titulo="👀 Visibilidade">
+        {loja.em_breve && (
+          <Campo rotulo="⏳ Data e hora da inauguração (mostra a contagem regressiva na página inicial)">
+            <input type="datetime-local" className={input}
+              value={loja.lancamento_em ? new Date(new Date(loja.lancamento_em).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+              onChange={(e) => mudar("lancamento_em", e.target.value ? new Date(e.target.value).toISOString() : null)} />
+          </Campo>
+        )}
         <Interruptor rotulo="Em breve" ajuda="Aparece apagadinha na página inicial, sem abrir. Pelo link direto continua abrindo."
           ligado={!!loja.em_breve} aoMudar={(v) => mudar("em_breve", v)} />
         {/* Só o master desativa uma loja inteira */}

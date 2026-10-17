@@ -5,6 +5,7 @@
 // quando ROLA PARA BAIXO (quer ver os produtos).
 // No celular traz o botão "☰" e a linha de atalhos.
 // =====================================================================
+import LinkTopo from "@/components/LinkTopo";
 import BotaoTema from "@/components/BotaoTema";
 import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
@@ -44,12 +45,12 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
           <button type="button" onClick={abrirMenu} aria-label="Abrir menu" className="rounded-full bg-white/15 px-3 py-1.5 lg:hidden">☰</button>
         )}
         {/* Logo + nome: sempre mostram em qual loja a pessoa está */}
-        <Link href={`/${loja.slug}`} className="flex min-w-0 flex-1 items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/60">
+        <LinkTopo href={`/${loja.slug}`} className="flex min-w-0 flex-1 items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/60">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-bold shadow" style={{ color: cor }}>
             {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
           </span>
           <span className="truncate font-bold">{loja.nome}</span>
-        </Link>
+        </LinkTopo>
         {insta && (
           <a href={`https://instagram.com/${insta}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram @${insta}`}
             className="clicavel rounded-full bg-white/15 p-2"><IconeInstagram /></a>

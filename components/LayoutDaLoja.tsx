@@ -18,6 +18,7 @@ import TemaDaLoja from "@/components/TemaDaLoja";
 import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
 import MenuLateral from "@/components/MenuLateral";
 import IconeInstagram from "@/components/IconeInstagram";
+import CupomDoLink from "@/components/CupomDoLink";
 
 export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; menu: ItemMenu[]; children: ReactNode }) {
   const cor = loja.cor ?? "#333";
@@ -28,6 +29,7 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
     // TemaDaLoja aplica as cores, o fundo e a fonte desta loja (vêm do banco)
     <TemaDaLoja loja={loja}>
       <CabecalhoDaLoja loja={loja} menu={menu} />
+      <CupomDoLink lojaId={loja.id} slug={loja.slug} cor={cor} />
 
       <div className="mx-auto w-full max-w-[90rem] lg:flex lg:items-start lg:gap-6 lg:px-4">
         <MenuLateral slug={loja.slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} whatsapp={loja.whatsapp ?? null} />

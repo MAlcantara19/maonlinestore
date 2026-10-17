@@ -7,7 +7,7 @@
 // WhatsApp da loja com a mensagem pronta e o link de acompanhamento.
 // =====================================================================
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { salvarCarrinho, usarCarrinho } from "@/lib/carrinho";
 import { formatarPreco } from "@/lib/formato";
 import { montarMensagem } from "@/lib/mensagem";
@@ -29,6 +29,20 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const [avisoCupom, setAvisoCupom] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [aviao, setAviao] = useState(false); // ✈️ animação do envio
+
+  // Cupom que veio por link (?cupom=...) já entra aplicado
+  const [meusPedidos, setMeusPedidos] = useState<{ codigo: string; quando: string; total: number }[]>([]);
+  useEffect(() => {
+    try {
+      const guardado = localStorage.getItem(`cupom:${loja.slug}`);
+      if (guardado) setTextoCupom(guardado);
+      setMeusPedidos(JSON.parse(localStorage.getItem(`meus-pedidos:${loja.slug}`) ?? "[]"));
+    } catch {}
+  }, [loja.slug]);
+  useEffect(() => {
+    if (textoCupom && !cupom && itens.length) aplicarCupom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textoCupom, itens.length]);
 
   // Muda a quantidade de um item; se chegar a zero, remove.
   function mudarQuantidade(indice: number, delta: number) {
@@ -72,6 +86,15 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       codigo = (r as string) ?? null;
     } catch {}
 
+    // Guarda o pedido no aparelho do cliente ("Seus pedidos recentes")
+    if (codigo) {
+      try {
+        const lista = [{ codigo, quando: new Date().toISOString(), total }, ...meusPedidos].slice(0, 10);
+        localStorage.setItem(`meus-pedidos:${loja.slug}`, JSON.stringify(lista));
+        setMeusPedidos(lista);
+      } catch {}
+    }
+
     // 2) Monta a mensagem bonita e abre o WhatsApp da loja
     const mensagem = montarMensagem({
       tipo, loja: loja.nome, codigo, nome, itens, subtotal, desconto, cupom: cupomVale ? cupom!.codigo : null,
@@ -85,7 +108,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       else window.location.href = url;
       setAviao(false);
       setEnviando(false);
-    }, 700);
+    }, 1300);
   }
 
   if (itens.length === 0) {
@@ -93,6 +116,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       <div className="mt-8 text-center">
         <p className="opacity-70">Seu carrinho está vazio.</p>
         <Link href={`/${loja.slug}`} className="mt-3 inline-block font-semibold underline">Ver produtos</Link>
+        <PedidosRecentes lista={meusPedidos} cor={cor} />
       </div>
     );
   }
@@ -179,15 +203,38 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       </div>
       <p className="mt-2 text-center text-xs opacity-60">Os dois abrem o WhatsApp da loja com tudo já escrito.</p>
 
-      {/* ✈️ Aviãozinho de papel atravessando a tela no envio */}
+      {/* ✈️ Tela "preparando seu pedido" + aviãozinho de papel */}
       {aviao && (
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center">
+        <div className="surgir fixed inset-0 z-[70] flex flex-col items-center justify-center gap-4 bg-white/90 text-stone-900 backdrop-blur-md">
           <span className="aviao text-6xl drop-shadow-lg">✈️</span>
+          <b className="text-lg">Preparando seu pedido para a {loja.nome}... 🚀</b>
+          <div className="h-2 w-64 overflow-hidden rounded-full bg-black/10">
+            <div className="encher h-full rounded-full" style={{ background: cor }} />
+          </div>
         </div>
       )}
       <button onClick={() => salvarCarrinho(loja.slug, [])} className="mt-3 w-full text-sm underline opacity-70">
         Esvaziar carrinho
       </button>
+      <PedidosRecentes lista={meusPedidos} cor={cor} />
+    </div>
+  );
+}
+
+// Pedidos que esta pessoa já enviou (guardados só no aparelho dela)
+function PedidosRecentes({ lista, cor }: { lista: { codigo: string; quando: string; total: number }[]; cor: string }) {
+  if (!lista.length) return null;
+  return (
+    <div className="mt-6 text-left">
+      <b className="text-sm">🧾 Seus pedidos recentes</b>
+      <div className="mt-2 space-y-1">
+        {lista.slice(0, 5).map((p) => (
+          <a key={p.codigo} href={`/pedido/${p.codigo}`} className="flex justify-between rounded-lg border px-3 py-2 text-sm hover:bg-black/5">
+            <span className="font-mono font-bold" style={{ color: cor }}>#{p.codigo}</span>
+            <span className="opacity-70">{new Date(p.quando).toLocaleDateString("pt-BR")} · {formatarPreco(p.total)}</span>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

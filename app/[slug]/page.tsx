@@ -16,21 +16,21 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
-import type { Categoria, Colecao, Loja, Produto } from "@/lib/tipos";
+import type { Categoria, Colecao, EfeitoPersonalizado, Loja, Produto } from "@/lib/tipos";
 import { montarMenu } from "@/lib/menu";
 import CardDoProduto from "@/components/CardDoProduto";
 import LayoutDaLoja from "@/components/LayoutDaLoja";
 import ConteudoComBusca from "@/components/ConteudoComBusca";
-import EfeitoFestivo from "@/components/EfeitoFestivo";
+import EfeitosDaLoja from "@/components/EfeitosDaLoja";
 import { EsqueletoLoja } from "@/components/Esqueleto";
 
 // Next.js entrega o slug do endereço dentro de "params".
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito, efeito_personalizado_id";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem, cor)";
 
 // Título da aba e prévia quando o link da loja é compartilhado.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -64,11 +64,12 @@ async function ConteudoDaLoja({ params }: Props) {
   if (!loja) notFound();
 
   // 2) Categorias, produtos (com variações e mídias) e coleções, ao mesmo tempo.
-  const [catRes, prodRes, colRes] = await Promise.all([
-    supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", loja.id).order("nome"),
+  const [catRes, prodRes, colRes, efRes] = await Promise.all([
+    supabase.from("categorias").select("id, nome, descricao, parent_id, ordem, efeito_personalizado_id").eq("loja_id", loja.id).order("nome"),
     supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }),
-    supabase.from("colecoes").select("id, nome, descricao, em_destaque, efeito, produtos_colecoes(produto_id)")
+    supabase.from("colecoes").select("id, nome, descricao, em_destaque, efeito, efeito_personalizado_id, produtos_colecoes(produto_id)")
       .eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
+    supabase.from("efeitos_personalizados").select("id, nome, imagens, movimento, quantidade, tamanho").eq("loja_id", loja.id),
   ]);
 
   const categorias = (catRes.data ?? []) as Categoria[];
@@ -88,10 +89,24 @@ async function ConteudoDaLoja({ params }: Props) {
   const efeitoColecao = colecoes.find((c) => c.em_destaque && c.efeito && c.efeito !== "nenhum")?.efeito;
   const efeito = loja.efeito && loja.efeito !== "nenhum" ? loja.efeito : efeitoColecao;
 
+  // Efeitos PERSONALIZADOS (com imagens): o da loja vale para a página toda;
+  // os de categoria/subcategoria/coleção ligam quando o cliente chega naquela parte.
+  const efeitos = new Map(((efRes.data ?? []) as EfeitoPersonalizado[]).map((e) => [e.id, e]));
+  const personalizadoDaLoja = loja.efeito_personalizado_id ? efeitos.get(loja.efeito_personalizado_id) ?? null : null;
+  const secoes: Record<string, EfeitoPersonalizado> = {};
+  categorias.forEach((c) => {
+    const e = c.efeito_personalizado_id && efeitos.get(c.efeito_personalizado_id);
+    if (e) secoes[c.parent_id ? `sub-${c.id}` : `categoria-${c.id}`] = e;
+  });
+  colecoes.forEach((c) => {
+    const e = c.efeito_personalizado_id && efeitos.get(c.efeito_personalizado_id);
+    if (e) secoes[`colecao-${c.id}`] = e;
+  });
+
   return (
     // LayoutDaLoja: banner (com busca), menu lateral e painel direito
     <LayoutDaLoja loja={loja} menu={menu}>
-      {efeito && <EfeitoFestivo tipo={efeito} cor={cor} logo={loja.logo_url} />}
+      <EfeitosDaLoja cor={cor} logo={loja.logo_url} tipoPadrao={efeito} personalizadoPadrao={personalizadoDaLoja} secoes={secoes} />
 
       {produtos.length === 0 ? (
         <p className="mt-8 opacity-70">Nenhum produto cadastrado ainda.</p>

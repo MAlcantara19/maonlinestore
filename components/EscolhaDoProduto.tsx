@@ -11,7 +11,7 @@
 //     (se a variação não tiver, vale o que está no produto).
 // Ao adicionar: a miniatura "voa" até o carrinho, que abre de lado.
 // =====================================================================
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { adicionarAoCarrinho } from "@/lib/carrinho";
 import { formatarPreco } from "@/lib/formato";
 import { explodirConfete, ondinha, voarParaCarrinho } from "@/lib/efeitos";
@@ -28,9 +28,10 @@ type Props = {
   cor: string;
   foto?: string; // miniatura usada na animação de "voar"
   aoAdicionar?: () => void; // ex.: fechar o popup
+  sincronizarUrl?: boolean; // página do produto: guarda tamanho/cor no endereço (link compartilhável)
 };
 
-export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar }: Props) {
+export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar, sincronizarUrl }: Props) {
   // Só variações ativas, na ordem do cadastro.
   const variacoes = produto.variacoes.filter((v) => v.ativa).sort((a, b) => a.ordem - b.ordem);
 
@@ -51,6 +52,28 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
   const disponibilidade = variacao?.disponibilidade ?? produto.disponibilidade;
   const prazo = variacao?.prazo ?? produto.prazo;
   const esgotado = disponibilidade === "esgotado";
+
+  // Link com ?tamanho=...&cor=... já abre com a variação escolhida
+  useEffect(() => {
+    if (!sincronizarUrl) return;
+    const q = new URLSearchParams(window.location.search);
+    const t = q.get("tamanho");
+    const c = q.get("cor");
+    if (t && tamanhos.includes(t)) setTamanho(t);
+    if (c) setCorEscolhida(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A cada escolha: avisa a galeria (foto da cor) e atualiza o endereço
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("cor-escolhida", { detail: { produto: produto.id, cor: corValida === TODAS_AS_CORES ? null : corValida } }));
+    if (!sincronizarUrl || variacoes.length === 0) return;
+    const q = new URLSearchParams(window.location.search);
+    if (tamanho !== TAMANHO_UNICO) q.set("tamanho", tamanho); else q.delete("tamanho");
+    if (corValida && corValida !== TODAS_AS_CORES) q.set("cor", corValida); else q.delete("cor");
+    const busca = q.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${busca ? `?${busca}` : ""}`);
+  }, [tamanho, corValida, produto.id, sincronizarUrl, variacoes.length]);
 
   const [quantidade, setQuantidade] = useState(1);
   const [observacao, setObservacao] = useState("");

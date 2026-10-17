@@ -15,6 +15,7 @@ import { formatarPreco, precoMinimo } from "@/lib/formato";
 import EscolhaDoProduto from "@/components/EscolhaDoProduto";
 import LayoutDaLoja from "@/components/LayoutDaLoja";
 import Galeria from "@/components/Galeria";
+import CardDoProduto from "@/components/CardDoProduto";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import { EsqueletoProduto } from "@/components/Esqueleto";
 
@@ -22,7 +23,7 @@ type Props = { params: Promise<{ slug: string; id: string }> };
 
 const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem, cor)";
 
 // Busca loja + produto (usado pela prévia do link e pela página).
 async function buscar(slug: string, id: string) {
@@ -70,12 +71,25 @@ async function ConteudoDoProduto({ params }: Props) {
   const midias = [...produto.midias].sort((a, b) => a.ordem - b.ordem);
   const foto = midias.find((m) => m.tipo === "foto")?.url; // miniatura que "voa" até o carrinho
 
+  // "Aproveite e leve junto": da mesma categoria; se tiver pouco, completa com destaques da loja
+  const { data: mesmaCategoria } = produto.categoria_id
+    ? await supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true)
+        .eq("categoria_id", produto.categoria_id).neq("id", produto.id).limit(4)
+    : { data: [] };
+  let parecidos = (mesmaCategoria ?? []) as Produto[];
+  if (parecidos.length < 4) {
+    const { data: outros } = await supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true)
+      .neq("id", produto.id).order("destaque", { ascending: false }).limit(8);
+    const ids = new Set(parecidos.map((p) => p.id));
+    parecidos = [...parecidos, ...((outros ?? []) as Produto[]).filter((p) => !ids.has(p.id))].slice(0, 4);
+  }
+
   return (
     // LayoutDaLoja: banner, menu lateral e painel direito (iguais aos da loja)
     <LayoutDaLoja loja={loja} menu={menu}>
         {/* Celular: uma coluna. Computador (md): fotos à esquerda, informações à direita */}
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
-          <Galeria midias={midias} nome={produto.nome} cor={cor} />
+          <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />
 
           <div>
             <div className="mt-4 flex items-start justify-between gap-3 md:mt-0">
@@ -99,9 +113,18 @@ async function ConteudoDoProduto({ params }: Props) {
               </div>
             )}
 
-            <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} />
+            <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl />
           </div>
         </div>
+        {/* Aproveite e leve junto */}
+        {parecidos.length > 0 && (
+          <section className="mt-12">
+            <h2 className="text-xl font-bold">🧩 Aproveite e leve junto</h2>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {parecidos.map((p, i) => <CardDoProduto key={p.id} produto={p} cor={cor} slug={slug} indice={i} />)}
+            </div>
+          </section>
+        )}
     </LayoutDaLoja>
   );
 }

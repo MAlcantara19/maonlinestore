@@ -6,6 +6,7 @@
 //      - Instagram e a BUSCA de produtos
 //   2. Cabeçalho reativo: aparece ao rolar para cima.
 // =====================================================================
+import LinkTopo from "@/components/LinkTopo";
 import BotaoTema from "@/components/BotaoTema";
 import NavDeslizante from "@/components/NavDeslizante";
 import ParallaxMouse from "@/components/ParallaxMouse";
@@ -56,11 +57,11 @@ export default function CabecalhoDaLoja({ loja, menu }: { loja: Loja; menu: Item
           <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-center gap-4">
               {/* Logo + nome: levam para o início da loja */}
-              <Link href={`/${loja.slug}`} className="clicavel flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/70 bg-white text-3xl font-bold shadow-xl sm:h-28 sm:w-28 sm:text-4xl" style={{ color: cor }} aria-label={`Início da ${loja.nome}`}>
+              <LinkTopo href={`/${loja.slug}`} className="clicavel flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/70 bg-white text-3xl font-bold shadow-xl sm:h-28 sm:w-28 sm:text-4xl" style={{ color: cor }} aria-label={`Início da ${loja.nome}`}>
                 {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
-              </Link>
+              </LinkTopo>
               <div>
-                <Link href={`/${loja.slug}`} className="hover:underline"><h1 className="text-3xl font-bold drop-shadow-sm sm:text-4xl">{loja.nome}</h1></Link>
+                <LinkTopo href={`/${loja.slug}`} className="hover:underline"><h1 className="text-3xl font-bold drop-shadow-sm sm:text-4xl">{loja.nome}</h1></LinkTopo>
                 {loja.descricao && <p className="text-sm opacity-90">{loja.descricao}</p>}
                 {insta && (
                   <a href={`https://instagram.com/${insta}`} target="_blank" rel="noopener noreferrer"
