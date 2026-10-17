@@ -14,7 +14,7 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
 import { formatarPreco } from "@/lib/formato";
 
-type Item = { nome: string; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string };
+type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string };
 type Pedido = {
   id: string; codigo: string; tipo: "pedido" | "orcamento"; cliente_nome: string | null; itens: Item[]; total: number | null;
   desconto: number | null; cupom: string | null; data_desejada: string | null; urgente: boolean; status: string; nota_loja: string | null; criado_em: string;
@@ -96,7 +96,7 @@ function Lista() {
                 {p.cliente_nome && <p className="text-sm">👤 {p.cliente_nome}</p>}
                 <ul className="mt-2 text-sm">
                   {p.itens.map((i, n) => (
-                    <li key={n}>• {i.quantidade}x <b>{i.nome}</b> {[i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.observacao ? ` — ✏️ ${i.observacao}` : ""}</li>
+                    <li key={n}>• {i.quantidade}x <b>{i.nome}</b> {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.observacao ? ` — ✏️ ${i.observacao}` : ""}</li>
                   ))}
                 </ul>
                 <p className="mt-1 text-sm font-semibold">

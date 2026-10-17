@@ -73,6 +73,15 @@ function Formulario() {
         </Campo>
       </Bloco>
 
+      <Bloco titulo="⚙️ Efeito do painel de administração">
+        <Campo rotulo="Efeito animado que aparece aqui no painel (para todos os administradores)">
+          <select className={estiloInput} value={(c as ConfigSite & { efeito_painel?: string }).efeito_painel ?? "nenhum"}
+            onChange={(e) => setC({ ...c, efeito_painel: e.target.value } as ConfigSite)}>
+            {OPCOES_EFEITO.filter((o) => !o.valor.startsWith("logo")).map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+          </select>
+        </Campo>
+      </Bloco>
+
       <Bloco titulo="🤝 Parceiros na página inicial">
         <Campo rotulo="Quantos parceiros mostrar (0 = todos)">
           <input type="number" min={0} className={estiloInput} value={c.parceiros_na_home} onChange={(e) => mudar("parceiros_na_home", Math.max(0, Number(e.target.value) || 0))} />

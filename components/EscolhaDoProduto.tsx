@@ -1,26 +1,25 @@
 "use client";
 // =====================================================================
-// ESCOLHA DO PRODUTO — tamanho, cor, quantidade, observação e o botão
-// "Adicionar ao carrinho". Usado na página do produto E no popup de
-// "adicionar rápido".
-//
-// Regra das variações (tabela "variacoes"):
-//   - o cliente escolhe o TAMANHO;
-//   - aparecem só as CORES que existem para aquele tamanho;
-//   - preço, disponibilidade e prazo vêm da variação escolhida
-//     (se a variação não tiver, vale o que está no produto).
-// Ao adicionar: a miniatura "voa" até o carrinho, que abre de lado.
+// ESCOLHA DO PRODUTO — o cliente vai escolhendo, em ordem:
+//   1. Unidade ou Kit           (se o produto tiver os dois)
+//   2. Opção/modelo             (ex.: "Clipes de coração", "Kit 9 sortidos")
+//   3. Tamanho
+//   4. Cor                      (só as que existem para as escolhas acima;
+//                                cor "A escolher" = o cliente diz a cor e a loja confirma)
+// Preço, prazo, situação e o texto da opção vêm da variação escolhida.
+// Ao adicionar: confete 🎉, a miniatura voa até o carrinho e ele abre.
 // =====================================================================
 import { useEffect, useState, type MouseEvent } from "react";
 import { adicionarAoCarrinho } from "@/lib/carrinho";
 import { formatarPreco } from "@/lib/formato";
 import { explodirConfete, ondinha, voarParaCarrinho } from "@/lib/efeitos";
 import { corDoNome } from "@/lib/cores";
+import { emOrdem } from "@/lib/opcoes";
 import Magnetico from "@/components/Magnetico";
-import type { Produto } from "@/lib/tipos";
+import type { Produto, Variacao } from "@/lib/tipos";
 
-const TAMANHO_UNICO = "Tamanho único";
-const TODAS_AS_CORES = "Todas as cores";
+const UNICO = "Único";
+const COR_A_ESCOLHER = "🎨 Escolher cor (consultar disponibilidade)";
 
 type Props = {
   produto: Produto;
@@ -28,64 +27,91 @@ type Props = {
   cor: string;
   foto?: string; // miniatura usada na animação de "voar"
   aoAdicionar?: () => void; // ex.: fechar o popup
-  sincronizarUrl?: boolean; // página do produto: guarda tamanho/cor no endereço (link compartilhável)
+  sincronizarUrl?: boolean; // página do produto: guarda as escolhas no endereço (link compartilhável)
+};
+
+// Valor de cada "nível" de uma variação (vazio vira um rótulo padrão)
+const tipoDe = (v: Variacao) => (v.tipo === "kit" ? "kit" : "unidade");
+const nomeDe = (v: Variacao) => v.nome?.trim() || UNICO;
+const tamanhoDe = (v: Variacao) => v.tamanho?.trim() || UNICO;
+// Cor: vazio = produto sem cor · "A escolher" = cliente escolhe (consultar)
+export const VALOR_COR_A_ESCOLHER = "A escolher";
+const corDe = (v: Variacao) => {
+  const c = v.cor?.trim() ?? "";
+  return c.toLowerCase() === VALOR_COR_A_ESCOLHER.toLowerCase() ? COR_A_ESCOLHER : c;
 };
 
 export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar, sincronizarUrl }: Props) {
-  // Só variações ativas, na ordem do cadastro.
   const variacoes = produto.variacoes.filter((v) => v.ativa).sort((a, b) => a.ordem - b.ordem);
 
-  // Lista de tamanhos sem repetir.
-  const tamanhos = [...new Set(variacoes.map((v) => v.tamanho ?? TAMANHO_UNICO))];
-  const [tamanho, setTamanho] = useState(tamanhos[0] ?? TAMANHO_UNICO);
+  // Nível 1: unidade ou kit
+  const tipos = [...new Set(variacoes.map(tipoDe))];
+  const [tipo, setTipo] = useState(tipos[0] ?? "unidade");
+  const doTipo = variacoes.filter((v) => tipoDe(v) === tipo);
 
-  // Variações (e cores) do tamanho escolhido.
-  const doTamanho = variacoes.filter((v) => (v.tamanho ?? TAMANHO_UNICO) === tamanho);
-  const cores = [...new Set(doTamanho.map((v) => v.cor ?? TODAS_AS_CORES))];
-  const [corEscolhida, setCorEscolhida] = useState(cores[0] ?? TODAS_AS_CORES);
-  const corValida = cores.includes(corEscolhida) ? corEscolhida : cores[0];
+  // Nível 2: opção/modelo
+  const nomes = [...new Set(doTipo.map(nomeDe))];
+  const [nome, setNome] = useState(nomes[0] ?? UNICO);
+  const nomeValido = nomes.includes(nome) ? nome : nomes[0] ?? UNICO;
+  const doNome = doTipo.filter((v) => nomeDe(v) === nomeValido);
 
-  // A variação que bate com tamanho + cor (pode não existir se o produto não tem variações).
-  const variacao = doTamanho.find((v) => (v.cor ?? TODAS_AS_CORES) === corValida);
+  // Nível 3: tamanho
+  const tamanhos = [...new Set(doNome.map(tamanhoDe))];
+  const [tamanho, setTamanho] = useState(tamanhos[0] ?? UNICO);
+  const tamanhoValido = tamanhos.includes(tamanho) ? tamanho : tamanhos[0] ?? UNICO;
+  const doTamanho = doNome.filter((v) => tamanhoDe(v) === tamanhoValido);
 
+  // Nível 4: cor (em ordem alfabética; "a escolher" por último)
+  const coresReais = emOrdem(doTamanho.map(corDe).filter((c) => c && c !== COR_A_ESCOLHER));
+  const cores = [...coresReais, ...(doTamanho.some((v) => corDe(v) === COR_A_ESCOLHER) ? [COR_A_ESCOLHER] : [])];
+  const [corEscolhida, setCorEscolhida] = useState(cores[0] ?? "");
+  const corValida = cores.includes(corEscolhida) ? corEscolhida : cores[0] ?? "";
+
+  // A variação escolhida (se o produto não tem cor, pega a primeira do tamanho)
+  const variacao = cores.length ? doTamanho.find((v) => corDe(v) === corValida) : doTamanho[0];
   const preco = variacao?.preco ?? produto.preco;
   const disponibilidade = variacao?.disponibilidade ?? produto.disponibilidade;
   const prazo = variacao?.prazo ?? produto.prazo;
   const esgotado = disponibilidade === "esgotado";
 
-  // Link com ?tamanho=...&cor=... já abre com a variação escolhida
+  // Link com ?opcao=&tamanho=&cor= já abre com a variação escolhida
   useEffect(() => {
     if (!sincronizarUrl) return;
     const q = new URLSearchParams(window.location.search);
-    const t = q.get("tamanho");
-    const c = q.get("cor");
-    if (t && tamanhos.includes(t)) setTamanho(t);
-    if (c) setCorEscolhida(c);
+    if (q.get("kit") === "1" && tipos.includes("kit")) setTipo("kit");
+    if (q.get("opcao")) setNome(q.get("opcao")!);
+    if (q.get("tamanho")) setTamanho(q.get("tamanho")!);
+    if (q.get("cor")) setCorEscolhida(q.get("cor")!);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // A cada escolha: avisa a galeria (foto da cor) e atualiza o endereço
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("cor-escolhida", { detail: { produto: produto.id, cor: corValida === TODAS_AS_CORES ? null : corValida } }));
+    window.dispatchEvent(new CustomEvent("cor-escolhida", { detail: { produto: produto.id, cor: !corValida || corValida === COR_A_ESCOLHER ? null : corValida } }));
     if (!sincronizarUrl || variacoes.length === 0) return;
     const q = new URLSearchParams(window.location.search);
-    if (tamanho !== TAMANHO_UNICO) q.set("tamanho", tamanho); else q.delete("tamanho");
-    if (corValida && corValida !== TODAS_AS_CORES) q.set("cor", corValida); else q.delete("cor");
+    const definir = (chave: string, valor: string | null) => (valor ? q.set(chave, valor) : q.delete(chave));
+    definir("kit", tipo === "kit" ? "1" : null);
+    definir("opcao", nomeValido !== UNICO ? nomeValido : null);
+    definir("tamanho", tamanhoValido !== UNICO ? tamanhoValido : null);
+    definir("cor", corValida && corValida !== COR_A_ESCOLHER ? corValida : null);
     const busca = q.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${busca ? `?${busca}` : ""}`);
-  }, [tamanho, corValida, produto.id, sincronizarUrl, variacoes.length]);
+  }, [tipo, nomeValido, tamanhoValido, corValida, produto.id, sincronizarUrl, variacoes.length]);
 
   const [quantidade, setQuantidade] = useState(1);
   const [observacao, setObservacao] = useState("");
 
   function adicionar(e: MouseEvent<HTMLButtonElement>) {
     const origem = e.currentTarget.getBoundingClientRect(); // de onde a miniatura sai voando
+    const opcao = [tipo === "kit" ? "Kit" : null, variacao?.nome?.trim() || null].filter(Boolean).join(" · ") || null;
     adicionarAoCarrinho(slug, {
       chave: `${produto.id}|${variacao?.id ?? "unico"}`,
       produtoId: produto.id,
       nome: produto.nome,
+      opcao,
       tamanho: variacao?.tamanho ?? null,
-      cor: variacao ? variacao.cor : null,
+      cor: corValida === COR_A_ESCOLHER ? "A escolher (ver observação)" : corValida || null,
       preco: preco != null ? Number(preco) : null,
       quantidade,
       observacao: observacao.trim(),
@@ -98,8 +124,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
     voarParaCarrinho(origem, foto, cor);
   }
 
-  // Botãozinho de opção (tamanho ou cor). Marcado = borda grossa na cor da loja.
-  // Ao clicar, uma "onda" se espalha a partir do dedo/mouse. Cores ganham uma bolinha colorida.
+  // Botãozinho de opção. Marcado = borda grossa na cor da loja; onda ao clicar.
   const opcao = (texto: string, marcado: boolean, aoClicar: () => void, ehCor = false) => {
     const bolinha = ehCor ? corDoNome(texto) : null;
     return (
@@ -111,6 +136,14 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       </button>
     );
   };
+  // Um grupo de opções (só aparece se houver o que escolher)
+  const grupo = (titulo: string, itens: string[], atual: string, mudar: (v: string) => void, ehCor = false) =>
+    itens.length > 1 || (ehCor && itens.length === 1) || (itens.length === 1 && itens[0] !== UNICO) ? (
+      <>
+        <p className="mt-4 mb-2 text-sm font-semibold">{titulo}</p>
+        <div className="flex flex-wrap gap-2">{itens.map((t) => opcao(t, t === atual, () => mudar(t), ehCor))}</div>
+      </>
+    ) : null;
 
   return (
     <div className="mt-4">
@@ -123,23 +156,29 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
         {prazo ? ` · prazo: ${prazo}` : ""}
       </p>
 
-      {/* Tamanhos (só aparece se houver mais de uma opção) */}
-      {tamanhos.length > 1 && (
-        <>
-          <p className="mt-4 mb-2 text-sm font-semibold">Tamanho</p>
-          <div className="flex flex-wrap gap-2">{tamanhos.map((t) => opcao(t, t === tamanho, () => setTamanho(t)))}</div>
-        </>
+      {/* 1. Unidade ou kit */}
+      {tipos.length > 1 && (
+        <div className="mt-4 inline-flex rounded-xl border p-1" style={{ borderColor: `${cor}55` }}>
+          {tipos.map((t) => (
+            <button key={t} type="button" onClick={() => setTipo(t)} className="rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors"
+              style={t === tipo ? { background: cor, color: "white" } : {}}>
+              {t === "kit" ? "🎁 Kit" : "1️⃣ Unidade"}
+            </button>
+          ))}
+        </div>
       )}
 
-      {/* Cores disponíveis no tamanho escolhido */}
-      {variacoes.length > 0 && (cores.length > 1 || cores[0] !== TODAS_AS_CORES) && (
-        <>
-          <p className="mt-4 mb-2 text-sm font-semibold">Cor</p>
-          <div className="flex flex-wrap gap-2">{cores.map((c) => opcao(c, c === corValida, () => setCorEscolhida(c), true))}</div>
-        </>
+      {/* 2. Opção / 3. Tamanho / 4. Cor */}
+      {grupo(tipo === "kit" ? "Escolha o kit" : "Opção", nomes, nomeValido, setNome)}
+      {grupo("Tamanho", tamanhos, tamanhoValido, setTamanho)}
+      {grupo("Cor", cores, corValida, setCorEscolhida, true)}
+      {corValida === COR_A_ESCOLHER && (
+        <p className="mt-2 text-xs opacity-70">Diga a cor que você quer na observação 👇 e a gente confirma se tem disponível.</p>
       )}
-      {corValida === TODAS_AS_CORES && variacoes.length > 0 && (
-        <p className="mt-2 text-xs opacity-70">Neste tamanho você escolhe a cor: escreva na observação 👇</p>
+
+      {/* Texto da opção escolhida (ex.: o que vem no kit) */}
+      {variacao?.descricao && (
+        <p className="mt-3 whitespace-pre-line rounded-xl p-3 text-sm" style={{ background: `${cor}12` }}>📝 {variacao.descricao}</p>
       )}
 
       {/* Quantidade */}
@@ -155,7 +194,6 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       <textarea id={`obs-${produto.id}`} rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)}
         placeholder="Cor desejada, nome para personalizar, detalhes..." className="w-full rounded-lg border bg-white/70 p-3 text-sm" />
 
-      {/* Adicionar */}
       {/* Botão "magnético": é puxado de leve na direção do mouse */}
       <Magnetico className="mt-4" forca={0.12}>
         <button type="button" disabled={esgotado} onClick={adicionar}

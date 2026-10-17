@@ -6,10 +6,11 @@
 // balão ou no botão, abre o WhatsApp da loja com uma mensagem pronta.
 // O balão aparece uma vez por visita (dá para fechar no ✕).
 // =====================================================================
+import { registrarEvento } from "@/lib/eventos";
 import { useEffect, useState } from "react";
 import { IconeTelefone } from "@/components/Icones";
 
-export default function BotaoDuvidas({ whatsapp, nomeDaLoja }: { whatsapp: string; nomeDaLoja: string }) {
+export default function BotaoDuvidas({ whatsapp, nomeDaLoja, slug }: { whatsapp: string; nomeDaLoja: string; slug?: string }) {
   const numero = whatsapp.replace(/\D/g, "");
   const link = `https://wa.me/${numero}?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre a ${nomeDaLoja} 😊`)}`;
   const [fase, setFase] = useState<"nada" | "digitando" | "mensagem">("nada");
@@ -21,6 +22,7 @@ export default function BotaoDuvidas({ whatsapp, nomeDaLoja }: { whatsapp: strin
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
+  const contar = () => { if (slug) registrarEvento(slug, "whatsapp"); }; // estatísticas
   const fechar = () => {
     setFase("nada");
     try { sessionStorage.setItem("balao-visto", "1"); } catch {}
@@ -40,7 +42,7 @@ export default function BotaoDuvidas({ whatsapp, nomeDaLoja }: { whatsapp: strin
               <span className="ponto-digitando" style={{ animationDelay: ".3s" }}>●</span>
             </span>
           ) : (
-            <a href={link} target="_blank" rel="noopener noreferrer" onClick={fechar}>
+            <a href={link} target="_blank" rel="noopener noreferrer" onClick={() => { fechar(); contar(); }}>
               Olá! 👋 Ficou com alguma dúvida? <b>Fale com a gente pelo WhatsApp!</b>
             </a>
           )}
@@ -48,7 +50,7 @@ export default function BotaoDuvidas({ whatsapp, nomeDaLoja }: { whatsapp: strin
       )}
 
       {/* Botão redondo, pulsando de leve */}
-      <a href={link} target="_blank" rel="noopener noreferrer" aria-label="Tirar dúvidas pelo WhatsApp" title="Dúvidas? Fale com a gente"
+      <a href={link} target="_blank" rel="noopener noreferrer" aria-label="Tirar dúvidas pelo WhatsApp" onClick={contar} title="Dúvidas? Fale com a gente"
         className="botao-vivo pulsar clicavel fixed left-4 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg"
         style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
         <span className="icone-tremer"><IconeTelefone tamanho={24} /></span>

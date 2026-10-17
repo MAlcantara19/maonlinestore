@@ -14,7 +14,7 @@ import { formatarPreco } from "@/lib/formato";
 import Rodape from "@/components/Rodape";
 
 type Props = { params: Promise<{ codigo: string }> };
-type Item = { nome: string; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string };
+type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string };
 
 export const metadata: Metadata = { title: "Acompanhar pedido · MA Online Store", robots: { index: false } };
 
@@ -104,7 +104,7 @@ async function Conteudo({ params }: Props) {
           {itens.map((i, n) => (
             <div key={n} className="border-b py-2 text-sm last:border-0">
               <b>{i.quantidade}x {i.nome}</b>
-              <p className="opacity-70">{[i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : " · sob consulta"}</p>
+              <p className="opacity-70">{[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : " · sob consulta"}</p>
               {i.observacao && <p className="text-xs opacity-70">✏️ {i.observacao}</p>}
             </div>
           ))}

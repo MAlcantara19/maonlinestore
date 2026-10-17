@@ -30,6 +30,7 @@ export type Loja = {
   em_breve?: boolean; // true = aparece "Em breve" na página inicial
   sobre?: string | null; // texto da página "Sobre nós" da loja
   unidade_tamanho?: string; // unidade padrão dos tamanhos (cm, ml, g...)
+  prazo_padrao?: string | null; // prazo que já vem no cadastro de produto
   lancamento_em?: string | null; // inauguração (contagem regressiva das lojas em breve)
   efeito_personalizado_id?: string | null;
   ativa?: boolean; // false = a loja some do site
@@ -51,6 +52,9 @@ export type Disponibilidade = "pronta_entrega" | "sob_encomenda" | "esgotado";
 // Tabela "variacoes": cada combinação de tamanho + cor com seu preço.
 export type Variacao = {
   id: string;
+  tipo?: "unidade" | "kit"; // venda por unidade ou kit
+  nome?: string | null; // opção/modelo (ex.: "Clipes de coração")
+  descricao?: string | null; // texto da opção (ex.: "3 de cada modelo")
   tamanho: string | null; // vazio = tamanho único
   cor: string | null; // vazio = todas as cores
   preco: number | null;
@@ -81,6 +85,7 @@ export type Produto = {
   destaque: boolean;
   selo: string | null; // fitinha no canto da foto (ex.: Novo)
   categoria_id: string | null;
+  produtos_categorias?: { categoria_id: string }[]; // todas as categorias do produto
   variacoes: Variacao[];
   midias: Midia[];
 };
@@ -130,6 +135,7 @@ export type ConfigSite = {
   banner_url: string | null;
   efeito: Efeito;
   parceiros_na_home: number;
+  efeito_painel?: Efeito; // efeito animado do painel de administração
 };
 
 // Tabela "efeitos_personalizados": efeitos feitos com imagens enviadas pela loja.

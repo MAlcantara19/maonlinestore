@@ -36,7 +36,7 @@ function Lista() {
     await supabase.from("produtos").delete().eq("loja_id", l.id).lt("excluido_em", limite);
 
     const { data } = await supabase.from("produtos")
-      .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ativo, excluido_em, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)")
+      .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ativo, excluido_em, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem)")
       .eq("loja_id", l.id).order("criado_em", { ascending: false });
     setProdutos((data ?? []) as ProdutoAdmin[]);
   }, []);

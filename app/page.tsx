@@ -230,7 +230,7 @@ async function FaixaDeMarcas() {
 async function VitrineDoDia() {
   await connection();
   const { data } = await supabase.from("produtos")
-    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve)")
+    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve)")
     .eq("destaque", true).eq("ativo", true).eq("lojas.ativa", true).eq("lojas.em_breve", false).limit(16);
   const produtos = (data ?? []) as unknown as (Produto & { lojas: { slug: string; nome: string; cor: string | null } })[];
   if (produtos.length === 0) return null;

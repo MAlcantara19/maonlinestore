@@ -12,7 +12,7 @@ import AbasLoja from "@/components/admin/AbasLoja";
 import { Bloco } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
-import { tamanhoComUnidade } from "@/lib/opcoes";
+import { comMaiuscula, tamanhoComUnidade } from "@/lib/opcoes";
 
 type Opcao = { id: string; tipo: "cor" | "tamanho"; valor: string };
 
@@ -27,7 +27,7 @@ function Conteudo() {
 
   const carregar = useCallback(async (l: LojaResumo) => {
     const { data } = await supabaseNavegador().from("opcoes_loja").select("id, tipo, valor").eq("loja_id", l.id).order("valor");
-    setOpcoes((data ?? []) as Opcao[]);
+    setOpcoes(((data ?? []) as Opcao[]).sort((a, b) => a.valor.localeCompare(b.valor, "pt-BR", { sensitivity: "base", numeric: true })));
   }, []);
   useEffect(() => { lojaPeloSlug(slug).then((l) => { setLoja(l); if (l) carregar(l); }); }, [slug, carregar]);
   if (!loja) return <p className="opacity-60">Carregando...</p>;
@@ -35,7 +35,7 @@ function Conteudo() {
 
   async function adicionar(tipo: Opcao["tipo"], valor: string) {
     if (!valor.trim() || !loja) return;
-    const final = tipo === "tamanho" ? tamanhoComUnidade(valor, loja.unidade_tamanho) : valor.trim();
+    const final = tipo === "tamanho" ? tamanhoComUnidade(valor, loja.unidade_tamanho) : comMaiuscula(valor);
     await supabaseNavegador().from("opcoes_loja").upsert({ loja_id: loja.id, tipo, valor: final }, { onConflict: "loja_id,tipo,valor", ignoreDuplicates: true });
     carregar(loja);
   }

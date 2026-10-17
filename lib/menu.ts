@@ -6,12 +6,13 @@
 // =====================================================================
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao } from "@/lib/tipos";
+import { categoriasDoProduto } from "@/lib/opcoes";
 
 // id = âncora da seção na página; filhos = subcategorias (só nas categorias)
 export type ItemMenu = { id: string; rotulo: string; filhos?: ItemMenu[] };
 
 // O mínimo que precisamos saber de cada produto para montar o menu.
-type ProdutoResumo = { id: string; categoria_id: string | null; destaque: boolean };
+type ProdutoResumo = { id: string; categoria_id: string | null; destaque: boolean; produtos_categorias?: { categoria_id: string }[] };
 
 export function montarMenu(categorias: Categoria[], colecoes: Colecao[], produtos: ProdutoResumo[]): ItemMenu[] {
   const idsProdutos = new Set(produtos.map((p) => p.id));
@@ -29,10 +30,10 @@ export function montarMenu(categorias: Categoria[], colecoes: Colecao[], produto
   categorias.filter((c) => !c.parent_id).forEach((cat) => {
     const subs = categorias.filter((s) => s.parent_id === cat.id);
     const ids = [cat.id, ...subs.map((s) => s.id)];
-    if (produtos.some((p) => p.categoria_id && ids.includes(p.categoria_id))) {
+    if (produtos.some((p) => categoriasDoProduto(p).some((c) => ids.includes(c)))) {
       // Subcategorias que têm produto viram "filhos" (aparecem ao expandir no menu lateral)
       const filhos = subs
-        .filter((s) => produtos.some((p) => p.categoria_id === s.id))
+        .filter((s) => produtos.some((p) => categoriasDoProduto(p).includes(s.id)))
         .map((s) => ({ id: `sub-${s.id}`, rotulo: s.nome }));
       itens.push({ id: `categoria-${cat.id}`, rotulo: cat.nome, filhos });
     }
@@ -51,7 +52,7 @@ export async function buscarMenuDaLoja(lojaId: string): Promise<ItemMenu[]> {
     supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", lojaId).order("nome"),
     supabase.from("colecoes").select("id, nome, descricao, em_destaque, produtos_colecoes(produto_id)")
       .eq("loja_id", lojaId).eq("ativa", true).order("ordem"),
-    supabase.from("produtos").select("id, categoria_id, destaque").eq("loja_id", lojaId).eq("ativo", true),
+    supabase.from("produtos").select("id, categoria_id, destaque, produtos_categorias(categoria_id)").eq("loja_id", lojaId).eq("ativo", true),
   ]);
   return montarMenu((cat.data ?? []) as Categoria[], (col.data ?? []) as Colecao[], (prod.data ?? []) as ProdutoResumo[]);
 }

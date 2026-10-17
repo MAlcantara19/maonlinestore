@@ -1,11 +1,13 @@
 "use client";
 // =====================================================================
 // PAINEL — CRIAR / EDITAR PRODUTO (endereço: /admin/vitraforma/produtos/<id>)
-// "/novo" abre vazio. Tudo do produto numa tela só:
-//   📝 informações · 💰 preço e situação · 🗂️ categoria e coleções
-//   📏 variações (tamanho + cor + preço + situação)
-//   📷 fotos e vídeos (escolher do celular, ordenar, remover)
-// Ao salvar, grava o produto e acerta variações, fotos e coleções.
+// "/novo" abre vazio (com o prazo padrão da loja). Tudo numa tela só:
+//   📷 fotos e vídeos (com a cor de cada foto)
+//   📝 informações · 💰 preço e situação
+//   🗂️ categorias (VÁRIAS) e coleções
+//   📏 variações: Unidade ou Kit · opção/modelo · tamanho · cor · preço ·
+//      situação · prazo · texto da opção. Com gerador "várias cores de uma vez".
+// Ao salvar um produto NOVO, a tela limpa para cadastrar o próximo.
 // =====================================================================
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -13,28 +15,34 @@ import { useEffect, useRef, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
 import AbasLoja from "@/components/admin/AbasLoja";
 import { Bloco, Campo, Interruptor, BarraSalvar, estiloInput, type Mensagem } from "@/components/admin/Campos";
+import ListaSugestoes from "@/components/admin/ListaSugestoes";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, paraNumero, type LojaResumo } from "@/lib/admin";
 import { enviarArquivo } from "@/lib/upload";
+import { SUGESTOES_COR, SUGESTOES_PRAZO, SUGESTOES_SELO, SUGESTOES_TAMANHO, comMaiuscula, emOrdem, prazoComDias, tamanhoComUnidade } from "@/lib/opcoes";
+import { VALOR_COR_A_ESCOLHER } from "@/components/EscolhaDoProduto";
 import type { Categoria, Disponibilidade } from "@/lib/tipos";
-import ListaSugestoes from "@/components/admin/ListaSugestoes";
-import { SUGESTOES_COR, SUGESTOES_PRAZO, SUGESTOES_SELO, SUGESTOES_TAMANHO, prazoComDias, tamanhoComUnidade } from "@/lib/opcoes";
 
 // Formatos usados só nesta tela (preço como texto para digitar "25,90")
 type Dados = {
   nome: string; descricao: string; restricoes: string; preco: string; disponibilidade: Disponibilidade;
-  prazo: string; selo: string; destaque: boolean; ativo: boolean; categoria_id: string | null;
+  prazo: string; selo: string; destaque: boolean; ativo: boolean;
 };
-type LinhaVariacao = { id?: string; tamanho: string; cor: string; preco: string; disponibilidade: Disponibilidade | ""; prazo: string; ativa: boolean };
+type LinhaVariacao = {
+  id?: string; tipo: "unidade" | "kit"; nome: string; descricao: string; tamanho: string; cor: string;
+  preco: string; disponibilidade: Disponibilidade | ""; prazo: string; ativa: boolean;
+};
 type LinhaMidia = { id?: string; tipo: "foto" | "video"; url: string; cor?: string | null };
 type ColecaoSimples = { id: string; nome: string };
 
-const VAZIO: Dados = { nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo: "", selo: "", destaque: false, ativo: true, categoria_id: null };
 const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
   { valor: "pronta_entrega", rotulo: "Pronta entrega" },
   { valor: "sob_encomenda", rotulo: "Sob encomenda" },
   { valor: "esgotado", rotulo: "Esgotado" },
 ];
+const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true });
+const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true });
+const precoTexto = (v: unknown) => (v != null ? String(v).replace(".", ",") : "");
 
 export default function PainelProduto() {
   return <AreaAdmin>{() => <Formulario />}</AreaAdmin>;
@@ -46,60 +54,61 @@ function Formulario() {
   const novo = id === "novo";
 
   const [loja, setLoja] = useState<LojaResumo | null>(null);
-  const [dados, setDados] = useState<Dados>(VAZIO);
+  const [dados, setDados] = useState<Dados>(vazio(""));
   const [variacoes, setVariacoes] = useState<LinhaVariacao[]>([]);
   const [midias, setMidias] = useState<LinhaMidia[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [colecoes, setColecoes] = useState<ColecaoSimples[]>([]);
+  const [catsMarcadas, setCatsMarcadas] = useState<string[]>([]); // categorias do produto (várias)
   const [marcadas, setMarcadas] = useState<string[]>([]); // coleções do produto
-  const [usados, setUsados] = useState<{ tamanhos: string[]; cores: string[] }>({ tamanhos: [], cores: [] }); // já usados na loja
+  const [usados, setUsados] = useState<{ tamanhos: string[]; cores: string[] }>({ tamanhos: [], cores: [] });
   const originais = useRef<{ variacoes: string[]; midias: string[] }>({ variacoes: [], midias: [] });
   const [carregado, setCarregado] = useState(false);
   const [autoria, setAutoria] = useState<{ criado_por?: string; criado_em?: string; atualizado_por?: string; atualizado_em?: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const [enviando, setEnviando] = useState(0); // quantos arquivos ainda enviando
+  const [enviando, setEnviando] = useState(0);
   const [mensagem, setMensagem] = useState<Mensagem>(null);
+  const [gerador, setGerador] = useState<{ aberto: boolean; base: LinhaVariacao; cores: string[]; aEscolher: boolean }>({ aberto: false, base: variacaoVazia(""), cores: [], aEscolher: false });
   const entradaArquivos = useRef<HTMLInputElement>(null);
 
-  // Carrega a loja, as categorias/coleções e (se for edição) o produto
+  // Carrega loja, categorias, coleções, cores/tamanhos e (se for edição) o produto
   useEffect(() => {
     (async () => {
       const supabase = supabaseNavegador();
       const l = await lojaPeloSlug(slug);
       setLoja(l);
       if (!l) return;
-      const [cat, col] = await Promise.all([
+      const [cat, col, ops] = await Promise.all([
         supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id).order("nome"),
         supabase.from("colecoes").select("id, nome").eq("loja_id", l.id).order("ordem"),
+        supabase.from("opcoes_loja").select("tipo, valor").eq("loja_id", l.id),
       ]);
       setCategorias((cat.data ?? []) as Categoria[]);
       setColecoes((col.data ?? []) as ColecaoSimples[]);
+      const lista = (ops.data ?? []) as { tipo: string; valor: string }[];
+      setUsados({ tamanhos: lista.filter((o) => o.tipo === "tamanho").map((o) => o.valor), cores: emOrdem(lista.filter((o) => o.tipo === "cor").map((o) => o.valor)) });
 
-      // Cores e tamanhos da loja (aba "Cores e tamanhos") viram sugestões na lista
-      const { data: ops } = await supabase.from("opcoes_loja").select("tipo, valor").eq("loja_id", l.id).order("valor");
-      const lista = (ops ?? []) as { tipo: string; valor: string }[];
-      setUsados({
-        tamanhos: lista.filter((o) => o.tipo === "tamanho").map((o) => o.valor),
-        cores: lista.filter((o) => o.tipo === "cor").map((o) => o.valor),
-      });
-
-      if (!novo) {
+      if (novo) {
+        setDados(vazio(l.prazo_padrao ?? "10 dias")); // prazo padrão da loja já preenchido
+      } else {
         const { data: p } = await supabase.from("produtos")
-          .select("*, variacoes(*), midias(*), produtos_colecoes(colecao_id)").eq("id", id).maybeSingle();
+          .select("*, variacoes(*), midias(*), produtos_colecoes(colecao_id), produtos_categorias(categoria_id)").eq("id", id).maybeSingle();
         if (p) {
           setDados({
-            nome: p.nome, descricao: p.descricao ?? "", restricoes: p.restricoes ?? "", preco: p.preco != null ? String(p.preco).replace(".", ",") : "",
-            disponibilidade: p.disponibilidade, prazo: p.prazo ?? "", selo: p.selo ?? "", destaque: p.destaque, ativo: p.ativo, categoria_id: p.categoria_id,
+            nome: p.nome, descricao: p.descricao ?? "", restricoes: p.restricoes ?? "", preco: precoTexto(p.preco),
+            disponibilidade: p.disponibilidade, prazo: p.prazo ?? "", selo: p.selo ?? "", destaque: p.destaque, ativo: p.ativo,
           });
           const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setVariacoes(vs.map((v: Record<string, unknown>) => ({
-            id: v.id as string, tamanho: (v.tamanho as string) ?? "", cor: (v.cor as string) ?? "",
-            preco: v.preco != null ? String(v.preco).replace(".", ",") : "", disponibilidade: (v.disponibilidade as Disponibilidade) ?? "",
-            prazo: (v.prazo as string) ?? "", ativa: v.ativa as boolean,
+            id: v.id as string, tipo: (v.tipo as "unidade" | "kit") ?? "unidade", nome: (v.nome as string) ?? "", descricao: (v.descricao as string) ?? "",
+            tamanho: (v.tamanho as string) ?? "", cor: (v.cor as string) ?? "", preco: precoTexto(v.preco),
+            disponibilidade: (v.disponibilidade as Disponibilidade) ?? "", prazo: (v.prazo as string) ?? "", ativa: v.ativa as boolean,
           })));
           const ms = [...p.midias].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setMidias(ms.map((m: { id: string; tipo: "foto" | "video"; url: string; cor: string | null }) => ({ id: m.id, tipo: m.tipo, url: m.url, cor: m.cor })));
           setMarcadas(p.produtos_colecoes.map((pc: { colecao_id: string }) => pc.colecao_id));
+          const cats = (p.produtos_categorias as { categoria_id: string }[]).map((x) => x.categoria_id);
+          setCatsMarcadas([...new Set([...cats, ...(p.categoria_id ? [p.categoria_id] : [])])]);
           setAutoria({ criado_por: p.criado_por, criado_em: p.criado_em, atualizado_por: p.atualizado_por, atualizado_em: p.atualizado_em });
           originais.current = { variacoes: vs.map((v: { id: string }) => v.id), midias: ms.map((m: { id: string }) => m.id) };
         }
@@ -111,11 +120,21 @@ function Formulario() {
   if (!loja || !carregado) return <p className="opacity-60">Carregando...</p>;
   const cor = loja.cor ?? "#333";
   const mudar = <K extends keyof Dados>(campo: K, valor: Dados[K]) => { setDados({ ...dados, [campo]: valor }); setMensagem(null); };
+  const alternar = (lista: string[], valor: string) => (lista.includes(valor) ? lista.filter((x) => x !== valor) : [...lista, valor]);
 
   // ---- Variações ----
   const mudarVariacao = (i: number, campo: keyof LinhaVariacao, valor: string | boolean) =>
     setVariacoes(variacoes.map((v, j) => (j === i ? { ...v, [campo]: valor } : v)));
-  const novaVariacao = () => setVariacoes([...variacoes, { tamanho: "", cor: "", preco: dados.preco, disponibilidade: "", prazo: "", ativa: true }]);
+  const novaVariacao = (tipo: "unidade" | "kit" = "unidade") => setVariacoes([...variacoes, { ...variacaoVazia(dados.preco), tipo }]);
+
+  // Gerador: cria uma variação para CADA cor marcada (e/ou "a escolher")
+  function gerarVariacoes() {
+    const coresEscolhidas = [...gerador.cores, ...(gerador.aEscolher ? [VALOR_COR_A_ESCOLHER] : [])];
+    if (!coresEscolhidas.length) return setMensagem({ tipo: "erro", texto: "Marque pelo menos uma cor (ou \"Cor a escolher\")." });
+    setVariacoes([...variacoes, ...coresEscolhidas.map((c) => ({ ...gerador.base, cor: c }))]);
+    setGerador({ aberto: false, base: variacaoVazia(dados.preco), cores: [], aEscolher: false });
+    setMensagem({ tipo: "ok", texto: `✓ ${coresEscolhidas.length} variações criadas. Confira e salve.` });
+  }
 
   // ---- Fotos e vídeos ----
   async function adicionarArquivos(lista: FileList | null) {
@@ -149,11 +168,11 @@ function Formulario() {
     setSalvando(true);
     const supabase = supabaseNavegador();
     try {
-      // 1) O produto
+      // 1) O produto (a 1ª categoria marcada fica como "principal")
       const linha = {
         loja_id: loja.id, nome: dados.nome.trim(), descricao: dados.descricao || null, restricoes: dados.restricoes || null,
         preco: paraNumero(dados.preco), disponibilidade: dados.disponibilidade, prazo: prazoComDias(dados.prazo), selo: dados.selo.trim() || null,
-        destaque: dados.destaque, ativo: dados.ativo, categoria_id: dados.categoria_id,
+        destaque: dados.destaque, ativo: dados.ativo, categoria_id: catsMarcadas[0] ?? null,
       };
       const r = novo
         ? await supabase.from("produtos").insert(linha).select("id").single()
@@ -161,20 +180,21 @@ function Formulario() {
       if (r.error) throw r.error;
       const produtoId: string = r.data.id;
 
-      // 2) Variações: apaga as removidas, atualiza as que já existiam e cria as novas
+      // 2) Variações: apaga as removidas, atualiza as antigas e cria as novas
       const vMantidas = variacoes.filter((v) => v.id).map((v) => v.id!);
       const vApagar = originais.current.variacoes.filter((x) => !vMantidas.includes(x));
       if (vApagar.length) { const e = await supabase.from("variacoes").delete().in("id", vApagar); if (e.error) throw e.error; }
       const paraBanco = (v: LinhaVariacao, ordem: number) => ({
-        produto_id: produtoId, tamanho: tamanhoComUnidade(v.tamanho, loja.unidade_tamanho) || null, cor: v.cor.trim() || null, preco: paraNumero(v.preco),
-        disponibilidade: v.disponibilidade || null, prazo: prazoComDias(v.prazo), ativa: v.ativa, ordem,
+        produto_id: produtoId, tipo: v.tipo, nome: v.nome.trim() || null, descricao: v.descricao.trim() || null,
+        tamanho: tamanhoComUnidade(v.tamanho, loja.unidade_tamanho) || null, cor: comMaiuscula(v.cor) || null,
+        preco: paraNumero(v.preco), disponibilidade: v.disponibilidade || null, prazo: prazoComDias(v.prazo), ativa: v.ativa, ordem,
       });
       const vExistentes = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => v.id).map(({ v, i }) => ({ id: v.id, ...paraBanco(v, i) }));
       const vNovas = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => !v.id).map(({ v, i }) => paraBanco(v, i));
       if (vExistentes.length) { const e = await supabase.from("variacoes").upsert(vExistentes); if (e.error) throw e.error; }
       if (vNovas.length) { const e = await supabase.from("variacoes").insert(vNovas); if (e.error) throw e.error; }
 
-      // 3) Fotos e vídeos: mesma lógica, com a ordem da tela
+      // 3) Fotos e vídeos, na ordem da tela
       const mMantidas = midias.filter((m) => m.id).map((m) => m.id!);
       const mApagar = originais.current.midias.filter((x) => !mMantidas.includes(x));
       if (mApagar.length) { const e = await supabase.from("midias").delete().in("id", mApagar); if (e.error) throw e.error; }
@@ -183,44 +203,57 @@ function Formulario() {
       if (mExistentes.length) { const e = await supabase.from("midias").upsert(mExistentes); if (e.error) throw e.error; }
       if (mNovas.length) { const e = await supabase.from("midias").insert(mNovas); if (e.error) throw e.error; }
 
-      // 3b) Cor/tamanho novos digitados entram na lista de opções da loja
+      // 3b) Cor/tamanho novos entram na lista de opções da loja
       const novasOpcoes = [
-        ...variacoes.map((v) => v.cor.trim()).filter(Boolean).map((valor) => ({ loja_id: loja.id, tipo: "cor", valor })),
+        ...variacoes.map((v) => comMaiuscula(v.cor)).filter((c) => c && c !== VALOR_COR_A_ESCOLHER).map((valor) => ({ loja_id: loja.id, tipo: "cor", valor })),
         ...variacoes.map((v) => tamanhoComUnidade(v.tamanho, loja.unidade_tamanho)).filter(Boolean).map((valor) => ({ loja_id: loja.id, tipo: "tamanho", valor })),
       ];
       if (novasOpcoes.length) await supabase.from("opcoes_loja").upsert(novasOpcoes, { onConflict: "loja_id,tipo,valor", ignoreDuplicates: true });
 
-      // 4) Coleções: apaga as ligações e cria de novo com as marcadas
-      const e1 = await supabase.from("produtos_colecoes").delete().eq("produto_id", produtoId);
-      if (e1.error) throw e1.error;
+      // 4) Categorias (várias) e coleções: apaga as ligações e cria de novo
+      await supabase.from("produtos_categorias").delete().eq("produto_id", produtoId);
+      if (catsMarcadas.length) {
+        const e = await supabase.from("produtos_categorias").insert(catsMarcadas.map((c) => ({ produto_id: produtoId, categoria_id: c })));
+        if (e.error) throw e.error;
+      }
+      await supabase.from("produtos_colecoes").delete().eq("produto_id", produtoId);
       if (marcadas.length) {
-        const e2 = await supabase.from("produtos_colecoes").insert(marcadas.map((c) => ({ produto_id: produtoId, colecao_id: c })));
-        if (e2.error) throw e2.error;
+        const e = await supabase.from("produtos_colecoes").insert(marcadas.map((c) => ({ produto_id: produtoId, colecao_id: c })));
+        if (e.error) throw e.error;
       }
 
-      // Recarrega a tela para pegar os ids novos (evita duplicar ao salvar de novo)
-      if (novo) router.replace(`/admin/${slug}/produtos/${produtoId}`);
-      else window.location.reload();
+      if (novo) {
+        // Produto novo: limpa a tela para cadastrar o próximo (mantém categorias e coleções)
+        setDados(vazio(loja.prazo_padrao ?? "10 dias"));
+        setVariacoes([]);
+        setMidias([]);
+        setSalvando(false);
+        setMensagem({ tipo: "ok", texto: `✓ "${linha.nome}" salvo! Pode cadastrar o próximo.` });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        window.location.reload(); // pega os ids novos (evita duplicar ao salvar de novo)
+      }
     } catch (e) {
       setMensagem({ tipo: "erro", texto: `Não deu para salvar: ${(e as Error).message}` });
       setSalvando(false);
     }
   }
 
-  // DUPLICAR: cria uma cópia (oculta) com fotos, variações e coleções, e abre ela
+  // DUPLICAR: cria uma cópia (oculta) com fotos, variações, categorias e coleções
   async function duplicar() {
     if (novo || !loja) return;
     if (!confirm(`Criar uma cópia de "${dados.nome}"? (Salve antes, se mudou algo.)`)) return;
     const supabase = supabaseNavegador();
-    const { data: p } = await supabase.from("produtos").select("*, variacoes(*), midias(*), produtos_colecoes(colecao_id)").eq("id", id).single();
+    const { data: p } = await supabase.from("produtos").select("*, variacoes(*), midias(*), produtos_colecoes(colecao_id), produtos_categorias(categoria_id)").eq("id", id).single();
     if (!p) return;
-    const { id: _id, criado_em: _c, variacoes: vs, midias: ms, produtos_colecoes: pcs, ...resto } = p;
+    const { id: _id, criado_em: _c, criado_por: _cp, atualizado_por: _ap, atualizado_em: _ae, variacoes: vs, midias: ms, produtos_colecoes: pcs, produtos_categorias: pcats, ...resto } = p;
     const { data: copia, error } = await supabase.from("produtos").insert({ ...resto, nome: `${p.nome} (cópia)`, ativo: false, excluido_em: null }).select("id").single();
     if (error || !copia) return setMensagem({ tipo: "erro", texto: `Não deu para duplicar: ${error?.message}` });
     const semId = <T extends Record<string, unknown>>(lista: T[]) => lista.map(({ id: _i, ...x }) => ({ ...x, produto_id: copia.id }));
     if (vs.length) await supabase.from("variacoes").insert(semId(vs));
     if (ms.length) await supabase.from("midias").insert(semId(ms));
     if (pcs.length) await supabase.from("produtos_colecoes").insert(pcs.map((x: { colecao_id: string }) => ({ produto_id: copia.id, colecao_id: x.colecao_id })));
+    if (pcats.length) await supabase.from("produtos_categorias").insert(pcats.map((x: { categoria_id: string }) => ({ produto_id: copia.id, categoria_id: x.categoria_id })));
     router.push(`/admin/${slug}/produtos/${copia.id}`);
   }
 
@@ -233,16 +266,16 @@ function Formulario() {
   }
 
   const principais = categorias.filter((c) => !c.parent_id);
-  // Cores usadas nas variações deste produto (para ligar cada foto a uma cor)
-  const coresDasVariacoes = [...new Set(variacoes.map((v) => v.cor.trim()).filter(Boolean))];
+  const coresDasVariacoes = emOrdem(variacoes.map((v) => comMaiuscula(v.cor)).filter((c) => c && c !== VALOR_COR_A_ESCOLHER));
+  const todasAsCores = emOrdem([...usados.cores, ...SUGESTOES_COR]);
   const celula = "w-full rounded-lg border bg-white px-2 py-1.5 text-sm";
+  const chip = (ligado: boolean) => (ligado ? { background: cor, color: "white", borderColor: cor } : {});
 
   return (
     <>
       <AbasLoja slug={slug} nome={loja.nome} cor={cor} />
       <Link href={`/admin/${slug}/produtos`} className="text-sm opacity-60">← Produtos</Link>
       <h2 className="mt-1 text-xl font-bold">{novo ? "Novo produto" : dados.nome}</h2>
-      {/* Quem criou e quem mexeu por último (preenchido pelo banco) */}
       {autoria && (
         <p className="mb-4 text-xs opacity-60">
           🕓 Criado{autoria.criado_por ? ` por ${autoria.criado_por}` : ""}{autoria.criado_em ? ` em ${new Date(autoria.criado_em).toLocaleString("pt-BR")}` : ""}
@@ -250,10 +283,11 @@ function Formulario() {
         </p>
       )}
       {!autoria && <div className="mb-4" />}
+      {mensagem?.tipo === "ok" && novo && <p className="mb-4 rounded-xl bg-green-50 p-3 text-sm text-green-800">{mensagem.texto}</p>}
 
       <Bloco titulo="📷 Fotos e vídeos">
-        <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas antes de enviar. Vídeos: curtos (até 20 MB).
-          Depois de criar as variações, escolha embaixo de cada foto a <b>cor</b> que ela mostra: na loja, ao escolher a cor, a foto troca sozinha.</p>
+        <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas. Vídeos curtos (até 20 MB).
+          Depois de criar as variações, escolha embaixo de cada foto a <b>cor</b> que ela mostra: na loja, a foto troca sozinha.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {midias.map((m, i) => (
             <div key={m.url} className="relative overflow-hidden rounded-xl border bg-stone-100">
@@ -261,7 +295,6 @@ function Formulario() {
                 ? <video src={m.url} muted loop autoPlay playsInline className="aspect-square w-full object-cover" />
                 : <img src={m.url} alt="" className="aspect-square w-full object-cover" />}
               {i === 0 && <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 text-[10px] text-white">Capa</span>}
-              {/* Qual cor esta foto mostra (na loja, escolher a cor pula para ela) */}
               {coresDasVariacoes.length > 0 && (
                 <select value={m.cor ?? ""} onChange={(e) => setMidias(midias.map((x, j) => (j === i ? { ...x, cor: e.target.value || null } : x)))}
                   className="w-full border-t bg-white px-1 py-1 text-xs" aria-label="Cor desta foto">
@@ -287,10 +320,12 @@ function Formulario() {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome"><input className={estiloInput} value={dados.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <Campo rotulo="Descrição (pode usar emojis 😊)"><textarea rows={4} className={estiloInput} value={dados.descricao} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
-        <Campo rotulo="📌 Importante saber (aparece em destaque para o cliente; ex.: cores disponíveis, prazo maior para personalizados)">
+        <Campo rotulo="📌 Importante saber (destaque para o cliente: cores, prazo maior para personalizados...)">
           <textarea rows={2} className={estiloInput} value={dados.restricoes} onChange={(e) => mudar("restricoes", e.target.value)} />
         </Campo>
-        <Campo rotulo="Selo no cartão (escolha na lista ou escreva outro)"><input list="lista-selo" className={estiloInput} value={dados.selo} onChange={(e) => mudar("selo", e.target.value)} placeholder="Clique para ver a lista" /></Campo>
+        <Campo rotulo="Selo no cartão (escolha na lista ou escreva outro)">
+          <input list="lista-selo" className={estiloInput} value={dados.selo} onChange={(e) => mudar("selo", e.target.value)} placeholder="Clique para ver a lista" />
+        </Campo>
         <ListaSugestoes id="lista-selo" opcoes={SUGESTOES_SELO} />
       </Bloco>
 
@@ -302,71 +337,124 @@ function Formulario() {
               {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
             </select>
           </Campo>
-          <Campo rotulo="Prazo (lista ou só o número)"><input list="lista-prazo" className={estiloInput} value={dados.prazo} onChange={(e) => mudar("prazo", e.target.value)} placeholder="10 dias" /></Campo>
+          <Campo rotulo="Prazo (padrão da loja já preenchido)"><input list="lista-prazo" className={estiloInput} value={dados.prazo} onChange={(e) => mudar("prazo", e.target.value)} placeholder="10 dias" /></Campo>
         </div>
         <p className="text-xs opacity-60">Se o produto tiver variações com preço, o cartão mostra "a partir de" o menor preço delas.</p>
       </Bloco>
 
-      <Bloco titulo="🗂️ Categoria e coleções">
-        <Campo rotulo="Categoria">
-          <select className={estiloInput} value={dados.categoria_id ?? ""} onChange={(e) => mudar("categoria_id", e.target.value || null)}>
-            <option value="">Sem categoria</option>
+      <Bloco titulo="🗂️ Categorias e coleções">
+        <div>
+          <span className="text-sm font-semibold">Categorias (pode marcar várias)</span>
+          <div className="mt-1 flex flex-wrap gap-2">
             {principais.map((c) => [
-              <option key={c.id} value={c.id}>{c.nome}</option>,
-              ...categorias.filter((s) => s.parent_id === c.id).map((s) => <option key={s.id} value={s.id}>{"   ↳ "}{s.nome}</option>),
+              <button key={c.id} type="button" onClick={() => setCatsMarcadas(alternar(catsMarcadas, c.id))} className="rounded-full border px-3 py-1.5 text-sm font-semibold" style={chip(catsMarcadas.includes(c.id))}>
+                {catsMarcadas.includes(c.id) ? "✓ " : ""}{c.nome}
+              </button>,
+              ...categorias.filter((s) => s.parent_id === c.id).map((s) => (
+                <button key={s.id} type="button" onClick={() => setCatsMarcadas(alternar(catsMarcadas, s.id))} className="rounded-full border px-3 py-1.5 text-sm" style={chip(catsMarcadas.includes(s.id))}>
+                  {catsMarcadas.includes(s.id) ? "✓ " : "↳ "}{c.nome} › {s.nome}
+                </button>
+              )),
             ])}
-          </select>
-        </Campo>
+          </div>
+        </div>
         {colecoes.length > 0 && (
           <div>
-            <span className="text-sm font-semibold">Coleções</span>
+            <span className="text-sm font-semibold">Coleções (pode marcar várias)</span>
             <div className="mt-1 flex flex-wrap gap-2">
-              {colecoes.map((c) => {
-                const ligada = marcadas.includes(c.id);
-                return (
-                  <button key={c.id} type="button" onClick={() => setMarcadas(ligada ? marcadas.filter((x) => x !== c.id) : [...marcadas, c.id])}
-                    className="rounded-full border px-3 py-1.5 text-sm" style={ligada ? { background: cor, color: "white", borderColor: cor } : {}}>
-                    {ligada ? "✓ " : ""}{c.nome}
-                  </button>
-                );
-              })}
+              {colecoes.map((c) => (
+                <button key={c.id} type="button" onClick={() => setMarcadas(alternar(marcadas, c.id))} className="rounded-full border px-3 py-1.5 text-sm" style={chip(marcadas.includes(c.id))}>
+                  {marcadas.includes(c.id) ? "✓ " : ""}{c.nome}
+                </button>
+              ))}
             </div>
           </div>
         )}
         <Link href={`/admin/${slug}/categorias`} className="inline-block text-xs underline opacity-70">Criar ou editar categorias e coleções →</Link>
       </Bloco>
 
-      <Bloco titulo="📏 Variações (tamanho + cor)">
+      <Bloco titulo="📏 Variações (unidade e kits)">
         <p className="text-xs opacity-60">
-          Cada linha é uma opção que o cliente escolhe. Cor vazia = "todas as cores" (cliente escreve na observação).
-          Situação vazia = vale a do produto. Cor ou tamanho novo que você digitar entra sozinho na lista da loja.
+          Cada linha é uma opção que o cliente escolhe. <b>Opção/modelo</b>: ex. "Clipes de coração", "Kit 9 sortidos".
+          <b> Cor</b>: vazia = produto sem cor; <b>"A escolher"</b> = o cliente diz a cor e vocês confirmam.
+          <b> Texto da opção</b>: aparece quando o cliente escolhe (ex.: o que vem no kit).
         </p>
+
         {variacoes.map((v, i) => (
-          <div key={v.id ?? `nova-${i}`} className={`grid grid-cols-2 gap-2 rounded-xl border p-2 sm:grid-cols-6 ${v.ativa ? "" : "opacity-50"}`}>
-            <input list="lista-tamanho" className={celula} placeholder="Tamanho (15 cm)" value={v.tamanho} onChange={(e) => mudarVariacao(i, "tamanho", e.target.value)} />
-            <input list="lista-cor" className={celula} placeholder="Cor (azul)" value={v.cor} onChange={(e) => mudarVariacao(i, "cor", e.target.value)} />
-            <input className={celula} placeholder="Preço" inputMode="decimal" value={v.preco} onChange={(e) => mudarVariacao(i, "preco", e.target.value)} />
-            <select className={celula} value={v.disponibilidade} onChange={(e) => mudarVariacao(i, "disponibilidade", e.target.value)}>
-              <option value="">(do produto)</option>
-              {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
-            </select>
-            <input list="lista-prazo" className={celula} placeholder="Prazo" value={v.prazo} onChange={(e) => mudarVariacao(i, "prazo", e.target.value)} />
-            <div className="flex items-center justify-end gap-1">
+          <div key={v.id ?? `nova-${i}`} className={`space-y-2 rounded-xl border p-3 ${v.ativa ? "" : "opacity-50"}`} style={v.tipo === "kit" ? { borderColor: cor } : {}}>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Unidade ou kit */}
+              <div className="inline-flex rounded-lg border p-0.5">
+                {(["unidade", "kit"] as const).map((t) => (
+                  <button key={t} type="button" onClick={() => mudarVariacao(i, "tipo", t)} className="rounded-md px-3 py-1 text-xs font-semibold" style={v.tipo === t ? { background: cor, color: "white" } : {}}>
+                    {t === "kit" ? "🎁 Kit" : "1️⃣ Unidade"}
+                  </button>
+                ))}
+              </div>
+              <input className={`${celula} min-w-0 flex-1`} placeholder={v.tipo === "kit" ? "Nome do kit (ex.: Kit 9 sortidos)" : "Opção/modelo (opcional)"} value={v.nome} onChange={(e) => mudarVariacao(i, "nome", e.target.value)} />
               <button type="button" onClick={() => mudarVariacao(i, "ativa", !v.ativa)} className="rounded-lg border px-2 py-1 text-xs">{v.ativa ? "Ativa" : "Oculta"}</button>
               <button type="button" onClick={() => setVariacoes(variacoes.filter((_, j) => j !== i))} className="rounded-lg px-2 py-1 text-red-600" aria-label="Remover variação">🗑️</button>
             </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <input list="lista-tamanho" className={celula} placeholder="Tamanho" value={v.tamanho} onChange={(e) => mudarVariacao(i, "tamanho", e.target.value)} />
+              <input list="lista-cor" className={celula} placeholder="Cor" value={v.cor} onChange={(e) => mudarVariacao(i, "cor", e.target.value)} />
+              <input className={celula} placeholder="Preço" inputMode="decimal" value={v.preco} onChange={(e) => mudarVariacao(i, "preco", e.target.value)} />
+              <select className={celula} value={v.disponibilidade} onChange={(e) => mudarVariacao(i, "disponibilidade", e.target.value)}>
+                <option value="">(situação do produto)</option>
+                {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
+              </select>
+              <input list="lista-prazo" className={celula} placeholder="Prazo (do produto)" value={v.prazo} onChange={(e) => mudarVariacao(i, "prazo", e.target.value)} />
+            </div>
+            <textarea rows={1} className={celula} placeholder="Texto da opção (opcional) — ex.: 3 corações + 3 estrelas + 3 nuvens" value={v.descricao} onChange={(e) => mudarVariacao(i, "descricao", e.target.value)} />
           </div>
         ))}
-        <button type="button" onClick={novaVariacao} className="rounded-full border px-4 py-2 text-sm">+ Adicionar variação</button>
-        {/* Listas de sugestões (tamanhos e cores já usados na loja + os mais comuns) */}
+
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => novaVariacao("unidade")} className="rounded-full border px-4 py-2 text-sm">+ Variação (unidade)</button>
+          <button type="button" onClick={() => novaVariacao("kit")} className="rounded-full border px-4 py-2 text-sm" style={{ borderColor: cor, color: cor }}>+ Kit</button>
+          <button type="button" onClick={() => setGerador({ ...gerador, aberto: !gerador.aberto, base: variacaoVazia(dados.preco) })} className="rounded-full px-4 py-2 text-sm font-semibold text-white" style={{ background: cor }}>
+            🎨 Várias cores de uma vez
+          </button>
+        </div>
+
+        {/* Gerador: marca as cores e cria uma variação para cada */}
+        {gerador.aberto && (
+          <div className="space-y-3 rounded-xl border-2 border-dashed p-3" style={{ borderColor: cor }}>
+            <b className="text-sm">🎨 Criar uma variação para cada cor marcada</b>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <select className={celula} value={gerador.base.tipo} onChange={(e) => setGerador({ ...gerador, base: { ...gerador.base, tipo: e.target.value as "unidade" | "kit" } })}>
+                <option value="unidade">1️⃣ Unidade</option><option value="kit">🎁 Kit</option>
+              </select>
+              <input className={celula} placeholder="Opção/modelo (opcional)" value={gerador.base.nome} onChange={(e) => setGerador({ ...gerador, base: { ...gerador.base, nome: e.target.value } })} />
+              <input list="lista-tamanho" className={celula} placeholder="Tamanho" value={gerador.base.tamanho} onChange={(e) => setGerador({ ...gerador, base: { ...gerador.base, tamanho: e.target.value } })} />
+              <input className={celula} placeholder="Preço" inputMode="decimal" value={gerador.base.preco} onChange={(e) => setGerador({ ...gerador, base: { ...gerador.base, preco: e.target.value } })} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="rounded-lg border px-3 py-1 text-xs font-semibold" onClick={() => setGerador({ ...gerador, cores: gerador.cores.length === todasAsCores.length ? [] : todasAsCores })}>
+                {gerador.cores.length === todasAsCores.length ? "Desmarcar todas" : "✓ Marcar todas"}
+              </button>
+              <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={gerador.aEscolher} onChange={(e) => setGerador({ ...gerador, aEscolher: e.target.checked })} /> 🎨 Cor a escolher (consultar)</label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {todasAsCores.map((c) => (
+                <label key={c} className="flex items-center gap-1 rounded-full border bg-white px-3 py-1 text-sm">
+                  <input type="checkbox" checked={gerador.cores.includes(c)} onChange={() => setGerador({ ...gerador, cores: alternar(gerador.cores, c) })} /> {c}
+                </label>
+              ))}
+            </div>
+            <button type="button" onClick={gerarVariacoes} className="w-full rounded-xl p-2 text-sm font-semibold text-white" style={{ background: cor }}>Criar variações</button>
+          </div>
+        )}
+
+        {/* Listas de sugestões (cores em ordem alfabética, com maiúscula) */}
         <ListaSugestoes id="lista-tamanho" opcoes={[...usados.tamanhos, ...SUGESTOES_TAMANHO]} />
-        <ListaSugestoes id="lista-cor" opcoes={[...usados.cores, ...SUGESTOES_COR]} />
+        <ListaSugestoes id="lista-cor" opcoes={[VALOR_COR_A_ESCOLHER, ...todasAsCores]} />
         <ListaSugestoes id="lista-prazo" opcoes={SUGESTOES_PRAZO} />
       </Bloco>
 
       <Bloco titulo="👀 Visibilidade">
         <Interruptor rotulo="Visível na loja" ajuda="Desligado: o produto some da loja (sem apagar)." ligado={dados.ativo} aoMudar={(v) => mudar("ativo", v)} />
-        <Interruptor rotulo="⭐ Destaque" ajuda="Aparece na seção Destaques." ligado={dados.destaque} aoMudar={(v) => mudar("destaque", v)} />
+        <Interruptor rotulo="⭐ Destaque" ajuda="Aparece na seção Destaques e na Vitrine do dia." ligado={dados.destaque} aoMudar={(v) => mudar("destaque", v)} />
       </Bloco>
 
       <BarraSalvar mensagem={mensagem} salvando={salvando} aoSalvar={salvar} cor={cor}

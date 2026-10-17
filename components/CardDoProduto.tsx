@@ -3,6 +3,7 @@
 // selo, nome, preço "a partir de", situação e o botão "+" de adicionar
 // rápido. Usado na página da loja e no resultado da busca.
 // =====================================================================
+import BotaoFavorito from "@/components/BotaoFavorito";
 import Inclinar3D from "@/components/Inclinar3D";
 import Link from "next/link";
 import type { Produto } from "@/lib/tipos";
@@ -55,6 +56,9 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
         <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>
       </Link>
       </Inclinar3D>
+
+      {/* ❤️ Favorito (embaixo do "+") */}
+      <BotaoFavorito slug={slug} produtoId={produto.id} className="absolute right-3 top-14 z-10 h-10 w-10 rounded-full bg-white/90 text-lg shadow" />
 
       {/* Botão "+" de adicionar rápido (fora do link, para não abrir a página do produto) */}
       {!esgotado && <AdicionarRapido produto={produto} slug={slug} cor={cor} foto={foto?.url} />}

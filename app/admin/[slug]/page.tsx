@@ -19,7 +19,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, lancamento_em, efeito_personalizado_id, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -140,6 +140,13 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
           </select>
         </Campo>
         <p className="text-xs opacity-60">Crie efeitos na aba ✨ Efeitos. Para usar só numa categoria ou coleção, escolha lá em Categorias e coleções.</p>
+      </Bloco>
+
+      <Bloco titulo="⏱️ Prazo padrão">
+        <Campo rotulo="Já vem preenchido em todo produto novo (ex.: 10 dias)">
+          <input list="lista-prazo-loja" className={input} value={loja.prazo_padrao ?? ""} onChange={(e) => mudar("prazo_padrao", e.target.value || null)} placeholder="10 dias" />
+          <datalist id="lista-prazo-loja">{["3 dias", "5 dias", "7 dias", "10 dias", "15 dias", "20 dias", "30 dias"].map((x) => <option key={x} value={x} />)}</datalist>
+        </Campo>
       </Bloco>
 
       <Bloco titulo="📏 Tamanhos">

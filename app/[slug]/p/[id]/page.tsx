@@ -4,6 +4,9 @@
 // e a pessoa cai direto nele — e o link aparece com FOTO e PREÇO na
 // prévia da conversa (generateMetadata, logo abaixo).
 // =====================================================================
+import Avaliacoes from "@/components/Avaliacoes";
+import BotaoFavorito from "@/components/BotaoFavorito";
+import RegistrarVisita from "@/components/RegistrarVisita";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -23,7 +26,7 @@ type Props = { params: Promise<{ slug: string; id: string }> };
 
 const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Busca loja + produto (usado pela prévia do link e pela página).
 async function buscar(slug: string, id: string) {
@@ -71,6 +74,12 @@ async function ConteudoDoProduto({ params }: Props) {
   const midias = [...produto.midias].sort((a, b) => a.ordem - b.ordem);
   const foto = midias.find((m) => m.tipo === "foto")?.url; // miniatura que "voa" até o carrinho
 
+  // Avaliações: as deste produto primeiro; completa com as da loja
+  const { data: avs } = await supabase.from("avaliacoes").select("id, nome, texto, foto_url, estrelas, produto_id")
+    .eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }).limit(30);
+  const avaliacoes = ((avs ?? []) as { id: string; nome: string | null; texto: string; foto_url: string | null; estrelas: number; produto_id: string | null }[])
+    .sort((a, b) => Number(b.produto_id === produto.id) - Number(a.produto_id === produto.id)).slice(0, 10);
+
   // "Aproveite e leve junto": da mesma categoria; se tiver pouco, completa com destaques da loja
   const { data: mesmaCategoria } = produto.categoria_id
     ? await supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true)
@@ -87,6 +96,7 @@ async function ConteudoDoProduto({ params }: Props) {
   return (
     // LayoutDaLoja: banner, menu lateral e painel direito (iguais aos da loja)
     <LayoutDaLoja loja={loja} menu={menu}>
+      <RegistrarVisita slug={slug} produtoId={produto.id} />
         {/* Celular: uma coluna. Computador (md): fotos à esquerda, informações à direita */}
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
           <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />
@@ -101,7 +111,10 @@ async function ConteudoDoProduto({ params }: Props) {
                 )}
                 <h1 className="text-2xl font-bold">{produto.nome}</h1>
               </div>
-              <BotaoCompartilhar titulo={`${produto.nome} · ${loja.nome}`} cor={cor} />
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <BotaoCompartilhar titulo={`${produto.nome} · ${loja.nome}`} cor={cor} />
+                <BotaoFavorito slug={slug} produtoId={produto.id} comTexto className="rounded-full border px-4 py-2" />
+              </div>
             </div>
             {produto.descricao && <p className="mt-2 whitespace-pre-line">{produto.descricao}</p>}
 
@@ -116,6 +129,8 @@ async function ConteudoDoProduto({ params }: Props) {
             <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl />
           </div>
         </div>
+        <Avaliacoes itens={avaliacoes} cor={cor} />
+
         {/* Aproveite e leve junto */}
         {parecidos.length > 0 && (
           <section className="mt-12">

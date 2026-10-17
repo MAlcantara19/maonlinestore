@@ -4,12 +4,14 @@
 // WhatsApp: o pedido da VitraForma não se mistura com o do Chocolate.
 // =====================================================================
 import { useEffect, useState } from "react";
+import { registrarEvento } from "@/lib/eventos";
 
 // Um item do carrinho: produto + a variação escolhida + quantidade.
 export type ItemCarrinho = {
   chave: string; // identifica o item: id do produto + id da variação
   produtoId: string;
   nome: string;
+  opcao?: string | null; // ex.: "Kit · Kit 9 sortidos" ou "Clipes de coração"
   tamanho: string | null;
   cor: string | null;
   preco: number | null; // preço de UMA unidade (vazio = sob consulta)
@@ -48,6 +50,7 @@ export function adicionarAoCarrinho(slug: string, novo: ItemCarrinho) {
   salvarCarrinho(slug, itens);
   // Avisa outras partes do site que um item entrou (útil para efeitos futuros)
   window.dispatchEvent(new CustomEvent("item-adicionado", { detail: novo.nome }));
+  registrarEvento(slug, "carrinho_add", novo.produtoId); // estatísticas
 }
 
 // "Gancho" do React: devolve os itens e se atualiza sozinho quando o carrinho muda.

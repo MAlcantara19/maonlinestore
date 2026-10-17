@@ -59,6 +59,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
         <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide opacity-60">Atalhos</p>
         <Link href={`/${slug}`} onClick={aoClicar} className={item}>🏠 Início da loja</Link>
         <button type="button" onClick={() => { aoClicar?.(); window.dispatchEvent(new Event("abrir-carrinho")); }} className={`${item} w-full text-left`}>🛒 Meu carrinho</button>
+        <Link href={`/${slug}/favoritos`} onClick={aoClicar} className={item}>❤️ Meus favoritos</Link>
         {whatsapp && (
           <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={item}><BolinhaTelefone tamanho={18} /> Falar no WhatsApp</a>
         )}

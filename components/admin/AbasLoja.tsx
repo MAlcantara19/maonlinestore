@@ -10,12 +10,15 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
   const base = `/admin/${slug}`;
   const abas = [
     { href: base, rotulo: "⚙️ Configurações", ativa: caminho === base },
+    { href: `${base}/estatisticas`, rotulo: "📊 Estatísticas" },
     { href: `${base}/pedidos`, rotulo: "🧾 Pedidos" },
     { href: `${base}/produtos`, rotulo: "📦 Produtos" },
     { href: `${base}/categorias`, rotulo: "🗂️ Categorias e coleções" },
     { href: `${base}/opcoes`, rotulo: "🎨 Cores e tamanhos" },
     { href: `${base}/cupons`, rotulo: "🏷️ Cupons" },
     { href: `${base}/efeitos`, rotulo: "✨ Efeitos" },
+    { href: `${base}/avaliacoes`, rotulo: "💬 Avaliações" },
+    { href: `${base}/cartao`, rotulo: "📇 Cartão com QR" },
     { href: `${base}/historico`, rotulo: "📜 Histórico" },
   ].map((a) => ({ ...a, ativa: a.ativa ?? caminho.startsWith(a.href) }));
 

@@ -11,6 +11,8 @@
 //   5. Destaques, categorias (com subcategorias) e coleções antigas
 // Tudo vem do banco: não precisa mexer aqui para cadastrar produto.
 // =====================================================================
+import Avaliacoes from "@/components/Avaliacoes";
+import RegistrarVisita from "@/components/RegistrarVisita";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -18,6 +20,7 @@ import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao, EfeitoPersonalizado, Loja, Produto } from "@/lib/tipos";
 import { montarMenu } from "@/lib/menu";
+import { categoriasDoProduto } from "@/lib/opcoes";
 import CardDoProduto from "@/components/CardDoProduto";
 import LayoutDaLoja from "@/components/LayoutDaLoja";
 import ConteudoComBusca from "@/components/ConteudoComBusca";
@@ -30,7 +33,7 @@ type Props = { params: Promise<{ slug: string }> };
 // Colunas que a página usa (fica num lugar só para não repetir).
 const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito, efeito_personalizado_id";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Título da aba e prévia quando o link da loja é compartilhado.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -64,12 +67,13 @@ async function ConteudoDaLoja({ params }: Props) {
   if (!loja) notFound();
 
   // 2) Categorias, produtos (com variações e mídias) e coleções, ao mesmo tempo.
-  const [catRes, prodRes, colRes, efRes] = await Promise.all([
+  const [catRes, prodRes, colRes, efRes, avRes] = await Promise.all([
     supabase.from("categorias").select("id, nome, descricao, parent_id, ordem, efeito_personalizado_id").eq("loja_id", loja.id).order("nome"),
     supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }),
     supabase.from("colecoes").select("id, nome, descricao, em_destaque, efeito, efeito_personalizado_id, produtos_colecoes(produto_id)")
       .eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
     supabase.from("efeitos_personalizados").select("id, nome, imagens, movimento, quantidade, tamanho").eq("loja_id", loja.id),
+    supabase.from("avaliacoes").select("id, nome, texto, foto_url, estrelas").eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }).limit(12),
   ]);
 
   const categorias = (catRes.data ?? []) as Categoria[];
@@ -106,6 +110,7 @@ async function ConteudoDaLoja({ params }: Props) {
   return (
     // LayoutDaLoja: banner (com busca), menu lateral e painel direito
     <LayoutDaLoja loja={loja} menu={menu}>
+      <RegistrarVisita slug={slug} />
       <EfeitosDaLoja cor={cor} logo={loja.logo_url} tipoPadrao={efeito} personalizadoPadrao={personalizadoDaLoja} secoes={secoes} />
 
       {produtos.length === 0 ? (
@@ -134,6 +139,9 @@ async function ConteudoDaLoja({ params }: Props) {
           ))}
         </ConteudoComBusca>
       )}
+
+      {/* O que os clientes dizem */}
+      <Avaliacoes itens={(avRes.data ?? []) as { id: string; nome: string | null; texto: string; foto_url: string | null; estrelas: number }[]} cor={cor} titulo="💬 O que dizem da gente" />
     </LayoutDaLoja>
   );
 }
@@ -170,9 +178,10 @@ function Secao(props: { id: string; titulo: string; descricao?: string | null; c
 function SecaoCategoria({ categoria, subcategorias, produtos, cor, slug }: {
   categoria: Categoria; subcategorias: Categoria[]; produtos: Produto[]; cor: string; slug: string;
 }) {
-  const diretos = produtos.filter((p) => p.categoria_id === categoria.id);
+  // Um produto pode estar em várias categorias: confere a lista toda
+  const diretos = produtos.filter((p) => categoriasDoProduto(p).includes(categoria.id));
   const grupos = subcategorias
-    .map((sub) => ({ sub, itens: produtos.filter((p) => p.categoria_id === sub.id) }))
+    .map((sub) => ({ sub, itens: produtos.filter((p) => categoriasDoProduto(p).includes(sub.id)) }))
     .filter((g) => g.itens.length > 0);
   if (diretos.length === 0 && grupos.length === 0) return null;
 

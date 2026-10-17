@@ -69,3 +69,18 @@ export const OPCOES_UNIDADE = [
   { valor: "un.", rotulo: "un. (unidades)" },
   { valor: "", rotulo: "Sem unidade (ex.: P, M, G, aro 16)" },
 ];
+
+// "azul turquesa" → "Azul turquesa" (cores sempre começam com maiúscula)
+export function comMaiuscula(texto: string): string {
+  const t = texto.trim();
+  return t ? t.charAt(0).toLocaleUpperCase("pt-BR") + t.slice(1) : t;
+}
+
+// Ordem alfabética ignorando acentos e maiúsculas
+export const emOrdem = (lista: string[]) =>
+  [...new Set(lista)].sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+
+// Todas as categorias de um produto (a lista nova + a antiga, por segurança)
+export function categoriasDoProduto(p: { categoria_id: string | null; produtos_categorias?: { categoria_id: string }[] }): string[] {
+  return [...new Set([...(p.produtos_categorias ?? []).map((x) => x.categoria_id), ...(p.categoria_id ? [p.categoria_id] : [])])];
+}

@@ -3,11 +3,11 @@
 // =====================================================================
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 
-export type LojaResumo = { id: string; slug: string; nome: string; cor: string | null; unidade_tamanho?: string };
+export type LojaResumo = { id: string; slug: string; nome: string; cor: string | null; unidade_tamanho?: string; prazo_padrao?: string | null };
 
 // Busca a loja pelo endereço (slug) — usada nas telas do painel.
 export async function lojaPeloSlug(slug: string): Promise<LojaResumo | null> {
-  const { data } = await supabaseNavegador().from("lojas").select("id, slug, nome, cor, unidade_tamanho").eq("slug", slug).maybeSingle();
+  const { data } = await supabaseNavegador().from("lojas").select("id, slug, nome, cor, unidade_tamanho, prazo_padrao").eq("slug", slug).maybeSingle();
   return (data as LojaResumo | null) ?? null;
 }
 

@@ -49,7 +49,7 @@ export default function TemaDaLoja({ loja, children }: { loja: Loja; children: R
       {children}
       <Rodape loja={loja} />
       <CarrinhoFlutuante loja={loja} />
-      {loja.whatsapp && <BotaoDuvidas whatsapp={loja.whatsapp} nomeDaLoja={loja.nome} />}
+      {loja.whatsapp && <BotaoDuvidas whatsapp={loja.whatsapp} nomeDaLoja={loja.nome} slug={loja.slug} />}
       <VoltarAoTopo cor={cor} />
     </div>
   );

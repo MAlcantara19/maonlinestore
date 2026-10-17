@@ -3,6 +3,9 @@
 // =====================================================================
 export const SITE = {
   nome: "MA Online Store",
+  // Endereço do site no ar (usado pelo Google e nas prévias de link).
+  // Quando tiver o domínio próprio, troque aqui ou na variável NEXT_PUBLIC_SITE_URL.
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://maonlinestore.vercel.app",
   ano: 2026, // ano de início, usado no "© 2026"
 };
 

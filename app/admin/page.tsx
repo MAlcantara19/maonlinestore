@@ -48,7 +48,8 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
             <b className="block">🤝 Parceiros</b>
             <span className="text-xs opacity-60">Adicionar, editar, destacar e desativar parceiros</span>
           </Link>
-          <Link href="/admin/administradores" className="clicavel rounded-2xl bg-white p-4 shadow-sm sm:col-span-2">
+          <BotaoBackup />
+          <Link href="/admin/administradores" className="clicavel rounded-2xl bg-white p-4 shadow-sm">
             <b className="block">👥 Administradores</b>
             <span className="text-xs opacity-60">Dar acesso à sócia, à mãe... escolher as lojas de cada um, trocar senhas</span>
           </Link>
@@ -75,5 +76,32 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
         ))}
       </div>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------
+// 💾 Baixar backup: um arquivo com todos os dados do site (só master)
+// ---------------------------------------------------------------------
+function BotaoBackup() {
+  const [estado, setEstado] = useState<"" | "baixando" | "erro">("");
+  async function baixar() {
+    setEstado("baixando");
+    const { data } = await supabaseNavegador().auth.getSession();
+    const r = await fetch("/api/admin/backup", { headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` } });
+    if (!r.ok) return setEstado("erro");
+    const arquivo = await r.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(arquivo);
+    link.download = `backup-maonlinestore-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setEstado("");
+  }
+  return (
+    <button type="button" onClick={baixar} className="clicavel rounded-2xl bg-white p-4 text-left shadow-sm">
+      <b className="block">💾 Baixar backup</b>
+      <span className="text-xs opacity-60">
+        {estado === "baixando" ? "Gerando o arquivo..." : estado === "erro" ? "Não deu (confira a SUPABASE_SECRET_KEY)" : "Todos os dados do site num arquivo. Faça toda semana e guarde no Drive."}
+      </span>
+    </button>
   );
 }

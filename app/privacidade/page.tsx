@@ -31,8 +31,15 @@ export default function Privacidade() {
           você acompanhar o andamento pelo link enviado.
         </p>
 
-        <h2 className={h}>2. Carrinho</h2>
-        <p>O carrinho fica salvo apenas no seu próprio aparelho (navegador). Nós não temos acesso a ele.</p>
+        <h2 className={h}>2. Estatísticas anônimas</h2>
+        <p>
+          Contamos, de forma anônima, visitas, produtos vistos, itens colocados ou tirados do carrinho e favoritos, para as
+          lojas saberem o que mais agrada. Não guardamos nome, telefone nem o endereço de internet (IP) de ninguém: o IP é
+          transformado num código embaralhado, usado só para evitar abusos (como robôs enviando pedidos falsos).
+        </p>
+
+        <h2 className={h}>2.1. Carrinho e favoritos</h2>
+        <p>O carrinho e os favoritos ficam salvos apenas no seu próprio aparelho (navegador).</p>
 
         <h2 className={h}>3. WhatsApp</h2>
         <p>

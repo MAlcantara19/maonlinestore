@@ -14,6 +14,7 @@ import { montarMensagem } from "@/lib/mensagem";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import type { Loja } from "@/lib/tipos";
 import Magnetico from "@/components/Magnetico";
+import { registrarEvento } from "@/lib/eventos";
 import { IconeTelefone } from "@/components/Icones";
 
 type Cupom = { codigo: string; tipo: "porcentagem" | "valor"; valor: number; minimo: number | null };
@@ -48,6 +49,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   function mudarQuantidade(indice: number, delta: number) {
     const novos = [...itens];
     novos[indice] = { ...novos[indice], quantidade: novos[indice].quantidade + delta };
+    if (novos[indice].quantidade <= 0) registrarEvento(loja.slug, "carrinho_remove", novos[indice].produtoId); // estatísticas
     salvarCarrinho(loja.slug, novos.filter((i) => i.quantidade > 0));
   }
 
@@ -80,11 +82,13 @@ export default function Carrinho({ loja }: { loja: Loja }) {
     try {
       const { data: r } = await supabaseNavegador().rpc("criar_pedido", {
         p_loja: loja.id, p_tipo: tipo, p_nome: nome || null,
-        p_itens: itens.map((i) => ({ nome: i.nome, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao })),
+        p_itens: itens.map((i) => ({ nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao })),
         p_total: total, p_desconto: desconto || null, p_cupom: cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
       });
       codigo = (r as string) ?? null;
     } catch {}
+
+    registrarEvento(loja.slug, "pedido"); // estatísticas
 
     // Guarda o pedido no aparelho do cliente ("Seus pedidos recentes")
     if (codigo) {
@@ -131,7 +135,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
           <div>
             <b>{i.nome}</b>
             <p className="text-sm opacity-70">
-              {[i.tamanho, i.cor].filter(Boolean).join(" · ")}
+              {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}
               {i.preco != null ? ` · ${formatarPreco(i.preco)}` : " · sob consulta"}
             </p>
             {i.observacao && <p className="text-xs opacity-70">✏️ {i.observacao}</p>}
@@ -213,7 +217,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
           </div>
         </div>
       )}
-      <button onClick={() => salvarCarrinho(loja.slug, [])} className="mt-3 w-full text-sm underline opacity-70">
+      <button onClick={() => { itens.forEach((i) => registrarEvento(loja.slug, "carrinho_remove", i.produtoId)); salvarCarrinho(loja.slug, []); }} className="mt-3 w-full text-sm underline opacity-70">
         Esvaziar carrinho
       </button>
       <PedidosRecentes lista={meusPedidos} cor={cor} />

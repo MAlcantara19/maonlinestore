@@ -155,14 +155,7 @@ const ANIMACOES = `
   }
 `;
 
-// Aplica o tema salvo (claro/escuro) logo que a página abre, antes de aparecer
-const SCRIPT_TEMA = `try{var t=localStorage.getItem("tema");document.documentElement.dataset.tema=t==="escuro"?"escuro":"claro"}catch(e){}`;
-
+// (O tema claro/escuro salvo é aplicado no app/layout.tsx, antes da página aparecer.)
 export default function EstilosAnimacao() {
-  return (
-    <>
-      <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
-      <style>{ANIMACOES}</style>
-    </>
-  );
+  return <style>{ANIMACOES}</style>;
 }

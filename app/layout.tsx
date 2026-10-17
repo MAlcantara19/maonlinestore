@@ -6,8 +6,10 @@
 // =====================================================================
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SITE } from "@/lib/config";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url), // endereço base para prévias de link e Google
   title: { default: "MA Online Store", template: "%s" },
   description: "VitraForma, Gallerie, Sonhos de Açúcar, Paixão por Aromas e Paixão por Chocolate num só lugar. Peça pelo WhatsApp!",
   applicationName: "MA Online Store",
