@@ -146,10 +146,17 @@ const ANIMACOES = `
   /* Troca de tema suave (fundo e texto mudam devagar) */
   body, .tema-loja { transition: background-color .5s ease, color .5s ease; }
 
+  /* Fundo da página: no escuro, a base fica escura; o wrapper deixa o fundo aparecer */
+  html[data-tema="escuro"] .fundo-base { background: #121016 !important; }
+  html[data-tema="escuro"] .tema-loja.com-fundo { background: transparent !important; }
+  /* Mosaico de logos andando bem devagar na diagonal */
+  @keyframes mosaico { to { background-position: 110px 110px; } }
+  .mosaico-andando { animation: mosaico 12s linear infinite; }
+
   /* Quem pediu "menos movimento" no aparelho não vê animações */
   @media (prefers-reduced-motion: reduce) {
     .animar-entrada, .pular, .deslizar, .surgir, .subir, .parallax-conteudo, .parallax-fundo, .pulsar, .brilho-texto::after,
-    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher { animation: none !important; }
+    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher, .mosaico-andando { animation: none !important; }
     ::view-transition-new(root) { animation: none; }
     .efeito-particula { display: none; }
   }

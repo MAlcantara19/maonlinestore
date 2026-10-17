@@ -11,6 +11,8 @@ import { Bloco, Campo, BarraSalvar, estiloInput, type Mensagem } from "@/compone
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO } from "@/lib/opcoes";
 import CampoImagem from "@/components/admin/CampoImagem";
+import EditorFundo from "@/components/admin/EditorFundo";
+import { TAMANHOS } from "@/lib/tamanhos";
 import { CONFIG_PADRAO } from "@/lib/site";
 import type { ConfigSite } from "@/lib/tipos";
 
@@ -65,12 +67,19 @@ function Formulario() {
           <Campo rotulo="Cor 1 (início do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor ?? "#3B1260"} onChange={(e) => mudar("cor", e.target.value)} /></Campo>
           <Campo rotulo="Cor 2 (fim do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor_secundaria ?? "#C9B3EE"} onChange={(e) => mudar("cor_secundaria", e.target.value)} /></Campo>
         </div>
-        <CampoImagem rotulo="Imagem de fundo do topo (opcional)" valor={c.banner_url} aoMudar={(url) => mudar("banner_url", url)} pasta="site" />
+        <CampoImagem rotulo="Logo da MA Online Store (aparece no topo, acima do título)" valor={c.logo_url ?? null} aoMudar={(url) => mudar("logo_url", url)} pasta="site" dica={TAMANHOS.logoSite} />
+        <CampoImagem rotulo="Imagem de fundo do topo (opcional)" valor={c.banner_url} aoMudar={(url) => mudar("banner_url", url)} pasta="site" dica={TAMANHOS.bannerTopo} />
         <Campo rotulo="Efeito animado">
           <select className={estiloInput} value={c.efeito} onChange={(e) => mudar("efeito", e.target.value as ConfigSite["efeito"])}>
             {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
           </select>
         </Campo>
+      </Bloco>
+
+      <Bloco titulo="🌄 Fundo da página inicial inteira">
+        <EditorFundo cor={cor} pasta="site" logo={c.logo_url ?? null}
+          valor={{ fundo_tipo: c.fundo_tipo ?? "nenhum", fundo_url: c.fundo_url ?? null, fundo_opacidade: c.fundo_opacidade ?? 15 }}
+          aoMudar={(v) => setC({ ...c, ...v })} />
       </Bloco>
 
       <Bloco titulo="⚙️ Efeito do painel de administração">

@@ -8,6 +8,7 @@
 //   3. Use o efeito na loja inteira (Configurações), numa categoria ou
 //      coleção (aba Categorias e coleções)
 // =====================================================================
+import { TAMANHOS } from "@/lib/tamanhos";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
@@ -92,7 +93,8 @@ function Conteudo() {
         </Campo>
 
         <div>
-          <span className="text-sm font-semibold">Imagens do efeito (PNG com fundo transparente fica perfeito)</span>
+          <span className="text-sm font-semibold">Imagens do efeito</span>
+          <p className="text-xs opacity-60">{TAMANHOS.efeito}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {editando.imagens.map((url) => (
               <span key={url} className="relative h-16 w-16 overflow-hidden rounded-lg border bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:12px_12px]">

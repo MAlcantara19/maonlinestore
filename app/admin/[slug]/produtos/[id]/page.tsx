@@ -9,6 +9,7 @@
 //      situação · prazo · texto da opção. Com gerador "várias cores de uma vez".
 // Ao salvar um produto NOVO, a tela limpa para cadastrar o próximo.
 // =====================================================================
+import { TAMANHOS } from "@/lib/tamanhos";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -286,6 +287,7 @@ function Formulario() {
       {mensagem?.tipo === "ok" && novo && <p className="mb-4 rounded-xl bg-green-50 p-3 text-sm text-green-800">{mensagem.texto}</p>}
 
       <Bloco titulo="📷 Fotos e vídeos">
+        <p className="text-xs opacity-60">{TAMANHOS.produto}</p>
         <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas. Vídeos curtos (até 20 MB).
           Depois de criar as variações, escolha embaixo de cada foto a <b>cor</b> que ela mostra: na loja, a foto troca sozinha.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">

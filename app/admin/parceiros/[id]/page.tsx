@@ -5,6 +5,7 @@
 // Tudo do parceiro: textos, contatos, endereço (gera o mapa), fotos,
 // cor, efeito animado, selo, destaque e ativo/desativado.
 // =====================================================================
+import { TAMANHOS } from "@/lib/tamanhos";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -115,8 +116,8 @@ function Formulario() {
       </Bloco>
 
       <Bloco titulo="🖼️ Imagens e aparência">
-        <CampoImagem rotulo="Foto grande de fundo (fachada, local, pessoa)" valor={p.foto_url} aoMudar={(url) => mudar("foto_url", url)} pasta="parceiros" />
-        <CampoImagem rotulo="Logo (fica redonda, no meio da foto)" valor={p.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="parceiros" redonda />
+        <CampoImagem rotulo="Foto grande de fundo (fachada, local, pessoa)" valor={p.foto_url} aoMudar={(url) => mudar("foto_url", url)} pasta="parceiros" dica={TAMANHOS.parceiroFoto} />
+        <CampoImagem rotulo="Logo (fica redonda, no meio da foto)" valor={p.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="parceiros" redonda dica={TAMANHOS.logo} />
         <AjusteLogo src={p.logo_url}
           valor={{ logo_ajuste: p.logo_ajuste ?? "cobrir", logo_zoom: Number(p.logo_zoom ?? 1), logo_fundo: p.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setP({ ...p, ...v }); setMensagem(null); }} />

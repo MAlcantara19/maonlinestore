@@ -31,7 +31,7 @@ import { EsqueletoLoja } from "@/components/Esqueleto";
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito, efeito_personalizado_id";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, efeito, efeito_personalizado_id";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 

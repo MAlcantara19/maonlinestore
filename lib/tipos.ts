@@ -31,6 +31,9 @@ export type Loja = {
   sobre?: string | null; // texto da página "Sobre nós" da loja
   unidade_tamanho?: string; // unidade padrão dos tamanhos (cm, ml, g...)
   prazo_padrao?: string | null; // prazo que já vem no cadastro de produto
+  fundo_tipo?: TipoFundo; // fundo da página da loja
+  fundo_url?: string | null;
+  fundo_opacidade?: number;
   lancamento_em?: string | null; // inauguração (contagem regressiva das lojas em breve)
   efeito_personalizado_id?: string | null;
   ativa?: boolean; // false = a loja some do site
@@ -136,7 +139,14 @@ export type ConfigSite = {
   efeito: Efeito;
   parceiros_na_home: number;
   efeito_painel?: Efeito; // efeito animado do painel de administração
+  logo_url?: string | null; // logo da MA Online Store (topo da página inicial)
+  fundo_tipo?: TipoFundo;
+  fundo_url?: string | null;
+  fundo_opacidade?: number;
 };
+
+// Fundo da página inteira: nada, foto, logo repetida ou vídeo em looping
+export type TipoFundo = "nenhum" | "imagem" | "mosaico" | "video";
 
 // Tabela "efeitos_personalizados": efeitos feitos com imagens enviadas pela loja.
 export type EfeitoPersonalizado = {

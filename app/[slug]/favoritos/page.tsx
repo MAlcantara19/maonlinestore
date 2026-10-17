@@ -25,7 +25,7 @@ async function Conteudo({ params }: Props) {
   await connection();
   const { slug } = await params;
   const { data: loja } = await supabase.from("lojas")
-    .select("id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram")
+    .select("id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade")
     .eq("slug", slug).eq("ativa", true).maybeSingle<Loja>();
   if (!loja) notFound();
   const menu = await buscarMenuDaLoja(loja.id);

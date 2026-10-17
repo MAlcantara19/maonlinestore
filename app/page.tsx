@@ -18,6 +18,7 @@ import CartaoParceiro from "@/components/CartaoParceiro";
 import EfeitoFestivo from "@/components/EfeitoFestivo";
 import EstilosAnimacao from "@/components/EstilosAnimacao";
 import ParallaxMouse from "@/components/ParallaxMouse";
+import FundoDaPagina from "@/components/FundoDaPagina";
 import BotaoTema from "@/components/BotaoTema";
 import BuscaGlobal from "@/components/BuscaGlobal";
 import Inclinar3D from "@/components/Inclinar3D";
@@ -84,7 +85,13 @@ async function Topo() {
       </div>
       {/* Modo claro / escuro */}
       <BotaoTema className="clicavel absolute right-4 top-4 z-10 rounded-full bg-white/15 px-3 py-1.5 text-lg hover:bg-white/25" />
+      {/* Fundo da página inteira (foto, logo repetida ou vídeo) */}
+      <FundoDaPagina tipo={c.fundo_tipo} url={c.fundo_url} logo={c.logo_url} opacidade={c.fundo_opacidade} />
       <div className="parallax-conteudo relative mx-auto max-w-5xl px-4 py-14 text-center">
+        {/* Logo da MA Online Store */}
+        {c.logo_url && (
+          <img src={c.logo_url} alt={c.titulo} className="animar-entrada mx-auto mb-4 max-h-32 w-auto max-w-[70%] object-contain drop-shadow-xl" />
+        )}
         <h1 className="animar-entrada text-4xl font-bold drop-shadow sm:text-5xl">{c.titulo}</h1>
         {c.subtitulo && (
           <p className="animar-entrada mt-3 text-lg opacity-90" style={{ animationDelay: "120ms" }}>{c.subtitulo}</p>

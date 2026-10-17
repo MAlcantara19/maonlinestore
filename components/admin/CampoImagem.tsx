@@ -13,9 +13,13 @@ type Props = {
   aoMudar: (url: string | null) => void;
   pasta: string; // pasta no Storage: "logos", "parceiros", "site"...
   redonda?: boolean; // prévia redonda (para logos)
+  dica?: string; // tamanho ideal (mostrado embaixo)
+  aceitaVideo?: boolean; // deixa escolher vídeo também
 };
 
-export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda }: Props) {
+const ehVideo = (url: string | null) => !!url && /\.(mp4|webm|mov)(\?|$)/i.test(url);
+
+export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda, dica, aceitaVideo }: Props) {
   const entrada = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
@@ -40,19 +44,22 @@ export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda }: 
       <span className="text-sm font-semibold">{rotulo}</span>
       <div className="mt-1 flex items-center gap-3">
         <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden bg-stone-200 text-xs opacity-90 ${redonda ? "rounded-full" : "rounded-xl"}`}>
-          {valor ? <img src={valor} alt="" className="h-full w-full object-cover" /> : "sem imagem"}
+          {valor ? (ehVideo(valor)
+            ? <video src={valor} muted loop autoPlay playsInline className="h-full w-full object-cover" />
+            : <img src={valor} alt="" className="h-full w-full object-cover" />) : "sem imagem"}
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => entrada.current?.click()} disabled={enviando}
             className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-            {enviando ? "Enviando..." : valor ? "Trocar foto" : "📷 Escolher foto"}
+            {enviando ? "Enviando..." : valor ? "Trocar" : aceitaVideo ? "📷 Escolher foto ou vídeo" : "📷 Escolher foto"}
           </button>
           {valor && (
             <button type="button" onClick={() => aoMudar(null)} className="rounded-full border px-4 py-2 text-sm">Remover</button>
           )}
         </div>
-        <input ref={entrada} type="file" accept="image/*" className="hidden" onChange={(e) => escolher(e.target.files)} />
+        <input ref={entrada} type="file" accept={aceitaVideo ? "image/*,video/*" : "image/*"} className="hidden" onChange={(e) => escolher(e.target.files)} />
       </div>
+      {dica && <p className="mt-1 text-xs opacity-60">{dica}</p>}
       {erro && <p className="mt-1 text-sm text-red-600">{erro}</p>}
       <details className="mt-1 text-xs opacity-70">
         <summary className="cursor-pointer">ou colar o endereço da imagem</summary>
