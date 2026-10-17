@@ -21,7 +21,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -88,7 +88,8 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome da loja"><input className={input} value={loja.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <Campo rotulo="Descrição curta"><input className={input} value={loja.descricao ?? ""} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
-        <CampoImagem rotulo="Logo (fica redonda; ideal: imagem quadrada)" valor={loja.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="logos" redonda dica={TAMANHOS.logo} />
+        <CampoImagem rotulo="Logo (fica redonda; ideal: imagem quadrada)" valor={loja.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="logos" redonda dica={TAMANHOS.logo}
+          recorte={{ proporcao: 1, largura: 600, cores: [loja.cor, loja.cor_secundaria, loja.cor_fundo] }} />
         <AjusteLogo src={loja.logo_url}
           valor={{ logo_ajuste: loja.logo_ajuste ?? "cobrir", logo_zoom: Number(loja.logo_zoom ?? 1), logo_fundo: loja.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
@@ -136,7 +137,7 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
 
       <Bloco titulo="🌄 Fundo da página da loja">
         <EditorFundo cor={cor} pasta={`${loja.slug}/fundo`} logo={loja.logo_url}
-          valor={{ fundo_tipo: loja.fundo_tipo ?? "nenhum", fundo_url: loja.fundo_url ?? null, fundo_opacidade: loja.fundo_opacidade ?? 15 }}
+          valor={{ fundo_tipo: loja.fundo_tipo ?? "nenhum", fundo_url: loja.fundo_url ?? null, fundo_opacidade: loja.fundo_opacidade ?? 15, fundo_animacao: loja.fundo_animacao ?? "nenhuma" }}
           aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
       </Bloco>
 

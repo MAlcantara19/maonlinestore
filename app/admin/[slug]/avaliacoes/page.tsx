@@ -85,7 +85,7 @@ function Conteudo() {
             ))}
           </div>
         </div>
-        <CampoImagem rotulo="Foto (print da conversa ou foto do cliente com o produto — peça autorização)" valor={editando.foto_url} aoMudar={(url) => setEditando({ ...editando, foto_url: url })} pasta={`${loja.slug}/avaliacoes`} dica={TAMANHOS.avaliacao} />
+        <CampoImagem rotulo="Foto (print da conversa ou foto do cliente com o produto — peça autorização)" valor={editando.foto_url} aoMudar={(url) => setEditando({ ...editando, foto_url: url })} pasta={`${loja.slug}/avaliacoes`} dica={TAMANHOS.avaliacao} recorte={{ proporcao: 1, largura: 1080, cores: [loja.cor] }} />
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editando.ativo} onChange={(e) => setEditando({ ...editando, ativo: e.target.checked })} /> Aparecer no site</label>
         {aviso && <p className="text-sm">{aviso}</p>}
         <div className="flex gap-2">

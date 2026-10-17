@@ -15,7 +15,7 @@ import { Bloco, Campo, estiloInput } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { usuarioInstagram } from "@/lib/formato";
 
-type LojaCartao = { id: string; slug: string; nome: string; descricao: string | null; cor: string | null; cor_secundaria: string | null; logo_url: string | null; instagram: string | null };
+type LojaCartao = { id: string; slug: string; nome: string; descricao: string | null; cor: string | null; cor_secundaria: string | null; logo_url: string | null; instagram: string | null; logo_ajuste: string | null; logo_zoom: number | null; logo_fundo: string | null };
 
 export default function PainelCartao() {
   return <AreaAdmin>{() => <Conteudo />}</AreaAdmin>;
@@ -38,7 +38,7 @@ function Conteudo() {
   const tela = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    supabaseNavegador().from("lojas").select("id, slug, nome, descricao, cor, cor_secundaria, logo_url, instagram").eq("slug", slug).maybeSingle()
+    supabaseNavegador().from("lojas").select("id, slug, nome, descricao, cor, cor_secundaria, logo_url, instagram, logo_ajuste, logo_zoom, logo_fundo").eq("slug", slug).maybeSingle()
       .then(({ data }: { data: LojaCartao | null }) => setLoja(data));
   }, [slug]);
 
@@ -67,9 +67,15 @@ function Conteudo() {
 
       // Logo redonda
       ctx.save();
-      ctx.beginPath(); ctx.arc(L / 2, 330, 120, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.clip();
+      ctx.beginPath(); ctx.arc(L / 2, 330, 120, 0, Math.PI * 2); ctx.fillStyle = loja.logo_fundo ?? "#fff"; ctx.fill(); ctx.clip();
       const logo = loja.logo_url ? await carregarImagem(loja.logo_url) : null;
-      if (logo) ctx.drawImage(logo, L / 2 - 120, 210, 240, 240);
+      if (logo) {
+        // Mesmo ajuste da logo no site (preencher/inteira + zoom), SEM distorcer
+        const lado = 240;
+        const escala = (loja.logo_ajuste === "inteira" ? Math.min(lado / logo.width, lado / logo.height) : Math.max(lado / logo.width, lado / logo.height)) * Number(loja.logo_zoom ?? 1);
+        const w = logo.width * escala, h = logo.height * escala;
+        ctx.drawImage(logo, L / 2 - w / 2, 330 - h / 2, w, h);
+      }
       else { ctx.fillStyle = cor; ctx.font = "bold 140px system-ui"; ctx.textAlign = "center"; ctx.fillText(loja.nome.charAt(0), L / 2, 380); }
       ctx.restore();
 

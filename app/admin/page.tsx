@@ -51,7 +51,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
           <BotaoBackup />
           <Link href="/admin/administradores" className="clicavel rounded-2xl bg-white p-4 shadow-sm">
             <b className="block">👥 Administradores</b>
-            <span className="text-xs opacity-60">Dar acesso à sócia, à mãe... escolher as lojas de cada um, trocar senhas</span>
+            <span className="text-xs opacity-60">Dar acesso aos usuários, escolher as lojas de cada um e trocar senhas</span>
           </Link>
         </div>
       )}

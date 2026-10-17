@@ -86,13 +86,17 @@ async function Topo() {
       {/* Modo claro / escuro */}
       <BotaoTema className="clicavel absolute right-4 top-4 z-10 rounded-full bg-white/15 px-3 py-1.5 text-lg hover:bg-white/25" />
       {/* Fundo da página inteira (foto, logo repetida ou vídeo) */}
-      <FundoDaPagina tipo={c.fundo_tipo} url={c.fundo_url} logo={c.logo_url} opacidade={c.fundo_opacidade} />
+      <FundoDaPagina tipo={c.fundo_tipo} url={c.fundo_url} logo={c.logo_url} opacidade={c.fundo_opacidade} animacao={c.fundo_animacao} />
       <div className="parallax-conteudo relative mx-auto max-w-5xl px-4 py-14 text-center">
-        {/* Logo da MA Online Store */}
-        {c.logo_url && (
-          <img src={c.logo_url} alt={c.titulo} className="animar-entrada mx-auto mb-4 max-h-32 w-auto max-w-[70%] object-contain drop-shadow-xl" />
-        )}
-        <h1 className="animar-entrada text-4xl font-bold drop-shadow sm:text-5xl">{c.titulo}</h1>
+        {/* Logo redonda da MA Online Store AO LADO do título (no celular fica em cima) */}
+        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
+          {c.logo_url && (
+            <span className="animar-entrada block h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-white/70 bg-white shadow-2xl sm:h-32 sm:w-32">
+              <img src={c.logo_url} alt="" className="h-full w-full object-cover" />
+            </span>
+          )}
+          <h1 className="animar-entrada text-4xl font-bold drop-shadow sm:text-5xl">{c.titulo}</h1>
+        </div>
         {c.subtitulo && (
           <p className="animar-entrada mt-3 text-lg opacity-90" style={{ animationDelay: "120ms" }}>{c.subtitulo}</p>
         )}
@@ -102,7 +106,7 @@ async function Topo() {
           🤝 Conheça nossos parceiros
         </Link>
       </div>
-      {c.efeito !== "nenhum" && <EfeitoFestivo tipo={c.efeito} cor={cor} />}
+      {c.efeito !== "nenhum" && <EfeitoFestivo tipo={c.efeito} cor={cor} logo={c.logo_url} />}
     </header>
   );
 }

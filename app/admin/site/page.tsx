@@ -67,26 +67,40 @@ function Formulario() {
           <Campo rotulo="Cor 1 (início do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor ?? "#3B1260"} onChange={(e) => mudar("cor", e.target.value)} /></Campo>
           <Campo rotulo="Cor 2 (fim do degradê)"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={c.cor_secundaria ?? "#C9B3EE"} onChange={(e) => mudar("cor_secundaria", e.target.value)} /></Campo>
         </div>
-        <CampoImagem rotulo="Logo da MA Online Store (aparece no topo, acima do título)" valor={c.logo_url ?? null} aoMudar={(url) => mudar("logo_url", url)} pasta="site" dica={TAMANHOS.logoSite} />
-        <CampoImagem rotulo="Imagem de fundo do topo (opcional)" valor={c.banner_url} aoMudar={(url) => mudar("banner_url", url)} pasta="site" dica={TAMANHOS.bannerTopo} />
+        <CampoImagem rotulo="Logo da MA Online Store (aparece no topo, acima do título)" valor={c.logo_url ?? null} aoMudar={(url) => mudar("logo_url", url)} pasta="site" dica={TAMANHOS.logoSite} redonda recorte={{ proporcao: 1, largura: 600, cores: [c.cor, c.cor_secundaria] }} />
+        <CampoImagem rotulo="Imagem de fundo do topo (opcional)" valor={c.banner_url} aoMudar={(url) => mudar("banner_url", url)} pasta="site" dica={TAMANHOS.bannerTopo} recorte={{ proporcao: 16 / 5, largura: 1920, cores: [c.cor, c.cor_secundaria] }} />
         <Campo rotulo="Efeito animado">
           <select className={estiloInput} value={c.efeito} onChange={(e) => mudar("efeito", e.target.value as ConfigSite["efeito"])}>
-            {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+            {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo.replace("Logo da loja", "Logo da MA Online Store")}</option>)}
           </select>
         </Campo>
       </Bloco>
 
       <Bloco titulo="🌄 Fundo da página inicial inteira">
         <EditorFundo cor={cor} pasta="site" logo={c.logo_url ?? null}
-          valor={{ fundo_tipo: c.fundo_tipo ?? "nenhum", fundo_url: c.fundo_url ?? null, fundo_opacidade: c.fundo_opacidade ?? 15 }}
+          valor={{ fundo_tipo: c.fundo_tipo ?? "nenhum", fundo_url: c.fundo_url ?? null, fundo_opacidade: c.fundo_opacidade ?? 15, fundo_animacao: c.fundo_animacao ?? "nenhuma" }}
           aoMudar={(v) => setC({ ...c, ...v })} />
+      </Bloco>
+
+      <Bloco titulo="🤝 Página de parceiros">
+        <Campo rotulo="Título"><input className={estiloInput} value={c.parceiros_titulo ?? ""} onChange={(e) => mudar("parceiros_titulo", e.target.value || null)} placeholder="🤝 Parceiros" /></Campo>
+        <Campo rotulo="Subtítulo"><input className={estiloInput} value={c.parceiros_subtitulo ?? ""} onChange={(e) => mudar("parceiros_subtitulo", e.target.value || null)} /></Campo>
+        <Campo rotulo="Efeito animado">
+          <select className={estiloInput} value={c.parceiros_efeito ?? "nenhum"} onChange={(e) => mudar("parceiros_efeito", e.target.value as ConfigSite["efeito"])}>
+            {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo.replace("Logo da loja", "Logo da MA Online Store")}</option>)}
+          </select>
+        </Campo>
+        <span className="text-sm font-semibold">Fundo da página de parceiros</span>
+        <EditorFundo cor={cor} pasta="site/parceiros" logo={c.logo_url ?? null}
+          valor={{ fundo_tipo: c.parceiros_fundo_tipo ?? "nenhum", fundo_url: c.parceiros_fundo_url ?? null, fundo_opacidade: c.parceiros_fundo_opacidade ?? 15, fundo_animacao: c.parceiros_fundo_animacao ?? "nenhuma" }}
+          aoMudar={(v) => setC({ ...c, parceiros_fundo_tipo: v.fundo_tipo, parceiros_fundo_url: v.fundo_url, parceiros_fundo_opacidade: v.fundo_opacidade, parceiros_fundo_animacao: v.fundo_animacao })} />
       </Bloco>
 
       <Bloco titulo="⚙️ Efeito do painel de administração">
         <Campo rotulo="Efeito animado que aparece aqui no painel (para todos os administradores)">
           <select className={estiloInput} value={(c as ConfigSite & { efeito_painel?: string }).efeito_painel ?? "nenhum"}
             onChange={(e) => setC({ ...c, efeito_painel: e.target.value } as ConfigSite)}>
-            {OPCOES_EFEITO.filter((o) => !o.valor.startsWith("logo")).map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+            {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo.replace("Logo da loja", "Logo da MA Online Store")}</option>)}
           </select>
         </Campo>
       </Bloco>

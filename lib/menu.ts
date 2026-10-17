@@ -6,10 +6,12 @@
 // =====================================================================
 import { supabase } from "@/lib/supabase";
 import type { Categoria, Colecao } from "@/lib/tipos";
-import { categoriasDoProduto } from "@/lib/opcoes";
+import { categoriasDoProduto, nomeColecao } from "@/lib/opcoes";
 
 // id = âncora da seção na página; filhos = subcategorias (só nas categorias)
-export type ItemMenu = { id: string; rotulo: string; filhos?: ItemMenu[] };
+// grupo = em qual parte do menu lateral aparece (Destaques, Categorias ou Coleções)
+export type GrupoMenu = "destaques" | "categorias" | "colecoes";
+export type ItemMenu = { id: string; rotulo: string; filhos?: ItemMenu[]; grupo?: GrupoMenu };
 
 // O mínimo que precisamos saber de cada produto para montar o menu.
 type ProdutoResumo = { id: string; categoria_id: string | null; destaque: boolean; produtos_categorias?: { categoria_id: string }[] };
@@ -21,10 +23,10 @@ export function montarMenu(categorias: Categoria[], colecoes: Colecao[], produto
 
   // 1) Coleções em destaque (ex.: Natal) vêm primeiro
   colecoes.filter((c) => c.em_destaque && colecaoTemProduto(c))
-    .forEach((c) => itens.push({ id: `colecao-${c.id}`, rotulo: `✨ ${c.nome}` }));
+    .forEach((c) => itens.push({ id: `colecao-${c.id}`, rotulo: `✨ ${nomeColecao(c.nome)}`, grupo: "destaques" }));
 
-  // 2) Destaques
-  if (produtos.some((p) => p.destaque)) itens.push({ id: "destaques", rotulo: "⭐ Destaques" });
+  // 2) Produtos em destaque
+  if (produtos.some((p) => p.destaque)) itens.push({ id: "destaques", rotulo: "⭐ Produtos em destaque", grupo: "destaques" });
 
   // 3) Categorias principais (contando os produtos das subcategorias)
   categorias.filter((c) => !c.parent_id).forEach((cat) => {
@@ -35,13 +37,13 @@ export function montarMenu(categorias: Categoria[], colecoes: Colecao[], produto
       const filhos = subs
         .filter((s) => produtos.some((p) => categoriasDoProduto(p).includes(s.id)))
         .map((s) => ({ id: `sub-${s.id}`, rotulo: s.nome }));
-      itens.push({ id: `categoria-${cat.id}`, rotulo: cat.nome, filhos });
+      itens.push({ id: `categoria-${cat.id}`, rotulo: cat.nome, filhos, grupo: "categorias" });
     }
   });
 
   // 4) Coleções antigas/sem destaque (ex.: Santos, Dia das Crianças)
   colecoes.filter((c) => !c.em_destaque && colecaoTemProduto(c))
-    .forEach((c) => itens.push({ id: `colecao-${c.id}`, rotulo: c.nome }));
+    .forEach((c) => itens.push({ id: `colecao-${c.id}`, rotulo: nomeColecao(c.nome), grupo: "colecoes" }));
 
   return itens;
 }

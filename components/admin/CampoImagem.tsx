@@ -4,6 +4,7 @@
 // Google Fotos, câmera), com prévia e botão de remover.
 // Também aceita colar um endereço de imagem, se preferir.
 // =====================================================================
+import EditorRecorte from "@/components/admin/EditorRecorte";
 import { useRef, useState } from "react";
 import { enviarArquivo } from "@/lib/upload";
 
@@ -15,18 +16,31 @@ type Props = {
   redonda?: boolean; // prévia redonda (para logos)
   dica?: string; // tamanho ideal (mostrado embaixo)
   aceitaVideo?: boolean; // deixa escolher vídeo também
+  // Formato para ajustar ANTES de enviar (abre o editor de recorte)
+  recorte?: { proporcao: number; largura: number; cores?: (string | null | undefined)[] };
 };
 
 const ehVideo = (url: string | null) => !!url && /\.(mp4|webm|mov)(\?|$)/i.test(url);
 
-export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda, dica, aceitaVideo }: Props) {
+export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda, dica, aceitaVideo, recorte }: Props) {
   const entrada = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [ajustando, setAjustando] = useState<File | string | null>(null); // imagem aberta no editor de recorte
 
   async function escolher(arquivos: FileList | null) {
     const arquivo = arquivos?.[0];
     if (!arquivo) return;
+    // Foto com formato definido: abre o editor de recorte antes de enviar
+    if (recorte && arquivo.type.startsWith("image/") && arquivo.type !== "image/gif") {
+      setAjustando(arquivo);
+      if (entrada.current) entrada.current.value = "";
+      return;
+    }
+    await enviar(arquivo);
+  }
+
+  async function enviar(arquivo: File) {
     setEnviando(true);
     setErro("");
     try {
@@ -53,6 +67,9 @@ export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda, di
             className="rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
             {enviando ? "Enviando..." : valor ? "Trocar" : aceitaVideo ? "📷 Escolher foto ou vídeo" : "📷 Escolher foto"}
           </button>
+          {valor && recorte && !ehVideo(valor) && (
+            <button type="button" onClick={() => setAjustando(valor)} className="rounded-full border px-4 py-2 text-sm">✂️ Ajustar</button>
+          )}
           {valor && (
             <button type="button" onClick={() => aoMudar(null)} className="rounded-full border px-4 py-2 text-sm">Remover</button>
           )}
@@ -60,6 +77,10 @@ export default function CampoImagem({ rotulo, valor, aoMudar, pasta, redonda, di
         <input ref={entrada} type="file" accept={aceitaVideo ? "image/*,video/*" : "image/*"} className="hidden" onChange={(e) => escolher(e.target.files)} />
       </div>
       {dica && <p className="mt-1 text-xs opacity-60">{dica}</p>}
+      {ajustando && recorte && (
+        <EditorRecorte arquivo={ajustando} proporcao={recorte.proporcao} largura={recorte.largura} cores={recorte.cores} redonda={redonda}
+          aoCancelar={() => setAjustando(null)} aoConfirmar={(f) => { setAjustando(null); enviar(f); }} />
+      )}
       {erro && <p className="mt-1 text-sm text-red-600">{erro}</p>}
       <details className="mt-1 text-xs opacity-70">
         <summary className="cursor-pointer">ou colar o endereço da imagem</summary>

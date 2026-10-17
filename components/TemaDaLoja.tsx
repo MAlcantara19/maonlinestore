@@ -8,6 +8,7 @@
 // topo e o botão de dúvidas (WhatsApp). As animações ficam em
 // components/EstilosAnimacao.tsx (usadas também na página inicial e em parceiros).
 // =====================================================================
+import { FONTES } from "@/lib/fontes";
 import FundoDaPagina from "@/components/FundoDaPagina";
 import type { CSSProperties, ReactNode } from "react";
 import type { Loja } from "@/lib/tipos";
@@ -17,22 +18,11 @@ import CarrinhoFlutuante from "@/components/CarrinhoFlutuante";
 import Rodape from "@/components/Rodape";
 import EstilosAnimacao from "@/components/EstilosAnimacao";
 
-// Cada opção de fonte: o endereço no Google Fonts e o nome da família.
-const FONTES = {
-  moderna: { link: null, familia: "inherit" }, // a fonte padrão do site
-  elegante: {
-    link: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap",
-    familia: "'Playfair Display', Georgia, serif",
-  },
-  divertida: {
-    link: "https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&display=swap",
-    familia: "'Baloo 2', 'Comic Sans MS', sans-serif",
-  },
-} as const;
+// (As fontes ficam em lib/fontes.ts)
 
 
 export default function TemaDaLoja({ loja, children }: { loja: Loja; children: ReactNode }) {
-  const fonte = FONTES[loja.fonte ?? "moderna"];
+  const fonte = FONTES[loja.fonte ?? "moderna"] ?? FONTES.moderna;
   const cor = loja.cor ?? "#333";
 
   const temFundo = !!loja.fundo_tipo && loja.fundo_tipo !== "nenhum";
@@ -45,7 +35,7 @@ export default function TemaDaLoja({ loja, children }: { loja: Loja; children: R
   return (
     // flex-col + min-h-screen: a página ocupa no mínimo a tela toda, e o rodapé fica no fim
     <div className={`tema-loja flex min-h-screen flex-col ${temFundo ? "com-fundo" : ""}`} style={estilo}>
-      <FundoDaPagina tipo={loja.fundo_tipo} url={loja.fundo_url} logo={loja.logo_url} opacidade={loja.fundo_opacidade} corBase={loja.cor_fundo} />
+      <FundoDaPagina tipo={loja.fundo_tipo} url={loja.fundo_url} logo={loja.logo_url} opacidade={loja.fundo_opacidade} corBase={loja.cor_fundo} animacao={loja.fundo_animacao} />
       {fonte.link && <link rel="stylesheet" href={fonte.link} precedence="default" />}
       <style>{`.tema-loja h1, .tema-loja h2, .tema-loja h3 { font-family: var(--fonte-titulo); }`}</style>
       <EstilosAnimacao />

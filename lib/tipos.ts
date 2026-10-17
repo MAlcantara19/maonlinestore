@@ -24,7 +24,7 @@ export type Loja = {
   aviso_pedido?: string | null; // texto "Como funciona o pedido"
   cor_secundaria?: string | null; // cor de apoio, mais clara (linha de atalhos, avisos)
   cor_fundo?: string | null; // fundo da página da loja (vazio = padrão do site)
-  fonte?: "moderna" | "elegante" | "divertida"; // estilo dos títulos
+  fonte?: string; // estilo dos títulos (veja lib/fontes.ts)
   instagram?: string | null; // usuário do Instagram, sem @ (aparece no rodapé)
   efeito?: Efeito; // efeito da loja o ano todo
   em_breve?: boolean; // true = aparece "Em breve" na página inicial
@@ -34,6 +34,7 @@ export type Loja = {
   fundo_tipo?: TipoFundo; // fundo da página da loja
   fundo_url?: string | null;
   fundo_opacidade?: number;
+  fundo_animacao?: AnimacaoFundo;
   lancamento_em?: string | null; // inauguração (contagem regressiva das lojas em breve)
   efeito_personalizado_id?: string | null;
   ativa?: boolean; // false = a loja some do site
@@ -101,6 +102,7 @@ export type Colecao = {
   em_destaque: boolean;
   efeito?: Efeito; // animação enquanto em destaque
   efeito_personalizado_id?: string | null;
+  fonte?: string | null; // fonte própria do título da coleção
   produtos_colecoes: { produto_id: string }[];
 };
 
@@ -143,7 +145,17 @@ export type ConfigSite = {
   fundo_tipo?: TipoFundo;
   fundo_url?: string | null;
   fundo_opacidade?: number;
+  fundo_animacao?: AnimacaoFundo;
+  parceiros_titulo?: string | null;
+  parceiros_subtitulo?: string | null;
+  parceiros_fundo_tipo?: TipoFundo;
+  parceiros_fundo_url?: string | null;
+  parceiros_fundo_opacidade?: number;
+  parceiros_fundo_animacao?: AnimacaoFundo;
+  parceiros_efeito?: Efeito;
 };
+
+export type AnimacaoFundo = "nenhuma" | "respirar" | "zoom_lento" | "deslizar";
 
 // Fundo da página inteira: nada, foto, logo repetida ou vídeo em looping
 export type TipoFundo = "nenhum" | "imagem" | "mosaico" | "video";

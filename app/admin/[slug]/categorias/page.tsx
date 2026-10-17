@@ -18,10 +18,10 @@ import AbasLoja from "@/components/admin/AbasLoja";
 import { Bloco } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
-import { OPCOES_EFEITO } from "@/lib/opcoes";
+import { OPCOES_EFEITO, OPCOES_FONTE, nomeColecao } from "@/lib/opcoes";
 import type { Categoria, Efeito, EfeitoPersonalizado } from "@/lib/tipos";
 
-type Colecao = { id: string; nome: string; descricao: string | null; em_destaque: boolean; ativa: boolean; efeito: Efeito; ordem: number; efeito_personalizado_id: string | null };
+type Colecao = { id: string; nome: string; descricao: string | null; em_destaque: boolean; ativa: boolean; efeito: Efeito; ordem: number; efeito_personalizado_id: string | null; fonte: string | null };
 const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
 
 export default function PainelCategorias() {
@@ -40,7 +40,7 @@ function Conteudo() {
     const supabase = supabaseNavegador();
     const [cat, col, ef] = await Promise.all([
       supabase.from("categorias").select("id, nome, descricao, parent_id, ordem, efeito_personalizado_id").eq("loja_id", l.id),
-      supabase.from("colecoes").select("id, nome, descricao, em_destaque, ativa, efeito, ordem, efeito_personalizado_id").eq("loja_id", l.id).order("ordem").order("nome"),
+      supabase.from("colecoes").select("id, nome, descricao, em_destaque, ativa, efeito, ordem, efeito_personalizado_id, fonte").eq("loja_id", l.id).order("ordem").order("nome"),
       supabase.from("efeitos_personalizados").select("id, nome, imagens, movimento, quantidade, tamanho").eq("loja_id", l.id),
     ]);
     setPersonalizados((ef.data ?? []) as EfeitoPersonalizado[]);
@@ -144,9 +144,9 @@ function Conteudo() {
       <AbasLoja slug={slug} nome={loja.nome} cor={cor} />
       {aviso && <p className="fixed inset-x-0 top-4 z-50 mx-auto w-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg">{aviso}</p>}
 
-      <Bloco titulo="🗂️ Categorias e subcategorias (ordem alfabética automática)">
+      <Bloco titulo="🗂️ Categorias e subcategorias (ordem alfabética automática) · borda azul">
         {principais.map((c, i) => (
-          <div key={c.id} className="space-y-2 rounded-xl bg-stone-50 p-2">
+          <div key={c.id} className="space-y-2 rounded-xl border-l-4 border-sky-400 bg-sky-50/50 p-2">
             {linhaCategoria(c, `${i + 1}.`)}
             {categorias.filter((s) => s.parent_id === c.id).map((s, j) => linhaCategoria(s, `${i + 1}.${j + 1}`, true))}
             <NovoItem placeholder={`Nova subcategoria em ${c.nome}`} aoCriar={(n) => criarCategoria(n, c.id)} recuo />
@@ -155,13 +155,14 @@ function Conteudo() {
         <NovoItem placeholder="Nova categoria (ex.: Brinquedos)" aoCriar={(n) => criarCategoria(n, null)} />
       </Bloco>
 
-      <Bloco titulo="✨ Coleções">
+      <Bloco titulo="✨ Coleções · borda dourada = em destaque">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs opacity-60">Use ▲ ▼ para mudar a ordem. "Em destaque" aparece no topo da loja.</p>
           <button type="button" className={botao} onClick={() => gravarOrdem([...colecoes].sort(porNome))}>🔤 Ordenar A–Z</button>
         </div>
         {colecoes.map((c, i) => (
-          <div key={c.id} className="space-y-2 rounded-xl bg-stone-50 p-3">
+          <div key={c.id} className="space-y-2 rounded-xl border-l-4 bg-amber-50/60 p-3" style={{ borderColor: c.em_destaque ? "#f5c542" : cor }}>
+            <p className="pl-10 text-xs font-semibold opacity-60">Na loja aparece como: {c.em_destaque ? "✨ " : ""}{nomeColecao(c.nome || "...")}{c.em_destaque ? " (em Destaques)" : " (em Coleções)"}</p>
             <div className="flex flex-wrap items-center gap-2">
               <span className="w-8 shrink-0 text-center font-mono text-sm font-bold" style={{ color: cor }}>{i + 1}.</span>
               <div className="flex flex-col">
@@ -178,6 +179,10 @@ function Conteudo() {
                 {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
               </select>
               {seletorEfeito(c.efeito_personalizado_id, (v) => mudarCol(c.id, "efeito_personalizado_id", v))}
+              <select className={celula} value={c.fonte ?? ""} onChange={(e) => mudarCol(c.id, "fonte", e.target.value || null)} title="Fonte do título desta coleção">
+                <option value="">🔤 Fonte da loja</option>
+                {OPCOES_FONTE.map((f) => <option key={f.valor} value={f.valor}>🔤 {f.rotulo}</option>)}
+              </select>
               <span className="flex-1" />
               <button type="button" className={botao} onClick={() => copiarLink(`colecao-${c.id}`)} title="Copiar link direto">🔗</button>
               <button type="button" className={botao} onClick={() => salvarColecao(c)}>Salvar</button>

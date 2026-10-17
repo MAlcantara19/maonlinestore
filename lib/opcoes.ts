@@ -26,8 +26,17 @@ export const OPCOES_EFEITO: { valor: Efeito; rotulo: string }[] = [
 export const OPCOES_FONTE = [
   { valor: "moderna", rotulo: "Moderna (padrão)" },
   { valor: "elegante", rotulo: "Elegante (com serifa)" },
-  { valor: "divertida", rotulo: "Divertida (arredondada)" },
+  { valor: "divertida", rotulo: "Divertida (gordinha)" },
+  { valor: "cursiva", rotulo: "✍️ Cursiva bem desenhada" },
+  { valor: "manuscrita", rotulo: "✍️ Manuscrita" },
+  { valor: "classica", rotulo: "🏛️ Clássica (maiúsculas)" },
+  { valor: "arredondada", rotulo: "🫧 Arredondada" },
+  { valor: "retro", rotulo: "🕹️ Retrô" },
+  { valor: "marcante", rotulo: "📢 Marcante (alta e fina)" },
 ] as const;
+
+// Coleções: "Natal" → "Coleção Natal" (sem repetir se já tiver)
+export const nomeColecao = (nome: string) => (/^cole[cç][aã]o\b/i.test(nome.trim()) ? nome.trim() : `Coleção ${nome.trim()}`);
 
 // ---------------------------------------------------------------------
 // SUGESTÕES PRONTAS (aparecem como lista ao clicar no campo; dá para

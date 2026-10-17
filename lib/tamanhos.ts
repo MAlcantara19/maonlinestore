@@ -5,7 +5,7 @@
 // =====================================================================
 export const TAMANHOS = {
   logo: "📐 Ideal: 500 × 500 px (quadrada) · PNG com fundo transparente · logo no centro com uma margem em volta",
-  logoSite: "📐 Ideal: 600 × 600 px (quadrada) ou 1000 × 400 px (deitada) · PNG com fundo transparente",
+  logoSite: "📐 Ideal: 600 × 600 px (quadrada, fica redonda) · PNG com fundo transparente",
   bannerTopo: "📐 Ideal: 1920 × 600 px (deitada, 16:5) · JPG ou WebP · o centro da imagem é o que mais aparece no celular",
   fundoImagem: "📐 Ideal: 1920 × 1080 px (16:9) · JPG ou WebP · imagens claras e suaves ficam melhores atrás dos produtos",
   fundoVideo: "🎬 Ideal: MP4, 1280 × 720 px, 10 a 20 segundos, sem som, até 20 MB · que \"emende\" o fim com o começo",

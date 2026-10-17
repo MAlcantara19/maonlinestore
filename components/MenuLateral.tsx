@@ -70,10 +70,32 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
     );
   };
 
-  // A lista de categorias (usada na gaveta e na barra do computador).
+  // A lista do menu, separada em grupos com título:
+  //   ⭐ Destaques  ·  🗂️ Categorias  ·  ✨ Coleções
+  const GRUPOS = [
+    { id: "destaques", titulo: "⭐ Destaques" },
+    { id: "categorias", titulo: "🗂️ Categorias" },
+    { id: "colecoes", titulo: "✨ Coleções" },
+  ] as const;
   const lista = (aoClicar?: () => void) => (
+    <div className="space-y-3">
+      {GRUPOS.map((g) => {
+        const doGrupo = menu.filter((m) => (m.grupo ?? "categorias") === g.id);
+        if (!doGrupo.length) return null;
+        return (
+          <div key={g.id}>
+            <p className="mb-1 border-b px-3 pb-1 text-xs font-bold uppercase tracking-wide" style={{ color: cor, borderColor: `${cor}33` }}>{g.titulo}</p>
+            {listaDe(doGrupo, aoClicar)}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // Itens de um grupo (categorias com subcategorias que abrem e fecham)
+  const listaDe = (itensDoGrupo: ItemMenu[], aoClicar?: () => void) => (
     <ul className="space-y-1">
-      {menu.map((item) => {
+      {itensDoGrupo.map((item) => {
         const temFilhos = (item.filhos?.length ?? 0) > 0;
         const expandido = expandidos.includes(item.id);
         return (

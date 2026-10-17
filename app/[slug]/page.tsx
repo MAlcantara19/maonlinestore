@@ -11,6 +11,9 @@
 //   5. Destaques, categorias (com subcategorias) e coleções antigas
 // Tudo vem do banco: não precisa mexer aqui para cadastrar produto.
 // =====================================================================
+import { familiaDa } from "@/lib/fontes";
+import CarregarFontes from "@/components/CarregarFontes";
+import { nomeColecao } from "@/lib/opcoes";
 import Avaliacoes from "@/components/Avaliacoes";
 import RegistrarVisita from "@/components/RegistrarVisita";
 import type { Metadata } from "next";
@@ -31,7 +34,7 @@ import { EsqueletoLoja } from "@/components/Esqueleto";
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, efeito, efeito_personalizado_id";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, efeito, efeito_personalizado_id";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
@@ -70,7 +73,7 @@ async function ConteudoDaLoja({ params }: Props) {
   const [catRes, prodRes, colRes, efRes, avRes] = await Promise.all([
     supabase.from("categorias").select("id, nome, descricao, parent_id, ordem, efeito_personalizado_id").eq("loja_id", loja.id).order("nome"),
     supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }),
-    supabase.from("colecoes").select("id, nome, descricao, em_destaque, efeito, efeito_personalizado_id, produtos_colecoes(produto_id)")
+    supabase.from("colecoes").select("id, nome, descricao, em_destaque, efeito, efeito_personalizado_id, fonte, produtos_colecoes(produto_id)")
       .eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
     supabase.from("efeitos_personalizados").select("id, nome, imagens, movimento, quantidade, tamanho").eq("loja_id", loja.id),
     supabase.from("avaliacoes").select("id, nome, texto, foto_url, estrelas").eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }).limit(12),
@@ -111,6 +114,8 @@ async function ConteudoDaLoja({ params }: Props) {
     // LayoutDaLoja: banner (com busca), menu lateral e painel direito
     <LayoutDaLoja loja={loja} menu={menu}>
       <RegistrarVisita slug={slug} />
+      {/* Fontes próprias das coleções */}
+      <CarregarFontes fontes={colecoes.map((c) => c.fonte)} />
       <EfeitosDaLoja cor={cor} logo={loja.logo_url} tipoPadrao={efeito} personalizadoPadrao={personalizadoDaLoja} secoes={secoes} />
 
       {produtos.length === 0 ? (
@@ -118,24 +123,25 @@ async function ConteudoDaLoja({ params }: Props) {
       ) : (
         // Busca/ordenação: enquanto não usa, mostra as seções abaixo normalmente
         <ConteudoComBusca produtos={produtos} slug={slug} cor={cor}>
-          {/* Coleções em destaque */}
+          {/* ===== ⭐ DESTAQUES: coleções em destaque + produtos em destaque ===== */}
+          {(colecoes.some((c) => c.em_destaque) || produtos.some((p) => p.destaque)) && <TituloGrupo icone="⭐" texto="Destaques" cor={cor} />}
           {colecoes.filter((c) => c.em_destaque).map((c) => (
-            <Secao key={c.id} id={`colecao-${c.id}`} titulo={`✨ ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
-              produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
+            <Secao key={c.id} id={`colecao-${c.id}`} titulo={`✨ ${nomeColecao(c.nome)}`} descricao={c.descricao} cor={cor} slug={slug}
+              fonte={c.fonte} estilo="colecao" produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
           ))}
+          <Secao id="destaques" titulo="⭐ Produtos em destaque" cor={cor} slug={slug} estilo="destaque" produtos={produtos.filter((p) => p.destaque)} />
 
-          {/* Produtos marcados como destaque */}
-          <Secao id="destaques" titulo="⭐ Destaques" cor={cor} slug={slug} produtos={produtos.filter((p) => p.destaque)} />
-
-          {/* Uma seção por categoria (com as subcategorias dentro) */}
+          {/* ===== 🗂️ CATEGORIAS ===== */}
+          {principais.length > 0 && <TituloGrupo icone="🗂️" texto="Categorias" cor={cor} />}
           {principais.map((cat) => (
             <SecaoCategoria key={cat.id} categoria={cat} subcategorias={subsDe(cat.id)} produtos={produtos} cor={cor} slug={slug} />
           ))}
 
-          {/* Coleções que não estão em destaque (ex.: Dia das Crianças, Santos) */}
+          {/* ===== ✨ COLEÇÕES (as que não estão em destaque: Santos, Dia das Crianças...) ===== */}
+          {colecoes.some((c) => !c.em_destaque) && <TituloGrupo icone="✨" texto="Coleções" cor={cor} />}
           {colecoes.filter((c) => !c.em_destaque).map((c) => (
-            <Secao key={c.id} id={`colecao-${c.id}`} titulo={`Coleção ${c.nome}`} descricao={c.descricao} cor={cor} slug={slug}
-              produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
+            <Secao key={c.id} id={`colecao-${c.id}`} titulo={nomeColecao(c.nome)} descricao={c.descricao} cor={cor} slug={slug}
+              fonte={c.fonte} estilo="colecao" produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
           ))}
         </ConteudoComBusca>
       )}
@@ -160,11 +166,16 @@ function Grade({ produtos, cor, slug }: { produtos: Produto[]; cor: string; slug
 // ---------------------------------------------------------------------
 // Uma seção simples: título + grade. Se não houver produto, some.
 // ---------------------------------------------------------------------
-function Secao(props: { id: string; titulo: string; descricao?: string | null; cor: string; slug: string; produtos: Produto[] }) {
+function Secao(props: {
+  id: string; titulo: string; descricao?: string | null; cor: string; slug: string; produtos: Produto[];
+  fonte?: string | null; // fonte própria (coleções)
+  estilo?: "colecao" | "destaque"; // diferença visual: coleção = faixa colorida, destaque = dourado
+}) {
   if (props.produtos.length === 0) return null;
+  const faixa = props.estilo === "colecao" ? props.cor : props.estilo === "destaque" ? "#f5c542" : null;
   return (
     <section id={props.id} className="mt-8 scroll-mt-28">
-      <h2 className="text-xl font-bold">{props.titulo}</h2>
+      <h2 className="text-xl font-bold" style={{ fontFamily: familiaDa(props.fonte), ...(faixa ? { borderLeft: `5px solid ${faixa}`, paddingLeft: 10 } : {}) }}>{props.titulo}</h2>
       {props.descricao && <p className="text-sm opacity-70">{props.descricao}</p>}
       <Grade produtos={props.produtos} cor={props.cor} slug={props.slug} />
     </section>
@@ -198,5 +209,19 @@ function SecaoCategoria({ categoria, subcategorias, produtos, cor, slug }: {
         </div>
       ))}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Título de GRUPO da página (⭐ Destaques · 🗂️ Categorias · ✨ Coleções):
+// uma linha com o nome no meio, para separar bem cada parte da loja.
+// ---------------------------------------------------------------------
+function TituloGrupo({ icone, texto, cor }: { icone: string; texto: string; cor: string }) {
+  return (
+    <div className="mt-12 flex items-center gap-3" aria-hidden>
+      <span className="h-px flex-1" style={{ background: `${cor}55` }} />
+      <span className="rounded-full px-4 py-1 text-sm font-bold uppercase tracking-widest text-white shadow" style={{ background: cor }}>{icone} {texto}</span>
+      <span className="h-px flex-1" style={{ background: `${cor}55` }} />
+    </div>
   );
 }

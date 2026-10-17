@@ -116,8 +116,8 @@ function Formulario() {
       </Bloco>
 
       <Bloco titulo="🖼️ Imagens e aparência">
-        <CampoImagem rotulo="Foto grande de fundo (fachada, local, pessoa)" valor={p.foto_url} aoMudar={(url) => mudar("foto_url", url)} pasta="parceiros" dica={TAMANHOS.parceiroFoto} />
-        <CampoImagem rotulo="Logo (fica redonda, no meio da foto)" valor={p.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="parceiros" redonda dica={TAMANHOS.logo} />
+        <CampoImagem rotulo="Foto grande de fundo (fachada, local, pessoa)" valor={p.foto_url} aoMudar={(url) => mudar("foto_url", url)} pasta="parceiros" dica={TAMANHOS.parceiroFoto} recorte={{ proporcao: 16 / 10, largura: 1200, cores: [p.cor] }} />
+        <CampoImagem rotulo="Logo (fica redonda, no meio da foto)" valor={p.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="parceiros" redonda dica={TAMANHOS.logo} recorte={{ proporcao: 1, largura: 600, cores: [p.cor] }} />
         <AjusteLogo src={p.logo_url}
           valor={{ logo_ajuste: p.logo_ajuste ?? "cobrir", logo_zoom: Number(p.logo_zoom ?? 1), logo_fundo: p.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setP({ ...p, ...v }); setMensagem(null); }} />

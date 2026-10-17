@@ -153,10 +153,18 @@ const ANIMACOES = `
   @keyframes mosaico { to { background-position: 110px 110px; } }
   .mosaico-andando { animation: mosaico 12s linear infinite; }
 
+  /* Animações da foto de fundo */
+  @keyframes respirar { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.04); opacity: .8; } }
+  .fundo-respirar { animation: respirar 6s ease-in-out infinite; }
+  @keyframes zoom-lento { from { transform: scale(1); } to { transform: scale(1.25); } }
+  .fundo-zoom_lento { animation: zoom-lento 30s ease-in-out infinite alternate; }
+  @keyframes deslizar-fundo { from { transform: scale(1.2) translateX(-6%); } to { transform: scale(1.2) translateX(6%); } }
+  .fundo-deslizar { animation: deslizar-fundo 25s ease-in-out infinite alternate; }
+
   /* Quem pediu "menos movimento" no aparelho não vê animações */
   @media (prefers-reduced-motion: reduce) {
     .animar-entrada, .pular, .deslizar, .surgir, .subir, .parallax-conteudo, .parallax-fundo, .pulsar, .brilho-texto::after,
-    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher, .mosaico-andando { animation: none !important; }
+    .brilho-esqueleto::after, .contador, .ampliar, .aviao, .balao, .faixa-infinita, .efeito-voar, .flutuar, .borda-girando, .encher, .mosaico-andando, .fundo-respirar, .fundo-zoom_lento, .fundo-deslizar { animation: none !important; }
     ::view-transition-new(root) { animation: none; }
     .efeito-particula { display: none; }
   }
