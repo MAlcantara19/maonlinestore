@@ -14,7 +14,9 @@
 import { useState, type MouseEvent } from "react";
 import { adicionarAoCarrinho } from "@/lib/carrinho";
 import { formatarPreco } from "@/lib/formato";
-import { voarParaCarrinho } from "@/lib/efeitos";
+import { explodirConfete, ondinha, voarParaCarrinho } from "@/lib/efeitos";
+import { corDoNome } from "@/lib/cores";
+import Magnetico from "@/components/Magnetico";
 import type { Produto } from "@/lib/tipos";
 
 const TAMANHO_UNICO = "Tamanho único";
@@ -68,17 +70,24 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
     });
     setObservacao("");
     setQuantidade(1);
+    explodirConfete(origem, [cor, "#f5c542", "#ef5350", "#42a5f5", "#66bb6a"]); // festinha no botão 🎉
     aoAdicionar?.();
     voarParaCarrinho(origem, foto, cor);
   }
 
   // Botãozinho de opção (tamanho ou cor). Marcado = borda grossa na cor da loja.
-  const opcao = (texto: string, marcado: boolean, aoClicar: () => void) => (
-    <button key={texto} type="button" onClick={aoClicar} className="rounded-lg border px-3 py-2 text-sm"
-      style={marcado ? { borderColor: cor, borderWidth: 2, fontWeight: 600 } : { borderColor: "#0003" }}>
-      {texto}
-    </button>
-  );
+  // Ao clicar, uma "onda" se espalha a partir do dedo/mouse. Cores ganham uma bolinha colorida.
+  const opcao = (texto: string, marcado: boolean, aoClicar: () => void, ehCor = false) => {
+    const bolinha = ehCor ? corDoNome(texto) : null;
+    return (
+      <button key={texto} type="button" onClick={aoClicar} onPointerDown={(e) => ondinha(e, cor)}
+        className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg border px-3 py-2 text-sm"
+        style={marcado ? { borderColor: cor, borderWidth: 2, fontWeight: 600 } : { borderColor: "#0003" }}>
+        {bolinha && <span className="h-4 w-4 rounded-full border border-black/15" style={{ background: bolinha }} />}
+        {texto}
+      </button>
+    );
+  };
 
   return (
     <div className="mt-4">
@@ -103,7 +112,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       {variacoes.length > 0 && (cores.length > 1 || cores[0] !== TODAS_AS_CORES) && (
         <>
           <p className="mt-4 mb-2 text-sm font-semibold">Cor</p>
-          <div className="flex flex-wrap gap-2">{cores.map((c) => opcao(c, c === corValida, () => setCorEscolhida(c)))}</div>
+          <div className="flex flex-wrap gap-2">{cores.map((c) => opcao(c, c === corValida, () => setCorEscolhida(c), true))}</div>
         </>
       )}
       {corValida === TODAS_AS_CORES && variacoes.length > 0 && (
@@ -124,10 +133,13 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
         placeholder="Cor desejada, nome para personalizar, detalhes..." className="w-full rounded-lg border bg-white/70 p-3 text-sm" />
 
       {/* Adicionar */}
-      <button type="button" disabled={esgotado} onClick={adicionar}
-        className="mt-4 w-full rounded-xl p-4 font-semibold text-white disabled:opacity-40" style={{ background: cor }}>
-        {esgotado ? "Esgotado" : "Adicionar ao carrinho"}
-      </button>
+      {/* Botão "magnético": é puxado de leve na direção do mouse */}
+      <Magnetico className="mt-4" forca={0.12}>
+        <button type="button" disabled={esgotado} onClick={adicionar}
+          className="w-full rounded-xl p-4 font-semibold text-white shadow-lg disabled:opacity-40" style={{ background: cor }}>
+          {esgotado ? "Esgotado" : "🛒 Adicionar ao carrinho"}
+        </button>
+      </Magnetico>
     </div>
   );
 }

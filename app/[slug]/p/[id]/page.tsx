@@ -81,7 +81,7 @@ async function ConteudoDoProduto({ params }: Props) {
             <div className="mt-4 flex items-start justify-between gap-3 md:mt-0">
               <div>
                 {produto.selo && (
-                  <span className="mb-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: cor }}>
+                  <span className="brilho-texto mb-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: cor }}>
                     {produto.selo}
                   </span>
                 )}

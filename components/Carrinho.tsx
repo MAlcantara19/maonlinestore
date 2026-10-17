@@ -13,6 +13,8 @@ import { formatarPreco } from "@/lib/formato";
 import { montarMensagem } from "@/lib/mensagem";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import type { Loja } from "@/lib/tipos";
+import Magnetico from "@/components/Magnetico";
+import { IconeTelefone } from "@/components/Icones";
 
 type Cupom = { codigo: string; tipo: "porcentagem" | "valor"; valor: number; minimo: number | null };
 
@@ -26,6 +28,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const [cupom, setCupom] = useState<Cupom | null>(null);
   const [avisoCupom, setAvisoCupom] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [aviao, setAviao] = useState(false); // ✈️ animação do envio
 
   // Muda a quantidade de um item; se chegar a zero, remove.
   function mudarQuantidade(indice: number, delta: number) {
@@ -55,6 +58,9 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
   async function enviar(tipo: "pedido" | "orcamento") {
     setEnviando(true);
+    setAviao(true); // ✈️ o pedido "voa"
+    // Abre a aba JÁ no clique (se esperar o banco, alguns celulares bloqueiam a janela nova)
+    const janela = window.open("", "_blank");
     // 1) Salva o pedido e pega o código (se falhar, envia mesmo assim, sem código)
     let codigo: string | null = null;
     try {
@@ -72,8 +78,14 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       total, temSobConsulta, data, urgente, linkAcompanhar: codigo ? `${window.location.origin}/pedido/${codigo}` : null,
     });
     const numero = (loja.whatsapp ?? "").replace(/\D/g, "");
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, "_blank");
-    setEnviando(false);
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+    // Espera o aviãozinho terminar e abre o WhatsApp na aba já aberta (ou nesta mesma)
+    setTimeout(() => {
+      if (janela) janela.location.href = url;
+      else window.location.href = url;
+      setAviao(false);
+      setEnviando(false);
+    }, 700);
   }
 
   if (itens.length === 0) {
@@ -158,11 +170,21 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         <button onClick={() => enviar("orcamento")} disabled={enviando} className="rounded-xl border-2 p-4 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
           📝 Pedir orçamento
         </button>
-        <button onClick={() => enviar("pedido")} disabled={enviando} className="rounded-xl bg-[#1FA855] p-4 font-semibold text-white disabled:opacity-50">
-          ✅ Finalizar pedido
-        </button>
+        <Magnetico forca={0.12}>
+          <button onClick={() => enviar("pedido")} disabled={enviando}
+            className="botao-vivo pulsar inline-flex w-full items-center justify-center gap-2 rounded-xl p-4 font-semibold text-white disabled:opacity-50">
+            <span className="icone-tremer"><IconeTelefone /></span> Finalizar pedido
+          </button>
+        </Magnetico>
       </div>
       <p className="mt-2 text-center text-xs opacity-60">Os dois abrem o WhatsApp da loja com tudo já escrito.</p>
+
+      {/* ✈️ Aviãozinho de papel atravessando a tela no envio */}
+      {aviao && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center">
+          <span className="aviao text-6xl drop-shadow-lg">✈️</span>
+        </div>
+      )}
       <button onClick={() => salvarCarrinho(loja.slug, [])} className="mt-3 w-full text-sm underline opacity-70">
         Esvaziar carrinho
       </button>

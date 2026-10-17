@@ -5,6 +5,7 @@
 // quando ROLA PARA BAIXO (quer ver os produtos).
 // No celular traz o botão "☰" e a linha de atalhos.
 // =====================================================================
+import BotaoTema from "@/components/BotaoTema";
 import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -34,8 +35,9 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
   const insta = usuarioInstagram(loja.instagram);
 
   return (
-    <div className="fixed inset-x-0 top-0 z-30 text-white shadow-lg transition-transform duration-300 ease-out"
-      style={{ background: cor, transform: visivel ? "translateY(0)" : "translateY(-110%)", paddingTop: "env(safe-area-inset-top)" }}
+    // Efeito "vidro fosco": cor da loja semi-transparente + desfoque do que passa por trás
+    <div className="fixed inset-x-0 top-0 z-30 text-white shadow-lg backdrop-blur-md transition-transform duration-300 ease-out"
+      style={{ background: `${cor}cc`, transform: visivel ? "translateY(0)" : "translateY(-110%)", paddingTop: "env(safe-area-inset-top)" }}
       aria-hidden={!visivel}>
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2">
         {menu.length > 0 && (
@@ -52,6 +54,7 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
           <a href={`https://instagram.com/${insta}`} target="_blank" rel="noopener noreferrer" aria-label={`Instagram @${insta}`}
             className="clicavel rounded-full bg-white/15 p-2"><IconeInstagram /></a>
         )}
+        <BotaoTema className="clicavel rounded-full bg-white/15 px-2.5 py-1.5 text-sm" />
         <Link href="/" className="clicavel rounded-full bg-white/15 px-3 py-1.5 text-sm">🏬 Lojas</Link>
       </div>
 

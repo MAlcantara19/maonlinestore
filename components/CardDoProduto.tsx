@@ -19,7 +19,8 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
 
   return (
     // Os cartões aparecem um depois do outro (efeito "cascata")
-    <div className="animar-entrada relative" style={{ animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
+    // @container: permite posicionar a "Espiadinha" no pé da foto · group: efeitos ao passar o mouse
+    <div className="animar-entrada group @container relative" style={{ animationDelay: `${Math.min(indice, 8) * 60}ms` }}>
       <Link href={`/${slug}/p/${produto.id}`} className="clicavel cartao group block rounded-xl border bg-white/60 p-2" style={{ borderColor: "#0001" }}>
         <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg text-xs" style={{ background: `${cor}22` }}>
           {foto ? (
@@ -36,7 +37,7 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
 
           {/* Selo (fitinha) no canto: vem da coluna "selo" do produto */}
           {produto.selo && (
-            <span className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-bold text-white shadow" style={{ background: cor }}>
+            <span className="brilho-texto absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-bold text-white shadow" style={{ background: cor }}>
               {produto.selo}
             </span>
           )}

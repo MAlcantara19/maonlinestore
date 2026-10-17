@@ -3,6 +3,7 @@
 // Banner com foto, descrição, horários, contatos (WhatsApp, Instagram,
 // site) e o MAPA, gerado sozinho a partir do endereço (sem chave de API).
 // =====================================================================
+import { IconeTelefone } from "@/components/Icones";
 import ImagemLogo from "@/components/ImagemLogo";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -67,7 +68,7 @@ async function Conteudo({ params }: Props) {
   return (
     <>
       <EstilosAnimacao />
-      {p.efeito && p.efeito !== "nenhum" && <EfeitoFestivo tipo={p.efeito} cor={cor} />}
+      {p.efeito && p.efeito !== "nenhum" && <EfeitoFestivo tipo={p.efeito} cor={cor} logo={p.logo_url} />}
 
       {/* Banner: foto grande de fundo + logo redonda no meio + nome */}
       <header className="relative overflow-hidden text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
@@ -102,7 +103,7 @@ async function Conteudo({ params }: Props) {
           {p.whatsapp && (
             <a className={`${botao} bg-[#1FA855] text-white`} target="_blank" rel="noopener noreferrer"
               href={`https://wa.me/${p.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vi a indicação no site da ${SITE.nome} 😊`)}`}>
-              💬 {telefoneBonito(p.whatsapp)}
+              <span className="icone-tremer"><IconeTelefone /></span> {telefoneBonito(p.whatsapp)}
             </a>
           )}
           {insta && (

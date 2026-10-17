@@ -17,6 +17,8 @@ import Rodape from "@/components/Rodape";
 import CartaoParceiro from "@/components/CartaoParceiro";
 import EfeitoFestivo from "@/components/EfeitoFestivo";
 import EstilosAnimacao from "@/components/EstilosAnimacao";
+import ParallaxMouse from "@/components/ParallaxMouse";
+import BotaoTema from "@/components/BotaoTema";
 
 export default function PaginaInicial() {
   return (
@@ -30,6 +32,9 @@ export default function PaginaInicial() {
       <main className="mx-auto w-full max-w-5xl px-4 py-8">
         <Suspense fallback={<p className="text-sm opacity-70">Carregando lojas...</p>}>
           <ListaDeLojas />
+        </Suspense>
+        <Suspense fallback={null}>
+          <FaixaDeMarcas />
         </Suspense>
         <Suspense fallback={null}>
           <FaixaDeParceiros />
@@ -57,7 +62,14 @@ async function Topo() {
   return (
     <header className="relative overflow-hidden text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor2})` }}>
       {c.banner_url && <img src={c.banner_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30" />}
-      <div aria-hidden className="parallax-fundo pointer-events-none absolute inset-0" style={{ backgroundImage: bolhas }} />
+      {/* Bolhas: parallax ao rolar + se mexem com o mouse / giro do celular */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="parallax-fundo absolute inset-0">
+          <ParallaxMouse forca={30} className="absolute -inset-12"><div className="absolute inset-0" style={{ backgroundImage: bolhas }} /></ParallaxMouse>
+        </div>
+      </div>
+      {/* Modo claro / escuro */}
+      <BotaoTema className="clicavel absolute right-4 top-4 z-10 rounded-full bg-white/15 px-3 py-1.5 text-lg hover:bg-white/25" />
       <div className="parallax-conteudo relative mx-auto max-w-5xl px-4 py-14 text-center">
         <h1 className="animar-entrada text-4xl font-bold drop-shadow sm:text-5xl">{c.titulo}</h1>
         {c.subtitulo && (
@@ -147,6 +159,41 @@ async function FaixaDeParceiros() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {parceiros.map((p, i) => <CartaoParceiro key={p.id} parceiro={p} indice={i} />)}
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Faixa infinita: logos/nomes das lojas e dos parceiros passando sem
+// parar (para ao passar o mouse). A lista é repetida 2x para não ter "pulo".
+// ---------------------------------------------------------------------
+async function FaixaDeMarcas() {
+  await connection();
+  const [{ data: lojas }, parceiros] = await Promise.all([
+    supabase.from("lojas").select("slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, em_breve").eq("ativa", true).order("ordem"),
+    buscarParceiros(),
+  ]);
+  const itens = [
+    ...((lojas ?? []) as Loja[]).filter((l) => !l.em_breve).map((l) => ({ chave: `l-${l.slug}`, href: `/${l.slug}`, nome: l.nome, cor: l.cor, img: l.logo_url, l })),
+    ...parceiros.map((p) => ({ chave: `p-${p.slug}`, href: `/parceiros/${p.slug}`, nome: p.nome, cor: p.cor, img: p.logo_url, l: null })),
+  ];
+  if (itens.length < 3) return null;
+  const lista = [...itens, ...itens];
+
+  return (
+    <section className="mt-12 overflow-hidden py-2 [mask-image:linear-gradient(90deg,transparent,black_10%,black_90%,transparent)]" aria-label="Lojas e parceiros">
+      <div className="faixa-infinita flex w-max gap-4">
+        {lista.map((i, n) => (
+          <Link key={`${i.chave}-${n}`} href={i.href} aria-hidden={n >= itens.length} tabIndex={n >= itens.length ? -1 : undefined}
+            className="clicavel flex shrink-0 items-center gap-2 rounded-full border bg-white/70 py-1.5 pl-1.5 pr-4 text-sm font-semibold shadow-sm"
+            style={{ borderColor: `${i.cor ?? "#999"}55`, color: i.cor ?? "#333" }}>
+            <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-white font-bold" style={{ color: i.cor ?? "#333" }}>
+              {i.img ? (i.l ? <ImagemLogo src={i.img} ajuste={i.l.logo_ajuste} zoom={i.l.logo_zoom} fundo={i.l.logo_fundo} /> : <img src={i.img} alt="" className="h-full w-full object-cover" />) : i.nome.charAt(0)}
+            </span>
+            {i.nome}
+          </Link>
+        ))}
       </div>
     </section>
   );

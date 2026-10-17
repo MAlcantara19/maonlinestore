@@ -91,7 +91,7 @@ async function ConteudoDaLoja({ params }: Props) {
   return (
     // LayoutDaLoja: banner (com busca), menu lateral e painel direito
     <LayoutDaLoja loja={loja} menu={menu}>
-      {efeito && <EfeitoFestivo tipo={efeito} cor={cor} />}
+      {efeito && <EfeitoFestivo tipo={efeito} cor={cor} logo={loja.logo_url} />}
 
       {produtos.length === 0 ? (
         <p className="mt-8 opacity-70">Nenhum produto cadastrado ainda.</p>

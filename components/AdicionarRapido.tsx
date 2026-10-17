@@ -29,6 +29,13 @@ export default function AdicionarRapido({ produto, slug, cor, foto }: { produto:
         +
       </button>
 
+      {/* "Espiadinha": sobe do pé da foto ao passar o mouse (só computador) */}
+      <button type="button" onClick={() => setAberto(true)}
+        className="absolute inset-x-2 z-10 hidden translate-y-2 items-center justify-center gap-1 rounded-b-lg py-2 text-sm font-semibold text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 md:flex"
+        style={{ background: `${cor}d9`, top: "calc(100cqw - 8px - 2.25rem)" }}>
+        👁️ Espiadinha
+      </button>
+
       {aberto && (
         // Fundo escuro: clicar nele fecha
         <div className="surgir fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={() => setAberto(false)}>

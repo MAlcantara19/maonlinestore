@@ -17,6 +17,10 @@ export const OPCOES_EFEITO: { valor: Efeito; rotulo: string }[] = [
   { valor: "doces", rotulo: "🍭 Doces" },
   { valor: "flores", rotulo: "🌸 Flores" },
   { valor: "presentes", rotulo: "🎁 Presentes" },
+  { valor: "logo", rotulo: "🖼️ Logo da loja caindo" },
+  { valor: "logo_voando", rotulo: "🖼️ Logo da loja voando pela tela" },
+  { valor: "borboletas", rotulo: "🦋 Borboletas voando" },
+  { valor: "baloes", rotulo: "🎈 Balões subindo" },
 ];
 
 export const OPCOES_FONTE = [

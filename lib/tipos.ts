@@ -7,7 +7,7 @@
 // Efeitos animados possíveis (lojas e coleções).
 export type Efeito =
   | "nenhum" | "neve" | "estrelas" | "brilhos" | "coracoes" | "confete" | "bolhas"
-  | "chocolate" | "doces" | "flores" | "presentes";
+  | "chocolate" | "doces" | "flores" | "presentes" | "logo" | "logo_voando" | "borboletas" | "baloes";
 
 // Tabela "lojas": uma linha por loja (VitraForma, Gallerie...).
 export type Loja = {

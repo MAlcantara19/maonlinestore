@@ -5,6 +5,8 @@
 //   - Com login: mostra o topo do painel (com "Sair") e o conteúdo.
 // Também descobre se a pessoa é MASTER (pode mexer em todas as lojas).
 // =====================================================================
+import BotaoTema from "@/components/BotaoTema";
+import EstilosAnimacao from "@/components/EstilosAnimacao";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
@@ -37,10 +39,12 @@ export default function AreaAdmin({ children }: { children: (info: InfoAdmin) =>
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900">
+      <EstilosAnimacao />
       <header className="bg-stone-900 text-white">
         <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3">
           <Link href="/admin" className="flex-1 font-bold">⚙️ Painel · MA Online Store</Link>
           <Link href="/admin/conta" className="hidden text-xs opacity-70 hover:underline sm:inline">👤 {info.email}{info.master ? " · master" : ""}</Link>
+          <BotaoTema className="rounded-full bg-white/15 px-2.5 py-1.5 text-sm" />
           <button type="button" onClick={() => supabaseNavegador().auth.signOut()} className="rounded-full bg-white/15 px-3 py-1.5 text-sm">
             Sair
           </button>

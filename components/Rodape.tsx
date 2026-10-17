@@ -6,6 +6,7 @@
 //   crédito do desenvolvedor com WhatsApp, e-mail e Instagram.
 // Os dados do site e do desenvolvedor ficam em lib/config.ts.
 // =====================================================================
+import { BolinhaTelefone, IconeCoracao } from "@/components/Icones";
 import Link from "next/link";
 import type { Loja } from "@/lib/tipos";
 import { DESENVOLVEDOR, SITE } from "@/lib/config";
@@ -40,7 +41,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             {loja.whatsapp && (
               <a className={link} target="_blank" rel="noopener noreferrer"
                 href={`https://wa.me/${loja.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vim pelo site da ${loja.nome} 😊`)}`}>
-                💬 WhatsApp
+                <BolinhaTelefone tamanho={18} /> WhatsApp
               </a>
             )}
             {instaLoja && (
@@ -56,7 +57,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             <Link href={`/${loja.slug}/carrinho`} className={link}>🛒 Carrinho</Link>
             <Link href="/" className={link}>🏬 Todas as lojas</Link>
             <Link href="/parceiros" className={link}>🤝 Parceiros</Link>
-            <Link href={`/${loja.slug}/sobre`} className={link}>💜 Sobre a loja</Link>
+            <Link href={`/${loja.slug}/sobre`} className={link}><IconeCoracao cor="currentColor" /> Sobre a loja</Link>
           </div>
         </div>
       )}
@@ -79,7 +80,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             </span>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
               {DESENVOLVEDOR.whatsapp && (
-                <a href={zapDev} target="_blank" rel="noopener noreferrer" className={link}>💬 {telefoneBonito(DESENVOLVEDOR.whatsapp)}</a>
+                <a href={zapDev} target="_blank" rel="noopener noreferrer" className={link}><BolinhaTelefone tamanho={16} /> {telefoneBonito(DESENVOLVEDOR.whatsapp)}</a>
               )}
               {DESENVOLVEDOR.email && (
                 <a href={`mailto:${DESENVOLVEDOR.email}`} className={link}>✉️ {DESENVOLVEDOR.email}</a>

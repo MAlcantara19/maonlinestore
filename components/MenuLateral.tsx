@@ -7,6 +7,7 @@
 //               uma gaveta deslizando da esquerda.
 // Categorias com subcategorias têm uma setinha › para expandir.
 // =====================================================================
+import { BolinhaTelefone, IconeCoracao } from "@/components/Icones";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ItemMenu } from "@/lib/menu";
@@ -59,9 +60,9 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
         <Link href={`/${slug}`} onClick={aoClicar} className={item}>🏠 Início da loja</Link>
         <button type="button" onClick={() => { aoClicar?.(); window.dispatchEvent(new Event("abrir-carrinho")); }} className={`${item} w-full text-left`}>🛒 Meu carrinho</button>
         {whatsapp && (
-          <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={item}>💬 Falar no WhatsApp</a>
+          <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={item}><BolinhaTelefone tamanho={18} /> Falar no WhatsApp</a>
         )}
-        <Link href={`/${slug}/sobre`} onClick={aoClicar} className={item}>💜 Sobre a loja</Link>
+        <Link href={`/${slug}/sobre`} onClick={aoClicar} className={item}><IconeCoracao cor={cor} /> Sobre a loja</Link>
         <Link href="/parceiros" onClick={aoClicar} className={item}>🤝 Parceiros</Link>
         <Link href="/" onClick={aoClicar} className={item}>🏬 Todas as lojas</Link>
       </div>

@@ -58,7 +58,7 @@ export default function CarrinhoFlutuante({ loja }: { loja: Loja }) {
         {total > 0 && (
           <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold shadow"
             style={{ color: cor }}>
-            {total}
+            <span key={total} className="contador">{total}</span>
           </span>
         )}
       </button>

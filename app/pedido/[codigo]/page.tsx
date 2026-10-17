@@ -4,6 +4,7 @@
 //   📥 Recebido → 🛠️ Em produção → 🎁 Pronto → ✅ Entregue
 // A loja muda o andamento no painel (aba Pedidos).
 // =====================================================================
+import { IconeTelefone } from "@/components/Icones";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -115,8 +116,8 @@ async function Conteudo({ params }: Props) {
 
         {p.loja_whatsapp ? (
           <a href={`https://wa.me/${(p.loja_whatsapp as string).replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Sobre o pedido #${p.codigo} 😊`)}`}
-            target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl bg-[#1FA855] p-3 text-center font-semibold text-white">
-            💬 Falar com a loja sobre este pedido
+            target="_blank" rel="noopener noreferrer" className="botao-vivo mt-4 block rounded-xl bg-[#1FA855] p-3 text-center font-semibold text-white">
+            <span className="icone-tremer inline-block"><IconeTelefone /></span> Falar com a loja sobre este pedido
           </a>
         ) : null}
       </main>
