@@ -20,7 +20,7 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
 
@@ -91,11 +91,12 @@ async function ConteudoDoProduto({ params }: Props) {
             </div>
             {produto.descricao && <p className="mt-2 whitespace-pre-line">{produto.descricao}</p>}
 
-            {/* Restrições/avisos do produto, se houver */}
+            {/* "Importante saber": avisos do produto (cores, prazos, cuidados) */}
             {produto.restricoes && (
-              <p className="mt-3 whitespace-pre-line rounded-lg p-3 text-sm" style={{ background: `${cor}14` }}>
-                ⚠️ {produto.restricoes}
-              </p>
+              <div className="mt-3 rounded-xl border-l-4 p-3 text-sm" style={{ borderColor: cor, background: `${cor}12` }}>
+                <b className="mb-0.5 block" style={{ color: cor }}>📌 Importante saber</b>
+                <p className="whitespace-pre-line">{produto.restricoes}</p>
+              </div>
             )}
 
             <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} />

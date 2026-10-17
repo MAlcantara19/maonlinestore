@@ -11,14 +11,15 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import AreaAdmin, { type InfoAdmin } from "@/components/admin/AreaAdmin";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
-import { OPCOES_EFEITO, OPCOES_FONTE } from "@/lib/opcoes";
+import { OPCOES_EFEITO, OPCOES_FONTE, OPCOES_UNIDADE } from "@/lib/opcoes";
 import type { Loja } from "@/lib/tipos";
 import { Bloco, Campo, Interruptor, BarraSalvar, type Mensagem } from "@/components/admin/Campos";
 import AbasLoja from "@/components/admin/AbasLoja";
 import CampoImagem from "@/components/admin/CampoImagem";
+import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -77,7 +78,10 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome da loja"><input className={input} value={loja.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <Campo rotulo="Descrição curta"><input className={input} value={loja.descricao ?? ""} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
-        <CampoImagem rotulo="Logo (fica redonda; use uma imagem quadrada)" valor={loja.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="logos" redonda />
+        <CampoImagem rotulo="Logo (fica redonda; ideal: imagem quadrada)" valor={loja.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="logos" redonda />
+        <AjusteLogo src={loja.logo_url}
+          valor={{ logo_ajuste: loja.logo_ajuste ?? "cobrir", logo_zoom: Number(loja.logo_zoom ?? 1), logo_fundo: loja.logo_fundo ?? "#ffffff" }}
+          aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
       </Bloco>
 
       <Bloco titulo="📞 Contato">
@@ -86,6 +90,9 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         </Campo>
         <Campo rotulo="Instagram (pode ser @loja, loja ou o link)">
           <input className={input} value={loja.instagram ?? ""} onChange={(e) => mudar("instagram", e.target.value || null)} placeholder="@minhaloja" />
+        </Campo>
+        <Campo rotulo="Sobre a loja (página 'Sobre nós': história, quem faz, valores...)">
+          <textarea rows={5} className={input} value={loja.sobre ?? ""} onChange={(e) => mudar("sobre", e.target.value || null)} />
         </Campo>
         <Campo rotulo="Como funciona o pedido (aparece na loja e no carrinho)">
           <textarea rows={4} className={input} value={loja.aviso_pedido ?? ""} onChange={(e) => mudar("aviso_pedido", e.target.value || null)} />
@@ -109,12 +116,20 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
               {OPCOES_FONTE.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
             </select>
           </Campo>
-          <Campo rotulo="Efeito animado da loja (o ano todo)">
+          <Campo rotulo="Efeito animado da loja (tem prioridade sobre o das coleções; Nenhum = usa o da coleção em destaque)">
             <select className={input} value={loja.efeito ?? "nenhum"} onChange={(e) => mudar("efeito", e.target.value as Loja["efeito"])}>
               {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
             </select>
           </Campo>
         </div>
+      </Bloco>
+
+      <Bloco titulo="📏 Tamanhos">
+        <Campo rotulo="Unidade padrão (digitou só o número, o sistema completa: 20 → 20 cm)">
+          <select className={input} value={loja.unidade_tamanho ?? "cm"} onChange={(e) => mudar("unidade_tamanho", e.target.value)}>
+            {OPCOES_UNIDADE.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+          </select>
+        </Campo>
       </Bloco>
 
       <Bloco titulo="👀 Visibilidade">

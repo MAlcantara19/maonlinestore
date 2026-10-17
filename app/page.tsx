@@ -5,6 +5,7 @@
 //   2. Um círculo para cada loja ATIVA ("Em breve" aparece apagadinha)
 //   3. Faixa de parceiros (quantidade configurável)
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -79,7 +80,7 @@ async function ListaDeLojas() {
   await connection(); // dados novos a cada visita
   const { data: lojas, error } = await supabase
     .from("lojas")
-    .select("id, slug, nome, descricao, cor, logo_url, em_breve")
+    .select("id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, em_breve")
     .eq("ativa", true)
     .order("ordem");
 
@@ -95,7 +96,7 @@ async function ListaDeLojas() {
           const circulo = (
             <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-[3px] bg-white text-3xl font-bold shadow-md"
               style={{ borderColor: loja.cor ?? "#999", color: loja.cor ?? "#333" }}>
-              {loja.logo_url ? <img src={loja.logo_url} alt={loja.nome} className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+              {loja.logo_url ? <ImagemLogo src={loja.logo_url} alt={loja.nome} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
             </div>
           );
           const atraso = { animationDelay: `${i * 70}ms` };

@@ -11,8 +11,11 @@ import { useEffect, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
 import { Bloco, Campo, Interruptor, BarraSalvar, estiloInput, type Mensagem } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
-import { OPCOES_EFEITO } from "@/lib/opcoes";
+import { OPCOES_EFEITO, SUGESTOES_CATEGORIA_PARCEIRO, SUGESTOES_SELO_PARCEIRO } from "@/lib/opcoes";
+import ListaSugestoes from "@/components/admin/ListaSugestoes";
 import CampoImagem from "@/components/admin/CampoImagem";
+import AjusteLogo from "@/components/admin/AjusteLogo";
+import ImagemLogo from "@/components/ImagemLogo";
 import type { Parceiro } from "@/lib/tipos";
 
 // Transforma o nome em endereço: "Judô Clube Denis" -> "judo-clube-denis"
@@ -21,7 +24,7 @@ const virarSlug = (t: string) =>
 
 const VAZIO: Parceiro = {
   id: "", slug: "", nome: "", categoria: null, descricao: null, horarios: null, endereco: null, whatsapp: null,
-  instagram: null, site: null, logo_url: null, foto_url: null, cor: "#1c1917", efeito: "nenhum", destaque: false, selo: null, ativo: true, ordem: 0,
+  instagram: null, site: null, logo_url: null, logo_ajuste: "cobrir", logo_zoom: 1, logo_fundo: "#ffffff", foto_url: null, cor: "#1c1917", efeito: "nenhum", destaque: false, selo: null, ativo: true, ordem: 0,
 };
 
 export default function PainelParceiro() {
@@ -82,7 +85,7 @@ function Formulario() {
       <div className="relative mb-6 flex h-44 items-center justify-center overflow-hidden rounded-2xl shadow" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}bb)` }}>
         {p.foto_url && <img src={p.foto_url} alt="" className="absolute inset-0 h-full w-full object-cover" />}
         {p.logo_url
-          ? <img src={p.logo_url} alt="" className="relative h-24 w-24 rounded-full border-4 border-white bg-white object-cover shadow-lg" />
+          ? <span className="relative block h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-white shadow-lg"><ImagemLogo src={p.logo_url} ajuste={p.logo_ajuste} zoom={p.logo_zoom} fundo={p.logo_fundo} /></span>
           : !p.foto_url && <span className="text-4xl font-bold text-white">{p.nome.charAt(0) || "?"}</span>}
         {p.selo && <span className="absolute right-2 top-2 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold">{p.selo}</span>}
       </div>
@@ -90,8 +93,10 @@ function Formulario() {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome"><input className={estiloInput} value={p.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Campo rotulo="Categoria (ex.: Judô, Escola, Saúde)"><input className={estiloInput} value={p.categoria ?? ""} onChange={(e) => mudar("categoria", e.target.value || null)} /></Campo>
-          <Campo rotulo="Selo (ex.: Patrocinado, 10% de desconto)"><input className={estiloInput} value={p.selo ?? ""} onChange={(e) => mudar("selo", e.target.value || null)} /></Campo>
+          <Campo rotulo="Categoria (lista ou escreva outra)"><input list="lista-categoria" className={estiloInput} value={p.categoria ?? ""} onChange={(e) => mudar("categoria", e.target.value || null)} /></Campo>
+          <Campo rotulo="Selo (lista ou escreva outro)"><input list="lista-selo-parceiro" className={estiloInput} value={p.selo ?? ""} onChange={(e) => mudar("selo", e.target.value || null)} /></Campo>
+          <ListaSugestoes id="lista-categoria" opcoes={SUGESTOES_CATEGORIA_PARCEIRO} />
+          <ListaSugestoes id="lista-selo-parceiro" opcoes={SUGESTOES_SELO_PARCEIRO} />
         </div>
         <Campo rotulo="Endereço da página (deixe vazio para criar a partir do nome)">
           <input className={estiloInput} value={p.slug} onChange={(e) => mudar("slug", virarSlug(e.target.value))} placeholder={virarSlug(p.nome) || "nome-do-parceiro"} />
@@ -112,6 +117,9 @@ function Formulario() {
       <Bloco titulo="🖼️ Imagens e aparência">
         <CampoImagem rotulo="Foto grande de fundo (fachada, local, pessoa)" valor={p.foto_url} aoMudar={(url) => mudar("foto_url", url)} pasta="parceiros" />
         <CampoImagem rotulo="Logo (fica redonda, no meio da foto)" valor={p.logo_url} aoMudar={(url) => mudar("logo_url", url)} pasta="parceiros" redonda />
+        <AjusteLogo src={p.logo_url}
+          valor={{ logo_ajuste: p.logo_ajuste ?? "cobrir", logo_zoom: Number(p.logo_zoom ?? 1), logo_fundo: p.logo_fundo ?? "#ffffff" }}
+          aoMudar={(v) => { setP({ ...p, ...v }); setMensagem(null); }} />
         <div className="grid gap-3 sm:grid-cols-3">
           <Campo rotulo="Cor"><input type="color" className="mt-1 h-11 w-full rounded-lg" value={p.cor ?? "#1c1917"} onChange={(e) => mudar("cor", e.target.value)} /></Campo>
           <Campo rotulo="Efeito animado">

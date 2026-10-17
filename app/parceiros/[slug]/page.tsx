@@ -3,6 +3,7 @@
 // Banner com foto, descrição, horários, contatos (WhatsApp, Instagram,
 // site) e o MAPA, gerado sozinho a partir do endereço (sem chave de API).
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -82,7 +83,9 @@ async function Conteudo({ params }: Props) {
           </div>
           <div className="mt-8 flex flex-col items-center">
             {p.logo_url && (
-              <img src={p.logo_url} alt="" className="animar-entrada h-28 w-28 rounded-full border-4 border-white bg-white object-cover shadow-2xl" />
+              <span className="animar-entrada block h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-white shadow-2xl">
+                <ImagemLogo src={p.logo_url} ajuste={p.logo_ajuste} zoom={p.logo_zoom} fundo={p.logo_fundo} />
+              </span>
             )}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {p.categoria && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">{p.categoria}</span>}

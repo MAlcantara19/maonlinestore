@@ -28,7 +28,7 @@ import { EsqueletoLoja } from "@/components/Esqueleto";
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, efeito";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), midias(id, tipo, url, ordem)";
 
@@ -65,7 +65,7 @@ async function ConteudoDaLoja({ params }: Props) {
 
   // 2) Categorias, produtos (com variações e mídias) e coleções, ao mesmo tempo.
   const [catRes, prodRes, colRes] = await Promise.all([
-    supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", loja.id).order("ordem"),
+    supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", loja.id).order("nome"),
     supabase.from("produtos").select(COLUNAS_PRODUTO).eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }),
     supabase.from("colecoes").select("id, nome, descricao, em_destaque, efeito, produtos_colecoes(produto_id)")
       .eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
@@ -83,10 +83,10 @@ async function ConteudoDaLoja({ params }: Props) {
   // Atalhos do menu (lateral no computador, barra + gaveta no celular)
   const menu = montarMenu(categorias, colecoes, produtos);
 
-  // Efeito animado: o da primeira coleção em destaque que tiver um (ex.: neve no Natal);
-  // se nenhuma tiver, vale o efeito da própria loja.
+  // Efeito animado: o escolhido nas Configurações da loja tem prioridade.
+  // Se a loja estiver em "Nenhum", vale o da coleção em destaque (ex.: neve no Natal).
   const efeitoColecao = colecoes.find((c) => c.em_destaque && c.efeito && c.efeito !== "nenhum")?.efeito;
-  const efeito = efeitoColecao ?? (loja.efeito !== "nenhum" ? loja.efeito : undefined);
+  const efeito = loja.efeito && loja.efeito !== "nenhum" ? loja.efeito : efeitoColecao;
 
   return (
     // LayoutDaLoja: banner (com busca), menu lateral e painel direito

@@ -1,12 +1,18 @@
 "use client";
 // =====================================================================
 // PAINEL — CATEGORIAS E COLEÇÕES (endereço: /admin/vitraforma/categorias)
-//   Categorias: principais e subcategorias (ex.: Brinquedos > Tabuleiro)
-//   Coleções: grupos de produtos (Natal, Santos...) com destaque e efeito
-// Cada linha tem o seu "Salvar" e "Excluir".
+//
+// CATEGORIAS: sempre em ORDEM ALFABÉTICA, numeradas sozinhas:
+//   1. Brinquedos      1.1 Adultos    1.2 Bebês
+//   2. Chaveiros
+//   3. Decoração ...
+// Na loja e no menu elas também aparecem em ordem alfabética.
+//
+// COLEÇÕES: ordem escolhida por vocês, com ▲ ▼ (os números se ajeitam
+// sozinhos, nunca repetem) ou o botão "Ordenar A–Z".
 // =====================================================================
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
 import AbasLoja from "@/components/admin/AbasLoja";
 import { Bloco } from "@/components/admin/Campos";
@@ -16,6 +22,7 @@ import { OPCOES_EFEITO } from "@/lib/opcoes";
 import type { Categoria, Efeito } from "@/lib/tipos";
 
 type Colecao = { id: string; nome: string; descricao: string | null; em_destaque: boolean; ativa: boolean; efeito: Efeito; ordem: number };
+const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
 
 export default function PainelCategorias() {
   return <AreaAdmin>{() => <Conteudo />}</AreaAdmin>;
@@ -28,62 +35,73 @@ function Conteudo() {
   const [colecoes, setColecoes] = useState<Colecao[]>([]);
   const [aviso, setAviso] = useState("");
 
-  async function recarregar(l: LojaResumo) {
+  const recarregar = useCallback(async (l: LojaResumo) => {
     const supabase = supabaseNavegador();
     const [cat, col] = await Promise.all([
-      supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id).order("ordem"),
-      supabase.from("colecoes").select("id, nome, descricao, em_destaque, ativa, efeito, ordem").eq("loja_id", l.id).order("ordem"),
+      supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id),
+      supabase.from("colecoes").select("id, nome, descricao, em_destaque, ativa, efeito, ordem").eq("loja_id", l.id).order("ordem").order("nome"),
     ]);
-    setCategorias((cat.data ?? []) as Categoria[]);
+    setCategorias(((cat.data ?? []) as Categoria[]).sort(porNome));
     setColecoes((col.data ?? []) as Colecao[]);
-  }
+  }, []);
 
-  useEffect(() => {
-    lojaPeloSlug(slug).then((l) => { setLoja(l); if (l) recarregar(l); });
-  }, [slug]);
-
+  useEffect(() => { lojaPeloSlug(slug).then((l) => { setLoja(l); if (l) recarregar(l); }); }, [slug, recarregar]);
   if (!loja) return <p className="opacity-60">Carregando...</p>;
+
   const cor = loja.cor ?? "#333";
   const supabase = () => supabaseNavegador();
   const avisar = (t: string) => { setAviso(t); setTimeout(() => setAviso(""), 2500); };
 
-  // ---- Ações das categorias ----
+  // ---- Categorias ----
   async function criarCategoria(nome: string, parent_id: string | null) {
     if (!nome.trim() || !loja) return;
-    const { error } = await supabase().from("categorias").insert({ loja_id: loja.id, nome: nome.trim(), parent_id, ordem: categorias.length + 1 });
+    const { error } = await supabase().from("categorias").insert({ loja_id: loja.id, nome: nome.trim(), parent_id });
     if (error) return avisar(`Erro: ${error.message}`);
-    avisar("✓ Criada!"); recarregar(loja);
+    avisar("✓ Criada! (já entrou na ordem alfabética)"); recarregar(loja);
   }
   async function salvarCategoria(c: Categoria) {
-    const { error } = await supabase().from("categorias").update({ nome: c.nome, descricao: c.descricao, ordem: c.ordem }).eq("id", c.id);
+    const { error } = await supabase().from("categorias").update({ nome: c.nome.trim(), descricao: c.descricao }).eq("id", c.id);
     avisar(error ? `Erro: ${error.message}` : "✓ Salva!");
+    if (!error && loja) recarregar(loja); // reordena se o nome mudou
   }
   async function excluirCategoria(c: Categoria) {
     if (!loja || !confirm(`Excluir "${c.nome}"? As subcategorias dela também somem. Os produtos ficam "sem categoria".`)) return;
     await supabase().from("categorias").delete().eq("id", c.id);
     recarregar(loja);
   }
+  const mudarCat = (id: string, campo: keyof Categoria, valor: string | null) =>
+    setCategorias(categorias.map((c) => (c.id === id ? { ...c, [campo]: valor } : c)));
 
-  // ---- Ações das coleções ----
+  // ---- Coleções ----
+  // Grava a ordem 1, 2, 3... de toda a lista (nunca fica número repetido)
+  async function gravarOrdem(lista: Colecao[]) {
+    const numerada = lista.map((c, i) => ({ ...c, ordem: i + 1 }));
+    setColecoes(numerada);
+    await Promise.all(numerada.map((c) => supabase().from("colecoes").update({ ordem: c.ordem }).eq("id", c.id)));
+  }
+  const mover = (i: number, direcao: -1 | 1) => {
+    const j = i + direcao;
+    if (j < 0 || j >= colecoes.length) return;
+    const nova = [...colecoes];
+    [nova[i], nova[j]] = [nova[j], nova[i]];
+    gravarOrdem(nova);
+  };
   async function criarColecao(nome: string) {
     if (!nome.trim() || !loja) return;
     const { error } = await supabase().from("colecoes").insert({ loja_id: loja.id, nome: nome.trim(), ordem: colecoes.length + 1 });
     if (error) return avisar(`Erro: ${error.message}`);
-    avisar("✓ Criada!"); recarregar(loja);
+    avisar("✓ Criada! (entrou no fim da lista)"); recarregar(loja);
   }
   async function salvarColecao(c: Colecao) {
-    const { id, ...campos } = c;
+    const { id, ordem: _o, ...campos } = c;
     const { error } = await supabase().from("colecoes").update(campos).eq("id", id);
     avisar(error ? `Erro: ${error.message}` : "✓ Salva!");
   }
   async function excluirColecao(c: Colecao) {
     if (!loja || !confirm(`Excluir a coleção "${c.nome}"? Os produtos continuam na loja.`)) return;
     await supabase().from("colecoes").delete().eq("id", c.id);
-    recarregar(loja);
+    gravarOrdem(colecoes.filter((x) => x.id !== c.id));
   }
-
-  const mudarCat = (id: string, campo: keyof Categoria, valor: string | number | null) =>
-    setCategorias(categorias.map((c) => (c.id === id ? { ...c, [campo]: valor } : c)));
   const mudarCol = <K extends keyof Colecao>(id: string, campo: K, valor: Colecao[K]) =>
     setColecoes(colecoes.map((c) => (c.id === id ? { ...c, [campo]: valor } : c)));
 
@@ -91,12 +109,12 @@ function Conteudo() {
   const celula = "rounded-lg border bg-white px-2 py-1.5 text-sm";
   const botao = "rounded-lg border px-3 py-1.5 text-sm";
 
-  // Linha de uma categoria ou subcategoria
-  const linhaCategoria = (c: Categoria, sub = false) => (
+  // Uma linha de categoria/subcategoria, com o número automático (1, 1.1...)
+  const linhaCategoria = (c: Categoria, numero: string, sub = false) => (
     <div key={c.id} className={`flex flex-wrap items-center gap-2 ${sub ? "ml-6 border-l-2 pl-3" : ""}`} style={sub ? { borderColor: cor } : {}}>
+      <span className="w-10 shrink-0 text-right font-mono text-sm font-bold" style={{ color: cor }}>{numero}</span>
       <input className={`${celula} min-w-0 flex-1 font-semibold`} value={c.nome} onChange={(e) => mudarCat(c.id, "nome", e.target.value)} />
       <input className={`${celula} min-w-0 flex-[2]`} placeholder="Descrição (opcional)" value={c.descricao ?? ""} onChange={(e) => mudarCat(c.id, "descricao", e.target.value || null)} />
-      <input className={`${celula} w-16`} type="number" title="Ordem" value={c.ordem} onChange={(e) => mudarCat(c.id, "ordem", Number(e.target.value) || 0)} />
       <button type="button" className={botao} onClick={() => salvarCategoria(c)}>Salvar</button>
       <button type="button" className={`${botao} text-red-600`} onClick={() => excluirCategoria(c)}>🗑️</button>
     </div>
@@ -107,11 +125,11 @@ function Conteudo() {
       <AbasLoja slug={slug} nome={loja.nome} cor={cor} />
       {aviso && <p className="fixed inset-x-0 top-4 z-50 mx-auto w-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg">{aviso}</p>}
 
-      <Bloco titulo="🗂️ Categorias e subcategorias">
-        {principais.map((c) => (
+      <Bloco titulo="🗂️ Categorias e subcategorias (ordem alfabética automática)">
+        {principais.map((c, i) => (
           <div key={c.id} className="space-y-2 rounded-xl bg-stone-50 p-2">
-            {linhaCategoria(c)}
-            {categorias.filter((s) => s.parent_id === c.id).map((s) => linhaCategoria(s, true))}
+            {linhaCategoria(c, `${i + 1}.`)}
+            {categorias.filter((s) => s.parent_id === c.id).map((s, j) => linhaCategoria(s, `${i + 1}.${j + 1}`, true))}
             <NovoItem placeholder={`Nova subcategoria em ${c.nome}`} aoCriar={(n) => criarCategoria(n, c.id)} recuo />
           </div>
         ))}
@@ -119,20 +137,27 @@ function Conteudo() {
       </Bloco>
 
       <Bloco titulo="✨ Coleções">
-        <p className="text-xs opacity-60">"Em destaque" aparece no topo da loja. "Efeito" anima a loja enquanto a coleção estiver em destaque.</p>
-        {colecoes.map((c) => (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs opacity-60">Use ▲ ▼ para mudar a ordem. "Em destaque" aparece no topo da loja.</p>
+          <button type="button" className={botao} onClick={() => gravarOrdem([...colecoes].sort(porNome))}>🔤 Ordenar A–Z</button>
+        </div>
+        {colecoes.map((c, i) => (
           <div key={c.id} className="space-y-2 rounded-xl bg-stone-50 p-3">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-8 shrink-0 text-center font-mono text-sm font-bold" style={{ color: cor }}>{i + 1}.</span>
+              <div className="flex flex-col">
+                <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="px-1 text-xs disabled:opacity-20" aria-label="Subir">▲</button>
+                <button type="button" onClick={() => mover(i, 1)} disabled={i === colecoes.length - 1} className="px-1 text-xs disabled:opacity-20" aria-label="Descer">▼</button>
+              </div>
               <input className={`${celula} min-w-0 flex-1 font-semibold`} value={c.nome} onChange={(e) => mudarCol(c.id, "nome", e.target.value)} />
               <input className={`${celula} min-w-0 flex-[2]`} placeholder="Descrição" value={c.descricao ?? ""} onChange={(e) => mudarCol(c.id, "descricao", e.target.value || null)} />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 pl-10">
               <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={c.em_destaque} onChange={(e) => mudarCol(c.id, "em_destaque", e.target.checked)} /> Em destaque</label>
               <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={c.ativa} onChange={(e) => mudarCol(c.id, "ativa", e.target.checked)} /> Visível</label>
               <select className={celula} value={c.efeito} onChange={(e) => mudarCol(c.id, "efeito", e.target.value as Efeito)}>
                 {OPCOES_EFEITO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
               </select>
-              <input className={`${celula} w-16`} type="number" title="Ordem" value={c.ordem} onChange={(e) => mudarCol(c.id, "ordem", Number(e.target.value) || 0)} />
               <span className="flex-1" />
               <button type="button" className={botao} onClick={() => salvarColecao(c)}>Salvar</button>
               <button type="button" className={`${botao} text-red-600`} onClick={() => excluirColecao(c)}>🗑️</button>

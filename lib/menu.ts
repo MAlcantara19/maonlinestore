@@ -48,7 +48,7 @@ export function montarMenu(categorias: Categoria[], colecoes: Colecao[], produto
 // Versão que busca sozinha no banco (usada na página do produto e no carrinho).
 export async function buscarMenuDaLoja(lojaId: string): Promise<ItemMenu[]> {
   const [cat, col, prod] = await Promise.all([
-    supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", lojaId).order("ordem"),
+    supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", lojaId).order("nome"),
     supabase.from("colecoes").select("id, nome, descricao, em_destaque, produtos_colecoes(produto_id)")
       .eq("loja_id", lojaId).eq("ativa", true).order("ordem"),
     supabase.from("produtos").select("id, categoria_id, destaque").eq("loja_id", lojaId).eq("ativo", true),

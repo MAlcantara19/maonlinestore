@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Parceiro } from "@/lib/tipos";
 
 export const COLUNAS_PARCEIRO =
-  "id, slug, nome, categoria, descricao, horarios, endereco, whatsapp, instagram, site, logo_url, foto_url, cor, efeito, destaque, selo";
+  "id, slug, nome, categoria, descricao, horarios, endereco, whatsapp, instagram, site, logo_url, logo_ajuste, logo_zoom, logo_fundo, foto_url, cor, efeito, destaque, selo";
 
 // limite: quantos trazer (0 ou vazio = todos)
 export async function buscarParceiros(limite?: number): Promise<Parceiro[]> {

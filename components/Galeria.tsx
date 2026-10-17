@@ -23,7 +23,7 @@ export default function Galeria({ midias, nome, cor }: { midias: Midia[]; nome: 
 
   if (midias.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-xl text-sm opacity-80" style={{ background: `${cor}22` }}>
+      <div className="flex aspect-[4/5] w-full items-center justify-center rounded-xl text-sm opacity-80 md:aspect-square" style={{ background: `${cor}22` }}>
         sem foto
       </div>
     );
@@ -33,12 +33,14 @@ export default function Galeria({ midias, nome, cor }: { midias: Midia[]; nome: 
     <div>
       <div ref={trilho} onScroll={aoRolar} className="flex snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none]">
         {midias.map((m) => (
-          <div key={m.id} className="aspect-square w-full shrink-0 snap-center overflow-hidden">
+          <div key={m.id} className="relative flex aspect-[4/5] w-full shrink-0 snap-center items-center justify-center overflow-hidden bg-black/5 md:aspect-square">
+            {/* Fundo desfocado (preenche as sobras sem cortar a foto) */}
+            {m.tipo === "foto" && <img src={m.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl" />}
             {m.tipo === "video" ? (
               // Vídeo curto em loop, sem som, rodando sozinho (ex.: produto girando 360)
-              <video src={m.url} autoPlay muted loop playsInline className="h-full w-full object-cover" />
+              <video src={m.url} autoPlay muted loop playsInline className="relative h-full w-full object-contain" />
             ) : (
-              <img src={m.url} alt={nome} className="h-full w-full object-cover transition-transform duration-500 hover:scale-110" />
+              <img src={m.url} alt={nome} className="relative h-full w-full object-contain transition-transform duration-500 hover:scale-105" />
             )}
           </div>
         ))}

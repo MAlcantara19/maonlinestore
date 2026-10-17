@@ -17,6 +17,9 @@ export type Loja = {
   descricao: string | null; // frase curta mostrada embaixo do círculo
   cor: string | null; // cor da marca, ex.: #3B1260
   logo_url: string | null; // endereço da logo (vazio = mostra a inicial)
+  logo_ajuste?: string; // "cobrir" ou "inteira"
+  logo_zoom?: number; // 1 = normal
+  logo_fundo?: string; // cor atrás da logo
   whatsapp?: string | null; // número que recebe os pedidos desta loja
   aviso_pedido?: string | null; // texto "Como funciona o pedido"
   cor_secundaria?: string | null; // cor de apoio, mais clara (linha de atalhos, avisos)
@@ -25,6 +28,8 @@ export type Loja = {
   instagram?: string | null; // usuário do Instagram, sem @ (aparece no rodapé)
   efeito?: Efeito; // efeito da loja o ano todo
   em_breve?: boolean; // true = aparece "Em breve" na página inicial
+  sobre?: string | null; // texto da página "Sobre nós" da loja
+  unidade_tamanho?: string; // unidade padrão dos tamanhos (cm, ml, g...)
   ativa?: boolean; // false = a loja some do site
 };
 
@@ -99,6 +104,9 @@ export type Parceiro = {
   instagram: string | null;
   site: string | null;
   logo_url: string | null;
+  logo_ajuste?: string;
+  logo_zoom?: number;
+  logo_fundo?: string;
   foto_url: string | null; // foto grande (fachada, local, pessoa)
   cor: string | null;
   efeito?: Efeito;

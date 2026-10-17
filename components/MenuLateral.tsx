@@ -61,6 +61,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
         {whatsapp && (
           <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={item}>💬 Falar no WhatsApp</a>
         )}
+        <Link href={`/${slug}/sobre`} onClick={aoClicar} className={item}>💜 Sobre a loja</Link>
         <Link href="/parceiros" onClick={aoClicar} className={item}>🤝 Parceiros</Link>
         <Link href="/" onClick={aoClicar} className={item}>🏬 Todas as lojas</Link>
       </div>

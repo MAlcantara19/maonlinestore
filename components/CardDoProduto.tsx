@@ -24,7 +24,12 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
         <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg text-xs" style={{ background: `${cor}22` }}>
           {foto ? (
             // group-hover:scale-110 = a foto cresce quando o mouse passa no cartão
-            <ImagemSuave src={foto.url} alt={produto.nome} className="h-full w-full object-cover group-hover:scale-110" />
+            <>
+              {/* Fundo: a mesma foto, ampliada e desfocada (preenche as sobras) */}
+              <img src={foto.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-xl" />
+              {/* Foto inteira, sem cortar, na proporção dela */}
+              <ImagemSuave src={foto.url} alt={produto.nome} className="relative h-full w-full object-contain group-hover:scale-105" />
+            </>
           ) : (
             <span className="opacity-70">sem foto</span>
           )}

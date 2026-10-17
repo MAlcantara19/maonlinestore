@@ -17,7 +17,7 @@ function Lista() {
   const [parceiros, setParceiros] = useState<Parceiro[] | null>(null);
 
   useEffect(() => {
-    supabaseNavegador().from("parceiros").select("id, slug, nome, categoria, logo_url, foto_url, cor, ativo, destaque, selo")
+    supabaseNavegador().from("parceiros").select("id, slug, nome, categoria, logo_url, logo_ajuste, logo_zoom, logo_fundo, foto_url, cor, ativo, destaque, selo")
       .order("destaque", { ascending: false }).order("ordem")
       .then(({ data }: { data: Parceiro[] | null }) => setParceiros(data ?? []));
   }, []);

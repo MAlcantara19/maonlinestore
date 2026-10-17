@@ -5,6 +5,7 @@
 //   - Sem foto: fundo na cor do parceiro, com a logo ou a inicial.
 //   - Selo (ex.: "Patrocinado") e borda dourada quando está em destaque.
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import type { Parceiro } from "@/lib/tipos";
 
@@ -25,8 +26,9 @@ export default function CartaoParceiro({ parceiro, indice = 0 }: { parceiro: Par
           )}
           {/* Logo no meio (ou a inicial, se não houver foto nem logo) */}
           {parceiro.logo_url ? (
-            <img src={parceiro.logo_url} alt={parceiro.nome}
-              className="relative h-20 w-20 rounded-full border-4 border-white bg-white object-cover shadow-lg transition-transform duration-500 group-hover:scale-105" />
+            <span className="relative block h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-white shadow-lg transition-transform duration-500 group-hover:scale-105">
+              <ImagemLogo src={parceiro.logo_url} alt={parceiro.nome} ajuste={parceiro.logo_ajuste} zoom={parceiro.logo_zoom} fundo={parceiro.logo_fundo} />
+            </span>
           ) : (
             !parceiro.foto_url && <span className="text-4xl font-bold text-white">{parceiro.nome.charAt(0)}</span>
           )}

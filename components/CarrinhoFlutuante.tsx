@@ -7,6 +7,7 @@
 //   - Ao clicar (ou depois do voo), o carrinho desliza da direita,
 //     sem sair da página.
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import { useEffect, useRef, useState } from "react";
 import { usarCarrinho } from "@/lib/carrinho";
 import type { Loja } from "@/lib/tipos";
@@ -74,7 +75,7 @@ export default function CarrinhoFlutuante({ loja }: { loja: Loja }) {
           {/* Logo + nome: deixa claro de qual loja é o carrinho */}
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-white font-bold" style={{ borderColor: cor, color: cor }}>
-              {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+              {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
             </span>
             <div className="leading-tight">
               <b className="block text-lg" style={{ color: cor }}>🛒 Seu carrinho</b>

@@ -17,6 +17,8 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, paraNumero, type LojaResumo } from "@/lib/admin";
 import { enviarArquivo } from "@/lib/upload";
 import type { Categoria, Disponibilidade } from "@/lib/tipos";
+import ListaSugestoes from "@/components/admin/ListaSugestoes";
+import { SUGESTOES_COR, SUGESTOES_PRAZO, SUGESTOES_SELO, SUGESTOES_TAMANHO, prazoComDias, tamanhoComUnidade } from "@/lib/opcoes";
 
 // Formatos usados só nesta tela (preço como texto para digitar "25,90")
 type Dados = {
@@ -50,8 +52,10 @@ function Formulario() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [colecoes, setColecoes] = useState<ColecaoSimples[]>([]);
   const [marcadas, setMarcadas] = useState<string[]>([]); // coleções do produto
+  const [usados, setUsados] = useState<{ tamanhos: string[]; cores: string[] }>({ tamanhos: [], cores: [] }); // já usados na loja
   const originais = useRef<{ variacoes: string[]; midias: string[] }>({ variacoes: [], midias: [] });
   const [carregado, setCarregado] = useState(false);
+  const [autoria, setAutoria] = useState<{ criado_por?: string; criado_em?: string; atualizado_por?: string; atualizado_em?: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [enviando, setEnviando] = useState(0); // quantos arquivos ainda enviando
   const [mensagem, setMensagem] = useState<Mensagem>(null);
@@ -65,11 +69,19 @@ function Formulario() {
       setLoja(l);
       if (!l) return;
       const [cat, col] = await Promise.all([
-        supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id).order("ordem"),
+        supabase.from("categorias").select("id, nome, descricao, parent_id, ordem").eq("loja_id", l.id).order("nome"),
         supabase.from("colecoes").select("id, nome").eq("loja_id", l.id).order("ordem"),
       ]);
       setCategorias((cat.data ?? []) as Categoria[]);
       setColecoes((col.data ?? []) as ColecaoSimples[]);
+
+      // Cores e tamanhos da loja (aba "Cores e tamanhos") viram sugestões na lista
+      const { data: ops } = await supabase.from("opcoes_loja").select("tipo, valor").eq("loja_id", l.id).order("valor");
+      const lista = (ops ?? []) as { tipo: string; valor: string }[];
+      setUsados({
+        tamanhos: lista.filter((o) => o.tipo === "tamanho").map((o) => o.valor),
+        cores: lista.filter((o) => o.tipo === "cor").map((o) => o.valor),
+      });
 
       if (!novo) {
         const { data: p } = await supabase.from("produtos")
@@ -88,6 +100,7 @@ function Formulario() {
           const ms = [...p.midias].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setMidias(ms.map((m: { id: string; tipo: "foto" | "video"; url: string }) => ({ id: m.id, tipo: m.tipo, url: m.url })));
           setMarcadas(p.produtos_colecoes.map((pc: { colecao_id: string }) => pc.colecao_id));
+          setAutoria({ criado_por: p.criado_por, criado_em: p.criado_em, atualizado_por: p.atualizado_por, atualizado_em: p.atualizado_em });
           originais.current = { variacoes: vs.map((v: { id: string }) => v.id), midias: ms.map((m: { id: string }) => m.id) };
         }
       }
@@ -139,7 +152,7 @@ function Formulario() {
       // 1) O produto
       const linha = {
         loja_id: loja.id, nome: dados.nome.trim(), descricao: dados.descricao || null, restricoes: dados.restricoes || null,
-        preco: paraNumero(dados.preco), disponibilidade: dados.disponibilidade, prazo: dados.prazo || null, selo: dados.selo || null,
+        preco: paraNumero(dados.preco), disponibilidade: dados.disponibilidade, prazo: prazoComDias(dados.prazo), selo: dados.selo.trim() || null,
         destaque: dados.destaque, ativo: dados.ativo, categoria_id: dados.categoria_id,
       };
       const r = novo
@@ -153,8 +166,8 @@ function Formulario() {
       const vApagar = originais.current.variacoes.filter((x) => !vMantidas.includes(x));
       if (vApagar.length) { const e = await supabase.from("variacoes").delete().in("id", vApagar); if (e.error) throw e.error; }
       const paraBanco = (v: LinhaVariacao, ordem: number) => ({
-        produto_id: produtoId, tamanho: v.tamanho.trim() || null, cor: v.cor.trim() || null, preco: paraNumero(v.preco),
-        disponibilidade: v.disponibilidade || null, prazo: v.prazo.trim() || null, ativa: v.ativa, ordem,
+        produto_id: produtoId, tamanho: tamanhoComUnidade(v.tamanho, loja.unidade_tamanho) || null, cor: v.cor.trim() || null, preco: paraNumero(v.preco),
+        disponibilidade: v.disponibilidade || null, prazo: prazoComDias(v.prazo), ativa: v.ativa, ordem,
       });
       const vExistentes = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => v.id).map(({ v, i }) => ({ id: v.id, ...paraBanco(v, i) }));
       const vNovas = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => !v.id).map(({ v, i }) => paraBanco(v, i));
@@ -169,6 +182,13 @@ function Formulario() {
       const mNovas = midias.map((m, i) => ({ m, i })).filter(({ m }) => !m.id).map(({ m, i }) => ({ produto_id: produtoId, tipo: m.tipo, url: m.url, ordem: i }));
       if (mExistentes.length) { const e = await supabase.from("midias").upsert(mExistentes); if (e.error) throw e.error; }
       if (mNovas.length) { const e = await supabase.from("midias").insert(mNovas); if (e.error) throw e.error; }
+
+      // 3b) Cor/tamanho novos digitados entram na lista de opções da loja
+      const novasOpcoes = [
+        ...variacoes.map((v) => v.cor.trim()).filter(Boolean).map((valor) => ({ loja_id: loja.id, tipo: "cor", valor })),
+        ...variacoes.map((v) => tamanhoComUnidade(v.tamanho, loja.unidade_tamanho)).filter(Boolean).map((valor) => ({ loja_id: loja.id, tipo: "tamanho", valor })),
+      ];
+      if (novasOpcoes.length) await supabase.from("opcoes_loja").upsert(novasOpcoes, { onConflict: "loja_id,tipo,valor", ignoreDuplicates: true });
 
       // 4) Coleções: apaga as ligações e cria de novo com as marcadas
       const e1 = await supabase.from("produtos_colecoes").delete().eq("produto_id", produtoId);
@@ -187,9 +207,27 @@ function Formulario() {
     }
   }
 
+  // DUPLICAR: cria uma cópia (oculta) com fotos, variações e coleções, e abre ela
+  async function duplicar() {
+    if (novo || !loja) return;
+    if (!confirm(`Criar uma cópia de "${dados.nome}"? (Salve antes, se mudou algo.)`)) return;
+    const supabase = supabaseNavegador();
+    const { data: p } = await supabase.from("produtos").select("*, variacoes(*), midias(*), produtos_colecoes(colecao_id)").eq("id", id).single();
+    if (!p) return;
+    const { id: _id, criado_em: _c, variacoes: vs, midias: ms, produtos_colecoes: pcs, ...resto } = p;
+    const { data: copia, error } = await supabase.from("produtos").insert({ ...resto, nome: `${p.nome} (cópia)`, ativo: false, excluido_em: null }).select("id").single();
+    if (error || !copia) return setMensagem({ tipo: "erro", texto: `Não deu para duplicar: ${error?.message}` });
+    const semId = <T extends Record<string, unknown>>(lista: T[]) => lista.map(({ id: _i, ...x }) => ({ ...x, produto_id: copia.id }));
+    if (vs.length) await supabase.from("variacoes").insert(semId(vs));
+    if (ms.length) await supabase.from("midias").insert(semId(ms));
+    if (pcs.length) await supabase.from("produtos_colecoes").insert(pcs.map((x: { colecao_id: string }) => ({ produto_id: copia.id, colecao_id: x.colecao_id })));
+    router.push(`/admin/${slug}/produtos/${copia.id}`);
+  }
+
+  // Excluir = mandar para a LIXEIRA (fica 15 dias e dá para restaurar)
   async function excluir() {
-    if (novo || !confirm(`Excluir "${dados.nome}" para sempre? (Para só esconder, desligue "Visível na loja".)`)) return;
-    const { error } = await supabaseNavegador().from("produtos").delete().eq("id", id);
+    if (novo || !confirm(`Mandar "${dados.nome}" para a lixeira? Ele some da loja e fica 15 dias na Lixeira, onde dá para restaurar.`)) return;
+    const { error } = await supabaseNavegador().from("produtos").update({ excluido_em: new Date().toISOString() }).eq("id", id);
     if (error) setMensagem({ tipo: "erro", texto: error.message });
     else router.replace(`/admin/${slug}/produtos`);
   }
@@ -201,7 +239,15 @@ function Formulario() {
     <>
       <AbasLoja slug={slug} nome={loja.nome} cor={cor} />
       <Link href={`/admin/${slug}/produtos`} className="text-sm opacity-60">← Produtos</Link>
-      <h2 className="mt-1 mb-4 text-xl font-bold">{novo ? "Novo produto" : dados.nome}</h2>
+      <h2 className="mt-1 text-xl font-bold">{novo ? "Novo produto" : dados.nome}</h2>
+      {/* Quem criou e quem mexeu por último (preenchido pelo banco) */}
+      {autoria && (
+        <p className="mb-4 text-xs opacity-60">
+          🕓 Criado{autoria.criado_por ? ` por ${autoria.criado_por}` : ""}{autoria.criado_em ? ` em ${new Date(autoria.criado_em).toLocaleString("pt-BR")}` : ""}
+          {autoria.atualizado_em ? ` · última alteração${autoria.atualizado_por ? ` por ${autoria.atualizado_por}` : ""} em ${new Date(autoria.atualizado_em).toLocaleString("pt-BR")}` : ""}
+        </p>
+      )}
+      {!autoria && <div className="mb-4" />}
 
       <Bloco titulo="📷 Fotos e vídeos">
         <p className="text-xs opacity-60">A primeira é a capa. Fotos são diminuídas sozinhas antes de enviar. Vídeos: curtos (até 20 MB).</p>
@@ -230,10 +276,11 @@ function Formulario() {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome"><input className={estiloInput} value={dados.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <Campo rotulo="Descrição (pode usar emojis 😊)"><textarea rows={4} className={estiloInput} value={dados.descricao} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
-        <Campo rotulo="Restrições / avisos (ex.: cores disponíveis, prazo maior para personalizados)">
+        <Campo rotulo="📌 Importante saber (aparece em destaque para o cliente; ex.: cores disponíveis, prazo maior para personalizados)">
           <textarea rows={2} className={estiloInput} value={dados.restricoes} onChange={(e) => mudar("restricoes", e.target.value)} />
         </Campo>
-        <Campo rotulo="Selo no cartão (ex.: Novo, Mais vendido, Últimas unidades)"><input className={estiloInput} value={dados.selo} onChange={(e) => mudar("selo", e.target.value)} /></Campo>
+        <Campo rotulo="Selo no cartão (escolha na lista ou escreva outro)"><input list="lista-selo" className={estiloInput} value={dados.selo} onChange={(e) => mudar("selo", e.target.value)} placeholder="Clique para ver a lista" /></Campo>
+        <ListaSugestoes id="lista-selo" opcoes={SUGESTOES_SELO} />
       </Bloco>
 
       <Bloco titulo="💰 Preço e situação">
@@ -244,7 +291,7 @@ function Formulario() {
               {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
             </select>
           </Campo>
-          <Campo rotulo="Prazo (ex.: 10 dias)"><input className={estiloInput} value={dados.prazo} onChange={(e) => mudar("prazo", e.target.value)} /></Campo>
+          <Campo rotulo="Prazo (lista ou só o número)"><input list="lista-prazo" className={estiloInput} value={dados.prazo} onChange={(e) => mudar("prazo", e.target.value)} placeholder="10 dias" /></Campo>
         </div>
         <p className="text-xs opacity-60">Se o produto tiver variações com preço, o cartão mostra "a partir de" o menor preço delas.</p>
       </Bloco>
@@ -281,18 +328,18 @@ function Formulario() {
       <Bloco titulo="📏 Variações (tamanho + cor)">
         <p className="text-xs opacity-60">
           Cada linha é uma opção que o cliente escolhe. Cor vazia = "todas as cores" (cliente escreve na observação).
-          Situação vazia = vale a do produto.
+          Situação vazia = vale a do produto. Cor ou tamanho novo que você digitar entra sozinho na lista da loja.
         </p>
         {variacoes.map((v, i) => (
           <div key={v.id ?? `nova-${i}`} className={`grid grid-cols-2 gap-2 rounded-xl border p-2 sm:grid-cols-6 ${v.ativa ? "" : "opacity-50"}`}>
-            <input className={celula} placeholder="Tamanho (15 cm)" value={v.tamanho} onChange={(e) => mudarVariacao(i, "tamanho", e.target.value)} />
-            <input className={celula} placeholder="Cor (azul)" value={v.cor} onChange={(e) => mudarVariacao(i, "cor", e.target.value)} />
+            <input list="lista-tamanho" className={celula} placeholder="Tamanho (15 cm)" value={v.tamanho} onChange={(e) => mudarVariacao(i, "tamanho", e.target.value)} />
+            <input list="lista-cor" className={celula} placeholder="Cor (azul)" value={v.cor} onChange={(e) => mudarVariacao(i, "cor", e.target.value)} />
             <input className={celula} placeholder="Preço" inputMode="decimal" value={v.preco} onChange={(e) => mudarVariacao(i, "preco", e.target.value)} />
             <select className={celula} value={v.disponibilidade} onChange={(e) => mudarVariacao(i, "disponibilidade", e.target.value)}>
               <option value="">(do produto)</option>
               {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
             </select>
-            <input className={celula} placeholder="Prazo" value={v.prazo} onChange={(e) => mudarVariacao(i, "prazo", e.target.value)} />
+            <input list="lista-prazo" className={celula} placeholder="Prazo" value={v.prazo} onChange={(e) => mudarVariacao(i, "prazo", e.target.value)} />
             <div className="flex items-center justify-end gap-1">
               <button type="button" onClick={() => mudarVariacao(i, "ativa", !v.ativa)} className="rounded-lg border px-2 py-1 text-xs">{v.ativa ? "Ativa" : "Oculta"}</button>
               <button type="button" onClick={() => setVariacoes(variacoes.filter((_, j) => j !== i))} className="rounded-lg px-2 py-1 text-red-600" aria-label="Remover variação">🗑️</button>
@@ -300,6 +347,10 @@ function Formulario() {
           </div>
         ))}
         <button type="button" onClick={novaVariacao} className="rounded-full border px-4 py-2 text-sm">+ Adicionar variação</button>
+        {/* Listas de sugestões (tamanhos e cores já usados na loja + os mais comuns) */}
+        <ListaSugestoes id="lista-tamanho" opcoes={[...usados.tamanhos, ...SUGESTOES_TAMANHO]} />
+        <ListaSugestoes id="lista-cor" opcoes={[...usados.cores, ...SUGESTOES_COR]} />
+        <ListaSugestoes id="lista-prazo" opcoes={SUGESTOES_PRAZO} />
       </Bloco>
 
       <Bloco titulo="👀 Visibilidade">
@@ -308,7 +359,12 @@ function Formulario() {
       </Bloco>
 
       <BarraSalvar mensagem={mensagem} salvando={salvando} aoSalvar={salvar} cor={cor}
-        extra={!novo && <button type="button" onClick={excluir} className="rounded-xl border border-red-300 px-4 text-sm text-red-600">Excluir</button>} />
+        extra={!novo && (
+          <>
+            <button type="button" onClick={duplicar} className="rounded-xl border px-3 text-sm" title="Duplicar produto">📄 Duplicar</button>
+            <button type="button" onClick={excluir} className="rounded-xl border border-red-300 px-3 text-sm text-red-600">🗑️ Lixeira</button>
+          </>
+        )} />
     </>
   );
 }

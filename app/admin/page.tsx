@@ -4,6 +4,7 @@
 // Mostra as lojas que a pessoa pode administrar:
 //   master → todas · administrador de loja → só as dele.
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AreaAdmin, { type InfoAdmin } from "@/components/admin/AreaAdmin";
@@ -20,7 +21,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
   useEffect(() => {
     (async () => {
       const supabase = supabaseNavegador();
-      let consulta = supabase.from("lojas").select("id, slug, nome, cor, logo_url, descricao, ativa, em_breve").order("ordem");
+      let consulta = supabase.from("lojas").select("id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, ativa, em_breve").order("ordem");
       if (!info.master) {
         // Administrador de loja: só as lojas ligadas a ele em "loja_admins"
         const { data: minhas } = await supabase.from("loja_admins").select("loja_id").eq("user_id", info.userId);
@@ -47,6 +48,10 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
             <b className="block">🤝 Parceiros</b>
             <span className="text-xs opacity-60">Adicionar, editar, destacar e desativar parceiros</span>
           </Link>
+          <Link href="/admin/administradores" className="clicavel rounded-2xl bg-white p-4 shadow-sm sm:col-span-2">
+            <b className="block">👥 Administradores</b>
+            <span className="text-xs opacity-60">Dar acesso à sócia, à mãe... escolher as lojas de cada um, trocar senhas</span>
+          </Link>
         </div>
       )}
 
@@ -58,7 +63,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
             className="clicavel flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-white text-xl font-bold"
               style={{ borderColor: loja.cor ?? "#999", color: loja.cor ?? "#333" }}>
-              {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+              {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
             </span>
             <span className="min-w-0 flex-1">
               <b className="block truncate">{loja.nome}</b>

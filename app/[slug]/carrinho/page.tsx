@@ -3,6 +3,7 @@
 // Busca os dados da loja (nome, cor, WhatsApp, aviso do pedido) e
 // entrega para o componente Carrinho, que roda no navegador.
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -29,7 +30,7 @@ async function ConteudoDoCarrinho({ params }: Props) {
 
   const { data: loja } = await supabase
     .from("lojas")
-    .select("id, slug, nome, descricao, cor, logo_url, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram")
+    .select("id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram")
     .eq("slug", slug)
     .eq("ativa", true)
     .maybeSingle<Loja>();
@@ -42,7 +43,7 @@ async function ConteudoDoCarrinho({ params }: Props) {
       <div className="mx-auto max-w-2xl">
         <h2 className="mt-4 flex items-center gap-3 text-2xl font-bold" style={{ color: loja.cor ?? "#333" }}>
           <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 bg-white text-lg" style={{ borderColor: loja.cor ?? "#333" }}>
-            {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+            {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
           </span>
           🛒 Seu carrinho
         </h2>

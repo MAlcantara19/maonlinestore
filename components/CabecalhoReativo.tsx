@@ -5,6 +5,7 @@
 // quando ROLA PARA BAIXO (quer ver os produtos).
 // No celular traz o botão "☰" e a linha de atalhos.
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Loja } from "@/lib/tipos";
@@ -43,7 +44,7 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
         {/* Logo + nome: sempre mostram em qual loja a pessoa está */}
         <Link href={`/${loja.slug}`} className="flex min-w-0 flex-1 items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/60">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-bold shadow" style={{ color: cor }}>
-            {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+            {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
           </span>
           <span className="truncate font-bold">{loja.nome}</span>
         </Link>

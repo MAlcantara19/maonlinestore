@@ -56,6 +56,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             <Link href={`/${loja.slug}/carrinho`} className={link}>🛒 Carrinho</Link>
             <Link href="/" className={link}>🏬 Todas as lojas</Link>
             <Link href="/parceiros" className={link}>🤝 Parceiros</Link>
+            <Link href={`/${loja.slug}/sobre`} className={link}>💜 Sobre a loja</Link>
           </div>
         </div>
       )}
@@ -64,7 +65,13 @@ export default function Rodape({ loja }: { loja?: Loja }) {
           pb-24 = espaço para os botões flutuantes não taparem o texto */}
       <div className="border-t border-white/15">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 pt-5 pb-24 text-center text-xs sm:flex-row sm:items-start sm:justify-between sm:text-left">
-          <span className="opacity-85">© {SITE.ano} {SITE.nome}. Todos os direitos reservados.</span>
+          <div className="flex flex-col items-center gap-1 sm:items-start">
+            <span className="opacity-85">© {SITE.ano} {SITE.nome}. Todos os direitos reservados.</span>
+            <span className="flex gap-3 opacity-80">
+              <Link href="/privacidade" className="hover:underline">Política de Privacidade</Link>
+              <Link href="/admin" className="hover:underline">🔐 Área do lojista</Link>
+            </span>
+          </div>
 
           <div className="flex flex-col items-center gap-1.5 sm:items-end">
             <span className="opacity-85">

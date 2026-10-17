@@ -6,6 +6,7 @@
 //      - Instagram e a BUSCA de produtos
 //   2. Cabeçalho reativo: aparece ao rolar para cima.
 // =====================================================================
+import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import type { Loja } from "@/lib/tipos";
 import type { ItemMenu } from "@/lib/menu";
@@ -46,7 +47,7 @@ export default function CabecalhoDaLoja({ loja, menu }: { loja: Loja; menu: Item
             <div className="flex items-center gap-4">
               {/* Logo + nome: levam para o início da loja */}
               <Link href={`/${loja.slug}`} className="clicavel flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-2xl font-bold shadow-lg" style={{ color: cor }} aria-label={`Início da ${loja.nome}`}>
-                {loja.logo_url ? <img src={loja.logo_url} alt="" className="h-full w-full object-cover" /> : loja.nome.charAt(0)}
+                {loja.logo_url ? <ImagemLogo src={loja.logo_url} ajuste={loja.logo_ajuste} zoom={loja.logo_zoom} fundo={loja.logo_fundo} /> : loja.nome.charAt(0)}
               </Link>
               <div>
                 <Link href={`/${loja.slug}`} className="hover:underline"><h1 className="text-3xl font-bold drop-shadow-sm">{loja.nome}</h1></Link>

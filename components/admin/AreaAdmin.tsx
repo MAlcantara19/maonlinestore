@@ -40,7 +40,7 @@ export default function AreaAdmin({ children }: { children: (info: InfoAdmin) =>
       <header className="bg-stone-900 text-white">
         <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3">
           <Link href="/admin" className="flex-1 font-bold">⚙️ Painel · MA Online Store</Link>
-          <span className="hidden text-xs opacity-70 sm:inline">{info.email}{info.master ? " · master" : ""}</span>
+          <Link href="/admin/conta" className="hidden text-xs opacity-70 hover:underline sm:inline">👤 {info.email}{info.master ? " · master" : ""}</Link>
           <button type="button" onClick={() => supabaseNavegador().auth.signOut()} className="rounded-full bg-white/15 px-3 py-1.5 text-sm">
             Sair
           </button>

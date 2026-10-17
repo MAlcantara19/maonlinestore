@@ -45,7 +45,7 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
       if (!termo) return setSugestoes(null);
       const { data } = await supabaseNavegador().from("produtos")
         .select("id, nome, preco, midias(url, tipo, ordem), variacoes(preco, ativa)")
-        .eq("loja_id", lojaId).eq("ativo", true).ilike("nome", `%${termo}%`).limit(6);
+        .eq("loja_id", lojaId).eq("ativo", true).is("excluido_em", null).ilike("nome", `%${termo}%`).limit(6);
       setSugestoes((data ?? []).map((p: { id: string; nome: string; preco: number | null; midias: { url: string; tipo: string; ordem: number }[]; variacoes: { preco: number | null; ativa: boolean }[] }) => {
         const precos = p.variacoes.filter((v) => v.ativa && v.preco != null).map((v) => Number(v.preco));
         return {
