@@ -5,6 +5,7 @@
 //   2. Um círculo para cada loja ATIVA ("Em breve" aparece apagadinha)
 //   3. Faixa de parceiros (quantidade configurável)
 // =====================================================================
+import BotaoSacola from "@/components/BotaoSacola";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
@@ -34,6 +35,7 @@ export default function PaginaInicial() {
     // flex-col + min-h-screen: o rodapé fica sempre no fim da tela
     <div className="flex min-h-screen flex-col">
       <EstilosAnimacao />
+      <BotaoSacola />
       <Suspense fallback={<div className="h-56 animate-pulse bg-black/10" />}>
         <Topo />
       </Suspense>

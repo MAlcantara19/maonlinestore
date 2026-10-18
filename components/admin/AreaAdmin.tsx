@@ -15,7 +15,7 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 export type InfoAdmin = { userId: string; email: string; master: boolean };
 
 export default function AreaAdmin({ children }: { children: (info: InfoAdmin) => ReactNode }) {
-  const [estado, setEstado] = useState<"carregando" | "deslogado" | "logado">("carregando");
+  const [estado, setEstado] = useState<"carregando" | "deslogado" | "codigo" | "logado">("carregando");
   const [info, setInfo] = useState<InfoAdmin | null>(null);
   const [efeitoPainel, setEfeitoPainel] = useState<{ efeito: string | null; logo: string | null; bordaCor?: string | null; borda?: number }>({ efeito: null, logo: null }); // efeito do painel
 
@@ -24,6 +24,9 @@ export default function AreaAdmin({ children }: { children: (info: InfoAdmin) =>
     const supabase = supabaseNavegador();
     const { data } = await supabase.auth.getUser();
     if (!data.user) { setEstado("deslogado"); setInfo(null); return; }
+    // Ativou a verificação em duas etapas e ainda não digitou o código? Pede o código.
+    const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (nivel?.nextLevel === "aal2" && nivel.currentLevel !== "aal2") { setEstado("codigo"); return; }
     const { data: master } = await supabase.from("master_admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
     setInfo({ userId: data.user.id, email: data.user.email ?? "", master: !!master });
     setEstado("logado");
@@ -40,6 +43,7 @@ export default function AreaAdmin({ children }: { children: (info: InfoAdmin) =>
   }, []);
 
   if (estado === "carregando") return <p className="p-8 text-center opacity-60">Carregando painel...</p>;
+  if (estado === "codigo") return <TelaDeCodigo />;
   if (estado === "deslogado" || !info) return <TelaDeLogin />;
 
   return (
@@ -111,6 +115,36 @@ function TelaDeLogin() {
           {recuperando ? "Enviando..." : "Esqueci minha senha"}
         </button>
       </form>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Segunda etapa: o código de 6 números do app autenticador
+// ---------------------------------------------------------------------
+function TelaDeCodigo() {
+  const [codigo, setCodigo] = useState("");
+  const [erro, setErro] = useState("");
+  async function verificar() {
+    const sb = supabaseNavegador();
+    const { data } = await sb.auth.mfa.listFactors();
+    const fator = (data?.totp ?? []).find((f: { status: string }) => f.status === "verified");
+    if (!fator) return setErro("Nenhum app autenticador encontrado.");
+    const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: fator.id, code: codigo.trim() });
+    if (error) setErro("Código errado ou vencido. Use o código que está aparecendo agora no app.");
+  }
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-stone-100 p-4 text-stone-900">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <h1 className="text-xl font-bold">🛡️ Código de verificação</h1>
+        <p className="mt-1 mb-4 text-sm opacity-70">Abra o app autenticador no seu celular e digite o código de 6 números.</p>
+        <input autoFocus inputMode="numeric" maxLength={6} value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => e.key === "Enter" && verificar()} placeholder="000000"
+          className="w-full rounded-lg border px-3 py-3 text-center font-mono text-2xl tracking-[0.4em]" />
+        {erro && <p className="mt-2 text-sm text-red-600">{erro}</p>}
+        <button type="button" onClick={verificar} className="mt-4 w-full rounded-xl bg-stone-900 p-3 font-semibold text-white">Entrar</button>
+        <button type="button" onClick={() => supabaseNavegador().auth.signOut()} className="mt-2 w-full text-sm underline opacity-60">Sair</button>
+      </div>
     </div>
   );
 }

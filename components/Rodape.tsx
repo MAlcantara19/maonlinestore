@@ -72,6 +72,17 @@ export default function Rodape({ loja }: { loja?: Loja }) {
         </div>
       )}
 
+      {/* Selos de confiança */}
+      <div className="border-t border-white/15">
+        <ul className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-2 px-4 py-4 text-xs opacity-90">
+          <li>🔒 Site seguro (HTTPS)</li>
+          <li>📄 Lojas identificadas com CNPJ/CPF</li>
+          <li>💬 Atendimento direto pelo WhatsApp</li>
+          <li>🛡️ Dados protegidos (LGPD)</li>
+          <li><Link href="/sacola" className="hover:underline">🛍️ Minha sacola</Link></li>
+        </ul>
+      </div>
+
       {/* Faixa final: direitos + crédito do desenvolvedor.
           pb-24 = espaço para os botões flutuantes não taparem o texto */}
       <div className="border-t border-white/15">

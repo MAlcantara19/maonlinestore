@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   title: { default: "MA Online Store", template: "%s" },
   description: "VitraForma, Gallerie, Sonhos de Açúcar, Paixão por Aromas e Paixão por Chocolate num só lugar. Peça pelo WhatsApp!",
   applicationName: "MA Online Store",
+  // Google Search Console: cole o código em NEXT_PUBLIC_GOOGLE_VERIFICACAO (Vercel e .env.local)
+  verification: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO ? { google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO } : undefined,
 };
 
 export const viewport: Viewport = { themeColor: "#3B1260" };

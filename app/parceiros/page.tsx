@@ -3,6 +3,7 @@
 // Título, subtítulo, fundo (foto, logo repetida ou vídeo) e efeito são
 // escolhidos no painel: Página inicial → "🤝 Página de parceiros".
 // =====================================================================
+import BotaoSacola from "@/components/BotaoSacola";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -23,6 +24,7 @@ export default function PaginaParceiros() {
   return (
     <div className="flex min-h-screen flex-col">
       <EstilosAnimacao />
+      <BotaoSacola />
       <main className="mx-auto w-full max-w-5xl px-4 py-8">
         <div className="flex items-center justify-between">
           <Link href="/" className="text-sm opacity-70">← Todas as lojas</Link>

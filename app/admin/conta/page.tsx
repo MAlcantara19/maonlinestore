@@ -3,6 +3,7 @@
 // PAINEL — MINHA CONTA (endereço: /admin/conta) · qualquer administrador
 // Trocar a própria senha (ex.: depois de receber a senha provisória).
 // =====================================================================
+import DuasEtapas from "@/components/admin/DuasEtapas";
 import Link from "next/link";
 import { useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
@@ -19,7 +20,7 @@ function Formulario({ email }: { email: string }) {
   const [aviso, setAviso] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
 
   async function trocar() {
-    if (senha.length < 6) return setAviso({ tipo: "erro", texto: "A senha precisa ter pelo menos 6 caracteres." });
+    if (senha.length < 8) return setAviso({ tipo: "erro", texto: "A senha precisa ter pelo menos 8 caracteres." });
     if (senha !== repetir) return setAviso({ tipo: "erro", texto: "As duas senhas não estão iguais." });
     const { error } = await supabaseNavegador().auth.updateUser({ password: senha });
     setAviso(error ? { tipo: "erro", texto: error.message } : { tipo: "ok", texto: "✓ Senha trocada!" });
@@ -36,6 +37,7 @@ function Formulario({ email }: { email: string }) {
         {aviso && <p className={`text-sm ${aviso.tipo === "ok" ? "text-green-700" : "text-red-600"}`}>{aviso.texto}</p>}
         <button type="button" onClick={trocar} className="w-full rounded-xl bg-stone-900 p-3 font-semibold text-white">Trocar senha</button>
       </Bloco>
+      <DuasEtapas />
     </>
   );
 }
