@@ -9,6 +9,7 @@
 // Em telas menores, o "Como funciona o pedido" vira uma caixinha que
 // abre e fecha acima do conteúdo (para não roubar espaço dos produtos).
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { IconeTelefone } from "@/components/Icones";
 import type { ReactNode } from "react";
 import type { Loja } from "@/lib/tipos";
@@ -60,7 +61,7 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
               <div className="flex flex-col gap-2">
                 {loja.whatsapp && (
                   <a target="_blank" rel="noopener noreferrer" className="botao-vivo pulsar clicavel inline-flex items-center justify-center gap-2 rounded-full bg-[#1FA855] px-4 py-2 font-semibold text-white"
-                    href={`https://wa.me/${loja.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre a ${loja.nome} 😊`)}`}>
+                    href={linkWhatsApp(loja.whatsapp.replace(/\D/g, ""), `Olá! Tenho uma dúvida sobre a ${loja.nome} 😊`)}>
                     <span className="icone-tremer"><IconeTelefone /></span> WhatsApp
                   </a>
                 )}

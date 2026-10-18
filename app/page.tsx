@@ -5,6 +5,7 @@
 //   2. Um círculo para cada loja ATIVA ("Em breve" aparece apagadinha)
 //   3. Faixa de parceiros (quantidade configurável)
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import ImagemLogo from "@/components/ImagemLogo";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -151,7 +152,7 @@ async function ListaDeLojas() {
                 <span className="block text-xs opacity-70">{loja.descricao}</span>
                 {loja.lancamento_em && <ContagemRegressiva ate={loja.lancamento_em} cor={loja.cor ?? "#333"} />}
                 {/* "Me avise": abre o WhatsApp da loja (ou o seu) pedindo para ser avisado */}
-                <a href={`https://wa.me/${(loja.whatsapp ?? DESENVOLVEDOR.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(`Oi! Quero ser avisado(a) quando a ${loja.nome} lançar 😊`)}`}
+                <a href={linkWhatsApp((loja.whatsapp ?? DESENVOLVEDOR.whatsapp).replace(/\D/g, ""), `Oi! Quero ser avisado(a) quando a ${loja.nome} lançar 😊`)}
                   target="_blank" rel="noopener noreferrer"
                   className="mt-2 inline-block rounded-full bg-white/80 px-3 py-1 text-xs font-semibold shadow backdrop-blur" style={{ color: loja.cor ?? "#333" }}>
                   🔔 Me avise

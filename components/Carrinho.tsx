@@ -6,6 +6,7 @@
 // Ao enviar: o pedido é SALVO (ganha um código, ex.: #A3F9K2) e abre o
 // WhatsApp da loja com a mensagem pronta e o link de acompanhamento.
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { salvarCarrinho, usarCarrinho } from "@/lib/carrinho";
@@ -105,7 +106,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       total, temSobConsulta, data, urgente, linkAcompanhar: codigo ? `${window.location.origin}/pedido/${codigo}` : null,
     });
     const numero = (loja.whatsapp ?? "").replace(/\D/g, "");
-    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+    const url = linkWhatsApp(numero, mensagem);
     // Espera o aviãozinho terminar e abre o WhatsApp na aba já aberta (ou nesta mesma)
     setTimeout(() => {
       if (janela) janela.location.href = url;

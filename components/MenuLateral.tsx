@@ -7,6 +7,7 @@
 //               uma gaveta deslizando da esquerda.
 // Categorias com subcategorias têm uma setinha › para expandir.
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { BolinhaTelefone, IconeCoracao } from "@/components/Icones";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -61,7 +62,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
         <button type="button" onClick={() => { aoClicar?.(); window.dispatchEvent(new Event("abrir-carrinho")); }} className={`${item} w-full text-left`}>🛒 Meu carrinho</button>
         <Link href={`/${slug}/favoritos`} onClick={aoClicar} className={item}>❤️ Meus favoritos</Link>
         {whatsapp && (
-          <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={item}><BolinhaTelefone tamanho={18} /> Falar no WhatsApp</a>
+          <a href={linkWhatsApp(whatsapp.replace(/\D/g, ""))} target="_blank" rel="noopener noreferrer" className={item}><BolinhaTelefone tamanho={18} /> Falar no WhatsApp</a>
         )}
         <Link href={`/${slug}/sobre`} onClick={aoClicar} className={item}><IconeCoracao cor={cor} /> Sobre a loja</Link>
         <Link href="/parceiros" onClick={aoClicar} className={item}>🤝 Parceiros</Link>

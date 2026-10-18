@@ -32,6 +32,15 @@ export type Loja = {
   sobre?: string | null; // texto da página "Sobre nós" da loja
   unidade_tamanho?: string; // unidade padrão dos tamanhos (cm, ml, g...)
   prazo_padrao?: string | null; // prazo que já vem no cadastro de produto
+  banner_url?: string | null; // imagem do topo da loja
+  banner_escurecer?: number; // 0 a 90: quanto a cor da loja cobre a imagem
+  razao_social?: string | null; // dados legais (aparecem no rodapé)
+  documento?: string | null; // CNPJ ou CPF
+  endereco?: string | null;
+  email_contato?: string | null;
+  responsavel?: string | null;
+  termos_aceitos_em?: string | null;
+  termos_aceitos_por?: string | null;
   fundo_tipo?: TipoFundo; // fundo da página da loja
   fundo_url?: string | null;
   fundo_opacidade?: number;

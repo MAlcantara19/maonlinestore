@@ -6,13 +6,14 @@
 // balão ou no botão, abre o WhatsApp da loja com uma mensagem pronta.
 // O balão aparece uma vez por visita (dá para fechar no ✕).
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { registrarEvento } from "@/lib/eventos";
 import { useEffect, useState } from "react";
 import { IconeTelefone } from "@/components/Icones";
 
 export default function BotaoDuvidas({ whatsapp, nomeDaLoja, slug }: { whatsapp: string; nomeDaLoja: string; slug?: string }) {
   const numero = whatsapp.replace(/\D/g, "");
-  const link = `https://wa.me/${numero}?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre a ${nomeDaLoja} 😊`)}`;
+  const link = linkWhatsApp(numero, `Olá! Tenho uma dúvida sobre a ${nomeDaLoja} 😊`);
   const [fase, setFase] = useState<"nada" | "digitando" | "mensagem">("nada");
 
   useEffect(() => {

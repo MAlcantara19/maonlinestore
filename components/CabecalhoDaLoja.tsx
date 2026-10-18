@@ -34,7 +34,14 @@ export default function CabecalhoDaLoja({ loja, menu }: { loja: Loja; menu: Item
     <>
       <CabecalhoReativo loja={loja} menu={menu} />
 
-      <header className="relative text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
+      <header className="relative text-white" style={{ background: loja.banner_url ? "#000" : `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
+        {/* Imagem do banner (opcional) + a cor da loja por cima, para o texto ficar legível */}
+        {loja.banner_url && (
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <img src={loja.banner_url} alt="" className="parallax-fundo h-full w-full object-cover" />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}aa)`, opacity: (loja.banner_escurecer ?? 45) / 100 }} />
+          </div>
+        )}
         {/* Bolhas com parallax, recortadas dentro do banner */}
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="parallax-fundo absolute inset-0">

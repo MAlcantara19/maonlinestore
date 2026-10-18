@@ -6,11 +6,12 @@
 //   crédito do desenvolvedor com WhatsApp, e-mail e Instagram.
 // Os dados do site e do desenvolvedor ficam em lib/config.ts.
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { BolinhaTelefone, IconeCoracao } from "@/components/Icones";
 import Link from "next/link";
 import type { Loja } from "@/lib/tipos";
 import { DESENVOLVEDOR, SITE } from "@/lib/config";
-import { telefoneBonito, usuarioInstagram } from "@/lib/formato";
+import { documentoBonito, telefoneBonito, usuarioInstagram } from "@/lib/formato";
 import IconeInstagram from "@/components/IconeInstagram";
 
 export default function Rodape({ loja }: { loja?: Loja }) {
@@ -18,9 +19,9 @@ export default function Rodape({ loja }: { loja?: Loja }) {
   const link = "inline-flex items-center gap-1.5 opacity-90 hover:underline hover:opacity-100";
   const instaLoja = usuarioInstagram(loja?.instagram);
   const instaDev = usuarioInstagram(DESENVOLVEDOR.instagram);
-  const zapDev = `https://wa.me/${DESENVOLVEDOR.whatsapp}?text=${encodeURIComponent(
+  const zapDev = linkWhatsApp(DESENVOLVEDOR.whatsapp, 
     `Olá, ${DESENVOLVEDOR.nome.split(" ")[0]}! Vi o site da ${SITE.nome} e quero saber mais 😊`
-  )}`;
+  );
 
   return (
     <>
@@ -34,13 +35,22 @@ export default function Rodape({ loja }: { loja?: Loja }) {
           <div>
             <b className="text-lg">{loja.nome}</b>
             {loja.descricao && <p className="mt-1 text-sm opacity-80">{loja.descricao}</p>}
+            {/* Dados legais (lei do comércio eletrônico) */}
+            {(loja.razao_social || loja.documento) && (
+              <p className="mt-3 text-xs leading-relaxed opacity-75">
+                {loja.razao_social && <>{loja.razao_social}<br /></>}
+                {loja.documento && <>{(loja.documento.replace(/\D/g, "").length === 14 ? "CNPJ " : "CPF ") + documentoBonito(loja.documento)}<br /></>}
+                {loja.endereco && <>{loja.endereco}<br /></>}
+                {loja.email_contato && <a href={`mailto:${loja.email_contato}`} className="underline">{loja.email_contato}</a>}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col items-start gap-2 text-sm">
             <b>Fale com a gente</b>
             {loja.whatsapp && (
               <a className={link} target="_blank" rel="noopener noreferrer"
-                href={`https://wa.me/${loja.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vim pelo site da ${loja.nome} 😊`)}`}>
+                href={linkWhatsApp(loja.whatsapp.replace(/\D/g, ""), `Olá! Vim pelo site da ${loja.nome} 😊`)}>
                 <BolinhaTelefone tamanho={18} /> WhatsApp
               </a>
             )}
@@ -70,6 +80,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             <span className="opacity-85">© {SITE.ano} {SITE.nome}. Todos os direitos reservados.</span>
             <span className="flex gap-3 opacity-80">
               <Link href="/privacidade" className="hover:underline">Política de Privacidade</Link>
+              <Link href="/termos" className="hover:underline">Termos de Uso</Link>
               <Link href="/admin" className="hover:underline">🔐 Área do lojista</Link>
             </span>
           </div>

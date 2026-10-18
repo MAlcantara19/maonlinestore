@@ -6,6 +6,8 @@
 // ativa/inativa. Mostra uma prévia do banner enquanto edita.
 // Quem pode salvar é decidido pelo banco (regras RLS).
 // =====================================================================
+import { documentoBonito, documentoValido } from "@/lib/formato";
+import { SITE } from "@/lib/config";
 import EditorBordaLogo from "@/components/admin/EditorBordaLogo";
 import EditorFundo from "@/components/admin/EditorFundo";
 import { TAMANHOS } from "@/lib/tamanhos";
@@ -22,7 +24,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -138,6 +140,26 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         </div>
       </Bloco>
 
+      <Bloco titulo="🖼️ Banner do topo da loja">
+        <CampoImagem rotulo="Imagem do banner (opcional — sem imagem, fica a cor da loja)" valor={loja.banner_url ?? null}
+          aoMudar={(url) => mudar("banner_url", url)} pasta={`${loja.slug}/banner`} dica={TAMANHOS.bannerTopo}
+          recorte={{ proporcao: 16 / 5, largura: 1920, cores: [loja.cor, loja.cor_secundaria] }} />
+        {loja.banner_url && (
+          <>
+            <label className="block text-sm">Cor da loja por cima da imagem: <b>{loja.banner_escurecer ?? 45}%</b>
+              <span className="opacity-60"> (mais alto = texto mais legível)</span>
+              <input type="range" min={0} max={90} value={loja.banner_escurecer ?? 45} onChange={(e) => mudar("banner_escurecer", Number(e.target.value))} className="block w-full" />
+            </label>
+            {/* Prévia do banner */}
+            <div className="relative h-28 overflow-hidden rounded-xl text-white">
+              <img src={loja.banner_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}aa)`, opacity: (loja.banner_escurecer ?? 45) / 100 }} />
+              <b className="absolute bottom-3 left-4 text-2xl drop-shadow">{loja.nome}</b>
+            </div>
+          </>
+        )}
+      </Bloco>
+
       <Bloco titulo="🌄 Fundo da página da loja">
         <EditorFundo cor={cor} pasta={`${loja.slug}/fundo`} logo={loja.logo_url}
           valor={{ fundo_tipo: loja.fundo_tipo ?? "nenhum", fundo_url: loja.fundo_url ?? null, fundo_opacidade: loja.fundo_opacidade ?? 15, fundo_animacao: loja.fundo_animacao ?? "nenhuma", fundo_cor: loja.fundo_cor ?? null }}
@@ -168,6 +190,49 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
             {OPCOES_UNIDADE.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
           </select>
         </Campo>
+      </Bloco>
+
+      <Bloco titulo="📄 Dados legais da loja (obrigatório para vender online)">
+        {(!loja.documento || !loja.termos_aceitos_em) && (
+          <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+            ⚠️ Antes de divulgar a loja, preencha o CNPJ (ou CPF) e aceite o termo de responsabilidade. A lei do comércio
+            eletrônico pede que estes dados apareçam no site (eles vão no rodapé da loja).
+          </p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="Razão social (ou nome completo, se for CPF)"><input className={input} value={loja.razao_social ?? ""} onChange={(e) => mudar("razao_social", e.target.value || null)} /></Campo>
+          <Campo rotulo="CNPJ ou CPF">
+            <input className={input} inputMode="numeric" value={documentoBonito(loja.documento)} placeholder="00.000.000/0000-00"
+              onChange={(e) => mudar("documento", e.target.value.replace(/\D/g, "").slice(0, 14) || null)} />
+            {loja.documento && (
+              <span className={`text-xs ${documentoValido(loja.documento) ? "text-green-700" : "text-red-600"}`}>
+                {documentoValido(loja.documento) ? "✓ Número válido" : "Número incompleto ou inválido"}
+              </span>
+            )}
+          </Campo>
+          <Campo rotulo="Endereço (pode ser só cidade/UF, se não atender no local)"><input className={input} value={loja.endereco ?? ""} onChange={(e) => mudar("endereco", e.target.value || null)} placeholder="Três Rios - RJ" /></Campo>
+          <Campo rotulo="E-mail de contato"><input type="email" className={input} value={loja.email_contato ?? ""} onChange={(e) => mudar("email_contato", e.target.value || null)} /></Campo>
+          <Campo rotulo="Responsável pela loja"><input className={input} value={loja.responsavel ?? ""} onChange={(e) => mudar("responsavel", e.target.value || null)} /></Campo>
+        </div>
+        <label className="flex items-start gap-2 rounded-xl border p-3 text-sm">
+          <input type="checkbox" className="mt-1" checked={!!loja.termos_aceitos_em}
+            onChange={async (e) => {
+              if (!e.target.checked) return setLoja({ ...loja, termos_aceitos_em: null, termos_aceitos_por: null });
+              const { data } = await supabaseNavegador().auth.getUser();
+              setLoja({ ...loja, termos_aceitos_em: new Date().toISOString(), termos_aceitos_por: data.user?.email ?? null });
+              setMensagem(null);
+            }} />
+          <span>
+            Declaro que esta loja é responsável pelos seus produtos, preços, prazos, entregas, trocas, garantias, emissão de
+            nota fiscal (quando exigida) e pelo atendimento e dados dos seus clientes, conforme os{" "}
+            <a href="/termos" target="_blank" className="underline">Termos de Uso</a> da {SITE.nome}.
+            {loja.termos_aceitos_em && (
+              <span className="mt-1 block text-xs opacity-60">
+                ✓ Aceito em {new Date(loja.termos_aceitos_em).toLocaleString("pt-BR")}{loja.termos_aceitos_por ? ` por ${loja.termos_aceitos_por}` : ""} (salve para registrar)
+              </span>
+            )}
+          </span>
+        </label>
       </Bloco>
 
       <Bloco titulo="👀 Visibilidade">

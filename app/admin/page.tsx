@@ -21,7 +21,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
   useEffect(() => {
     (async () => {
       const supabase = supabaseNavegador();
-      let consulta = supabase.from("lojas").select("id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, ativa, em_breve").order("ordem");
+      let consulta = supabase.from("lojas").select("id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, ativa, em_breve, documento, termos_aceitos_em").order("ordem");
       if (!info.master) {
         // Administrador de loja: só as lojas ligadas a ele em "loja_admins"
         const { data: minhas } = await supabase.from("loja_admins").select("loja_id").eq("user_id", info.userId);
@@ -72,6 +72,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
             </span>
             {loja.ativa === false && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">Inativa</span>}
             {loja.ativa !== false && loja.em_breve && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Em breve</span>}
+            {(!loja.documento || !loja.termos_aceitos_em) && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700" title="Falta CNPJ/CPF ou o termo de responsabilidade">📄 Falta dado legal</span>}
           </Link>
         ))}
       </div>

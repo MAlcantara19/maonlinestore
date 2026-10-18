@@ -3,6 +3,7 @@
 // Banner com foto, descrição, horários, contatos (WhatsApp, Instagram,
 // site) e o MAPA, gerado sozinho a partir do endereço (sem chave de API).
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { IconeTelefone } from "@/components/Icones";
 import ImagemLogo from "@/components/ImagemLogo";
 import type { Metadata } from "next";
@@ -102,7 +103,7 @@ async function Conteudo({ params }: Props) {
         <div className="flex flex-wrap gap-2">
           {p.whatsapp && (
             <a className={`${botao} bg-[#1FA855] text-white`} target="_blank" rel="noopener noreferrer"
-              href={`https://wa.me/${p.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vi a indicação no site da ${SITE.nome} 😊`)}`}>
+              href={linkWhatsApp(p.whatsapp.replace(/\D/g, ""), `Olá! Vi a indicação no site da ${SITE.nome} 😊`)}>
               <span className="icone-tremer"><IconeTelefone /></span> {telefoneBonito(p.whatsapp)}
             </a>
           )}

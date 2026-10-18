@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: base, changeFrequency: "daily", priority: 1 },
     { url: `${base}/parceiros`, changeFrequency: "weekly", priority: 0.5 },
     { url: `${base}/privacidade`, changeFrequency: "yearly", priority: 0.1 },
+    { url: `${base}/termos`, changeFrequency: "yearly", priority: 0.1 },
   ];
   try {
     const [{ data: lojas }, { data: produtos }, { data: parceiros }] = await Promise.all([

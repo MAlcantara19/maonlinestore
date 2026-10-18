@@ -31,6 +31,14 @@ export default function Privacidade() {
           você acompanhar o andamento pelo link enviado.
         </p>
 
+        <h2 className={h}>1.1. Quem cuida dos seus dados do pedido</h2>
+        <p>
+          Quando você envia um pedido, a conversa e os dados que você passar (nome, endereço, telefone) ficam com a{" "}
+          <b>loja escolhida</b>, que é a responsável por eles (controladora, nos termos da LGPD). Os dados de cada loja
+          (razão social e CNPJ ou CPF) aparecem no rodapé da página dela. Veja também os{" "}
+          <Link href="/termos" className="underline">Termos de Uso</Link>.
+        </p>
+
         <h2 className={h}>2. Estatísticas anônimas</h2>
         <p>
           Contamos, de forma anônima, visitas, produtos vistos, itens colocados ou tirados do carrinho e favoritos, para as

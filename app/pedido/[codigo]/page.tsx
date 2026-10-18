@@ -4,6 +4,7 @@
 //   📥 Recebido → 🛠️ Em produção → 🎁 Pronto → ✅ Entregue
 // A loja muda o andamento no painel (aba Pedidos).
 // =====================================================================
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { IconeTelefone } from "@/components/Icones";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -115,7 +116,7 @@ async function Conteudo({ params }: Props) {
         </section>
 
         {p.loja_whatsapp ? (
-          <a href={`https://wa.me/${(p.loja_whatsapp as string).replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Sobre o pedido #${p.codigo} 😊`)}`}
+          <a href={linkWhatsApp((p.loja_whatsapp as string).replace(/\D/g, ""), `Olá! Sobre o pedido #${p.codigo} 😊`)}
             target="_blank" rel="noopener noreferrer" className="botao-vivo mt-4 block rounded-xl bg-[#1FA855] p-3 text-center font-semibold text-white">
             <span className="icone-tremer inline-block"><IconeTelefone /></span> Falar com a loja sobre este pedido
           </a>
