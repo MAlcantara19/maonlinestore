@@ -148,7 +148,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
   return (
     <div className="mt-4">
       {/* Preço e situação */}
-      <p className="text-2xl font-bold" style={{ color: cor }}>
+      <p className="texto-cor text-2xl font-bold" style={{ color: cor }}>
         {preco != null ? formatarPreco(Number(preco)) : "Sob consulta"}
       </p>
       <p className="text-sm opacity-70">

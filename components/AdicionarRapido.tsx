@@ -6,6 +6,7 @@
 //   direita: nome, selo, descrição, avisos e a escolha de tamanho/cor
 // Tudo sem sair da página da loja. No celular, sobe de baixo.
 // =====================================================================
+import Portal from "@/components/Portal";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Produto } from "@/lib/tipos";
@@ -46,7 +47,8 @@ export default function AdicionarRapido({ produto, slug, cor, foto }: { produto:
       </button>
 
       {aberto && (
-        <div className="surgir fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-6" onClick={() => setAberto(false)}>
+        <Portal>
+        <div className="tema-portal surgir fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-6" onClick={() => setAberto(false)}>
           <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={produto.nome}
             className="subir max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-3xl bg-white p-4 text-stone-900 shadow-2xl sm:rounded-3xl sm:p-6"
             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
@@ -91,6 +93,7 @@ export default function AdicionarRapido({ produto, slug, cor, foto }: { produto:
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </>
   );

@@ -8,6 +8,7 @@
 //     branco, preto ou transparente)
 // No fim, a imagem sai no tamanho ideal, sem distorcer.
 // =====================================================================
+import Portal from "@/components/Portal";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
@@ -65,6 +66,7 @@ export default function EditorRecorte({ arquivo, proporcao, largura, cores = [],
   const paleta = [...new Set([...cores.filter(Boolean) as string[], "#ffffff", "#000000"])];
 
   return (
+    <Portal>
     <div className="surgir fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" onClick={aoCancelar}>
       <div onClick={(e) => e.stopPropagation()} className="subir w-full max-w-xl rounded-2xl bg-white p-4 text-stone-900 shadow-2xl">
         <b className="text-lg">✂️ Ajustar imagem</b>
@@ -105,5 +107,6 @@ export default function EditorRecorte({ arquivo, proporcao, largura, cores = [],
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

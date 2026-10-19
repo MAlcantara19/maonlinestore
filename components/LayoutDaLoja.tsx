@@ -49,13 +49,13 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
         {/* Computador grande: painel direito, preso ao rolar */}
         <aside className="sticky top-20 mt-4 hidden w-72 shrink-0 space-y-4 xl:block">
           {loja.aviso_pedido && (
-            <section className="rounded-2xl border p-4 text-sm shadow-sm" style={{ borderColor: `${cor}55`, background: fundoSuave }}>
+            <section className="rounded-2xl border p-4 text-sm shadow-sm" style={{ borderColor: `${cor}55`, background: `linear-gradient(${fundoSuave}, ${fundoSuave}), #ffffff`, color: "#1c1917" }}>
               <b className="mb-2 block text-base" style={{ color: cor }}>📦 Como funciona o pedido</b>
               <p className="whitespace-pre-line">{loja.aviso_pedido}</p>
             </section>
           )}
           {(loja.whatsapp || insta) && (
-            <section className="rounded-2xl border bg-white/70 p-4 text-sm shadow-sm" style={{ borderColor: `${cor}33` }}>
+            <section className="rounded-2xl border p-4 text-sm shadow-sm" style={{ borderColor: `${cor}55`, background: `linear-gradient(${fundoSuave}, ${fundoSuave}), #ffffff`, color: "#1c1917" }}>
               <b className="mb-2 block text-base" style={{ color: cor }}>💬 Fale com a gente</b>
               <p className="mb-3 opacity-80">Dúvidas sobre tamanho, cor ou prazo? Chama a gente!</p>
               <div className="flex flex-col gap-2">

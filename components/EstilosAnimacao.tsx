@@ -120,6 +120,9 @@ const ANIMACOES = `
   html[data-tema="escuro"] .border, html[data-tema="escuro"] .border-b, html[data-tema="escuro"] .border-t { border-color: rgb(255 255 255 / 0.12); }
   html[data-tema="escuro"] input, html[data-tema="escuro"] textarea, html[data-tema="escuro"] select { background-color: #1e1b24; color: #ece8f1; }
   html[data-tema="escuro"] .brilho-esqueleto { background: rgb(255 255 255 / 0.08); }
+  /* Preços e destaques na cor da loja: no escuro viram cinza bem claro (legível) */
+  html[data-tema="escuro"] .texto-cor { color: #e7e3ee !important; }
+  html[data-tema="escuro"] .borda-cor { border-color: rgb(255 255 255 / 0.55) !important; }
 
   /* Troca de tema com "cortina": o novo tema se espalha em círculo a partir do clique */
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }

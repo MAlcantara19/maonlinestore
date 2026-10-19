@@ -50,7 +50,7 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
         </div>
 
         <b className="mt-2 block text-sm">{produto.nome}</b>
-        <span className="block text-sm font-semibold" style={{ color: cor }}>
+        <span className="texto-cor block text-sm font-semibold" style={{ color: cor }}>
           {menor != null ? `${variosPrecos ? "a partir de " : ""}${formatarPreco(menor)}` : "Sob consulta"}
         </span>
         <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>

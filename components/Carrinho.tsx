@@ -6,6 +6,7 @@
 // Ao enviar: o pedido é SALVO (ganha um código, ex.: #A3F9K2) e abre o
 // WhatsApp da loja com a mensagem pronta e o link de acompanhamento.
 // =====================================================================
+import Portal from "@/components/Portal";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -155,7 +156,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
           <input className={campo} placeholder="🏷️ Cupom de desconto" value={textoCupom}
             onChange={(e) => { setTextoCupom(e.target.value.toUpperCase()); setAvisoCupom(""); }}
             onKeyDown={(e) => e.key === "Enter" && aplicarCupom()} />
-          <button type="button" onClick={aplicarCupom} className="shrink-0 rounded-lg border px-4 text-sm font-semibold" style={{ borderColor: cor, color: cor }}>Aplicar</button>
+          <button type="button" onClick={aplicarCupom} className="texto-cor borda-cor shrink-0 rounded-lg border px-4 text-sm font-semibold" style={{ borderColor: cor, color: cor }}>Aplicar</button>
         </div>
         {avisoCupom && <p className={`mt-1 text-xs ${avisoCupom.startsWith("✓") ? "text-green-700" : "text-red-600"}`}>{avisoCupom}</p>}
       </div>
@@ -168,7 +169,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
             <p className="flex justify-between text-green-700"><span>🏷️ Cupom {cupom!.codigo}</span><span>− {formatarPreco(desconto)}</span></p>
           </>
         )}
-        <p className="flex justify-between text-lg font-bold"><span>Total estimado</span><span style={{ color: cor }}>{formatarPreco(total)}</span></p>
+        <p className="flex justify-between text-lg font-bold"><span>Total estimado</span><span className="texto-cor" style={{ color: cor }}>{formatarPreco(total)}</span></p>
         {temSobConsulta && <p className="text-right text-xs opacity-70">+ itens sob consulta</p>}
       </div>
 
@@ -196,7 +197,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
       {/* Envio */}
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <button onClick={() => enviar("orcamento")} disabled={enviando} className="rounded-xl border-2 p-4 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
+        <button onClick={() => enviar("orcamento")} disabled={enviando} className="texto-cor borda-cor rounded-xl border-2 p-4 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
           📝 Pedir orçamento
         </button>
         <Magnetico forca={0.12}>
@@ -210,6 +211,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
       {/* ✈️ Tela "preparando seu pedido" + aviãozinho de papel */}
       {aviao && (
+        <Portal>
         <div className="surgir fixed inset-0 z-[70] flex flex-col items-center justify-center gap-4 bg-white/90 text-stone-900 backdrop-blur-md">
           <span className="aviao text-6xl drop-shadow-lg">✈️</span>
           <b className="text-lg">Preparando seu pedido para a {loja.nome}... 🚀</b>
@@ -217,6 +219,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
             <div className="encher h-full rounded-full" style={{ background: cor }} />
           </div>
         </div>
+        </Portal>
       )}
       <button onClick={() => { itens.forEach((i) => registrarEvento(loja.slug, "carrinho_remove", i.produtoId)); salvarCarrinho(loja.slug, []); }} className="mt-3 w-full text-sm underline opacity-70">
         Esvaziar carrinho
@@ -235,7 +238,7 @@ function PedidosRecentes({ lista, cor }: { lista: { codigo: string; quando: stri
       <div className="mt-2 space-y-1">
         {lista.slice(0, 5).map((p) => (
           <a key={p.codigo} href={`/pedido/${p.codigo}`} className="flex justify-between rounded-lg border px-3 py-2 text-sm hover:bg-black/5">
-            <span className="font-mono font-bold" style={{ color: cor }}>#{p.codigo}</span>
+            <span className="texto-cor font-mono font-bold" style={{ color: cor }}>#{p.codigo}</span>
             <span className="opacity-70">{new Date(p.quando).toLocaleDateString("pt-BR")} · {formatarPreco(p.total)}</span>
           </a>
         ))}
