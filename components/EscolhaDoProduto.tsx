@@ -9,6 +9,8 @@
 // Preço, prazo, situação e o texto da opção vêm da variação escolhida.
 // Ao adicionar: confete 🎉, a miniatura voa até o carrinho e ele abre.
 // =====================================================================
+import { comPromocao, promocaoAtiva, textoFimPromocao } from "@/lib/promocao";
+import { linkWhatsApp } from "@/lib/whatsapp";
 import { useEffect, useState, type MouseEvent } from "react";
 import { adicionarAoCarrinho } from "@/lib/carrinho";
 import { formatarPreco } from "@/lib/formato";
@@ -28,6 +30,7 @@ type Props = {
   foto?: string; // miniatura usada na animação de "voar"
   aoAdicionar?: () => void; // ex.: fechar o popup
   sincronizarUrl?: boolean; // página do produto: guarda as escolhas no endereço (link compartilhável)
+  whatsapp?: string | null; // para o "me avise quando chegar" (produto esgotado)
 };
 
 // Valor de cada "nível" de uma variação (vazio vira um rótulo padrão)
@@ -41,7 +44,7 @@ const corDe = (v: Variacao) => {
   return c.toLowerCase() === VALOR_COR_A_ESCOLHER.toLowerCase() ? COR_A_ESCOLHER : c;
 };
 
-export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar, sincronizarUrl }: Props) {
+export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar, sincronizarUrl, whatsapp }: Props) {
   const variacoes = produto.variacoes.filter((v) => v.ativa).sort((a, b) => a.ordem - b.ordem);
 
   // Nível 1: unidade ou kit
@@ -69,7 +72,9 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
 
   // A variação escolhida (se o produto não tem cor, pega a primeira do tamanho)
   const variacao = cores.length ? doTamanho.find((v) => corDe(v) === corValida) : doTamanho[0];
-  const preco = variacao?.preco ?? produto.preco;
+  const precoCheio = variacao?.preco ?? produto.preco;
+  const emPromocao = promocaoAtiva(produto) && precoCheio != null;
+  const preco = precoCheio != null ? comPromocao(Number(precoCheio), produto) : null;
   const disponibilidade = variacao?.disponibilidade ?? produto.disponibilidade;
   const prazo = variacao?.prazo ?? produto.prazo;
   const esgotado = disponibilidade === "esgotado";
@@ -113,6 +118,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       tamanho: variacao?.tamanho ?? null,
       cor: corValida === COR_A_ESCOLHER ? "A escolher (ver observação)" : corValida || null,
       preco: preco != null ? Number(preco) : null,
+      promocao: emPromocao ? produto.promocao_pct : null,
       quantidade,
       observacao: observacao.trim(),
       prazo,
@@ -148,7 +154,13 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
   return (
     <div className="mt-4">
       {/* Preço e situação */}
+      {emPromocao && (
+        <p className="mb-1 inline-flex items-center gap-2 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+          🔥 Promoção -{produto.promocao_pct}% {textoFimPromocao(produto) && `· ${textoFimPromocao(produto)}`}
+        </p>
+      )}
       <p className="texto-cor text-2xl font-bold" style={{ color: cor }}>
+        {emPromocao && <s className="mr-2 text-base font-normal opacity-50">{formatarPreco(Number(precoCheio))}</s>}
         {preco != null ? formatarPreco(Number(preco)) : "Sob consulta"}
       </p>
       <p className="text-sm opacity-70">
@@ -201,6 +213,13 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
           {esgotado ? "Esgotado" : "🛒 Adicionar ao carrinho"}
         </button>
       </Magnetico>
+      {/* Esgotado: o cliente pede para ser avisado quando voltar */}
+      {esgotado && whatsapp && (
+        <a href={linkWhatsApp(whatsapp, `Oi! Quero ser avisado(a) quando o *${produto.nome}* voltar a ter 😊`)} target="_blank" rel="noopener noreferrer"
+          className="mt-2 block rounded-xl border-2 p-3 text-center font-semibold" style={{ borderColor: cor, color: cor }}>
+          🔔 Me avise quando chegar
+        </a>
+      )}
     </div>
   );
 }

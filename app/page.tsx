@@ -45,6 +45,9 @@ export default function PaginaInicial() {
           <ListaDeLojas />
         </Suspense>
         <Suspense fallback={null}>
+          <FaixaEspecial />
+        </Suspense>
+        <Suspense fallback={null}>
           <VitrineDoDia />
         </Suspense>
         <Suspense fallback={null}>
@@ -246,10 +249,25 @@ async function FaixaDeMarcas() {
 async function VitrineDoDia() {
   await connection();
   const { data } = await supabase.from("produtos")
-    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve)")
-    .eq("destaque", true).eq("ativo", true).eq("lojas.ativa", true).eq("lojas.em_breve", false).limit(16);
-  const produtos = (data ?? []) as unknown as (Produto & { lojas: { slug: string; nome: string; cor: string | null } })[];
-  if (produtos.length === 0) return null;
+    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve, ordem)")
+    .eq("destaque", true).eq("ativo", true).eq("lojas.ativa", true).eq("lojas.em_breve", false).limit(80);
+  type ItemVitrine = Produto & { lojas: { slug: string; nome: string; cor: string | null; ordem: number | null } };
+  const todos = (data ?? []) as unknown as ItemVitrine[];
+  if (todos.length === 0) return null;
+
+  // Separa por loja (na ordem das lojas) e "gira" a lista de cada uma conforme o dia:
+  // cada dia a vitrine começa por um produto diferente de cada loja.
+  const dia = Math.floor(Date.now() / 86400000);
+  const porLoja = new Map<string, ItemVitrine[]>();
+  [...todos].sort((a, b) => (a.lojas.ordem ?? 0) - (b.lojas.ordem ?? 0) || a.id.localeCompare(b.id))
+    .forEach((p) => porLoja.set(p.lojas.slug, [...(porLoja.get(p.lojas.slug) ?? []), p]));
+  const filas = [...porLoja.values()].map((lista) => { const k = dia % lista.length; return [...lista.slice(k), ...lista.slice(0, k)]; });
+
+  // Alterna: 1 de cada loja, na ordem (VitraForma, Gallerie, VitraForma, Gallerie...)
+  const produtos: ItemVitrine[] = [];
+  for (let rodada = 0; produtos.length < 16 && filas.some((f) => f.length > rodada); rodada++) {
+    filas.forEach((f) => { if (f[rodada] && produtos.length < 16) produtos.push(f[rodada]); });
+  }
   return (
     <section className="mt-14">
       <h2 className="text-2xl font-bold">🌟 Vitrine do dia</h2>
@@ -290,6 +308,49 @@ async function Numeros() {
           <span className="text-xs opacity-70">{i.rotulo}</span>
         </div>
       ))}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------
+// FAIXA ESPECIAL (Natal, Páscoa, Dia das Mães...): junta os produtos das
+// coleções de TODAS as lojas cujo nome tem a palavra escolhida no painel,
+// alternando uma loja de cada vez. Liga/desliga em Painel → Página inicial.
+// ---------------------------------------------------------------------
+async function FaixaEspecial() {
+  await connection();
+  const c = await buscarConfigSite().catch(() => CONFIG_PADRAO);
+  const termo = c.especial_termo?.trim();
+  if (!c.especial_ativo || !termo) return null;
+  const { data: cols } = await supabase.from("colecoes")
+    .select("id, produtos_colecoes(produto_id), lojas!inner(slug, ativa, em_breve)")
+    .ilike("nome", `%${termo}%`).eq("ativa", true).eq("lojas.ativa", true).eq("lojas.em_breve", false);
+  const ids = [...new Set(((cols ?? []) as unknown as { produtos_colecoes: { produto_id: string }[] }[]).flatMap((x) => x.produtos_colecoes.map((p) => p.produto_id)))];
+  if (!ids.length) return null;
+  const { data } = await supabase.from("produtos")
+    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ordem)")
+    .in("id", ids.slice(0, 200)).eq("ativo", true);
+  type Item = Produto & { lojas: { slug: string; nome: string; cor: string | null; ordem: number | null } };
+  const porLoja = new Map<string, Item[]>();
+  ((data ?? []) as unknown as Item[]).sort((a, b) => (a.lojas.ordem ?? 0) - (b.lojas.ordem ?? 0) || (a.ordem ?? 0) - (b.ordem ?? 0))
+    .forEach((p) => porLoja.set(p.lojas.slug, [...(porLoja.get(p.lojas.slug) ?? []), p]));
+  const filas = [...porLoja.values()];
+  const produtos: Item[] = [];
+  for (let r = 0; produtos.length < 20 && filas.some((f) => f.length > r); r++) filas.forEach((f) => { if (f[r] && produtos.length < 20) produtos.push(f[r]); });
+  if (!produtos.length) return null;
+  const cor = c.cor ?? "#3B1260";
+  return (
+    <section className="relative mt-14 overflow-hidden rounded-3xl p-5 text-white shadow-xl" style={{ background: `linear-gradient(135deg, ${cor}, ${c.cor_secundaria ?? cor})` }}>
+      <h2 className="text-2xl font-bold drop-shadow">{c.especial_titulo || termo}</h2>
+      <p className="text-sm opacity-90">Os produtos da época em todas as lojas</p>
+      <div className="mt-3 flex snap-x gap-3 overflow-x-auto pb-3 text-stone-900">
+        {produtos.map((p, i) => (
+          <div key={p.id} className="w-44 shrink-0 snap-start sm:w-52">
+            <span className="mb-1 block truncate text-xs font-bold text-white">{p.lojas.nome}</span>
+            <CardDoProduto produto={p} cor={p.lojas.cor ?? "#333"} slug={p.lojas.slug} indice={i} />
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

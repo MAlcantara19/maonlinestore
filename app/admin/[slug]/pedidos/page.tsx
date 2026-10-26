@@ -18,6 +18,7 @@ type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: 
 type Pedido = {
   id: string; codigo: string; tipo: "pedido" | "orcamento"; cliente_nome: string | null; itens: Item[]; total: number | null;
   desconto: number | null; cupom: string | null; data_desejada: string | null; urgente: boolean; status: string; nota_loja: string | null; criado_em: string;
+  entrega?: string | null; frete?: number | null;
 };
 
 const STATUS = [
@@ -101,6 +102,7 @@ function Lista() {
                 </ul>
                 <p className="mt-1 text-sm font-semibold">
                   Total: {formatarPreco(Number(p.total ?? 0))}{p.cupom ? ` (cupom ${p.cupom}: −${formatarPreco(Number(p.desconto ?? 0))})` : ""}
+                  {p.entrega && <> · 🚚 {p.entrega}{p.frete ? ` (${formatarPreco(Number(p.frete))})` : ""}</>}
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">

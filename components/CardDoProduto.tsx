@@ -3,6 +3,7 @@
 // selo, nome, preço "a partir de", situação e o botão "+" de adicionar
 // rápido. Usado na página da loja e no resultado da busca.
 // =====================================================================
+import { comPromocao, promocaoAtiva } from "@/lib/promocao";
 import BotaoFavorito from "@/components/BotaoFavorito";
 import Inclinar3D from "@/components/Inclinar3D";
 import Link from "next/link";
@@ -18,6 +19,7 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
   const variosPrecos = produto.variacoes.filter((v) => v.ativa && v.preco != null).length > 1;
   const menor = precoMinimo(produto);
   const esgotado = produto.disponibilidade === "esgotado";
+  const emPromocao = promocaoAtiva(produto);
 
   return (
     // Os cartões aparecem um depois do outro (efeito "cascata")
@@ -45,14 +47,27 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
             </span>
           )}
 
+          {/* Promoção: selo vermelho com o desconto */}
+          {emPromocao && (
+            <span className="pulsar absolute bottom-2 left-2 rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow">🔥 -{produto.promocao_pct}%</span>
+          )}
+
           {/* Esgotado: véu claro por cima da foto */}
           {esgotado && <span className="absolute inset-0 flex items-center justify-center bg-white/60 text-sm font-bold">Esgotado</span>}
         </div>
 
         <b className="mt-2 block text-sm">{produto.nome}</b>
-        <span className="texto-cor block text-sm font-semibold" style={{ color: cor }}>
-          {menor != null ? `${variosPrecos ? "a partir de " : ""}${formatarPreco(menor)}` : "Sob consulta"}
-        </span>
+        {menor != null && emPromocao ? (
+          // Promoção: preço antigo riscado + preço novo
+          <span className="block text-sm">
+            <s className="mr-1 text-xs opacity-50">{formatarPreco(menor)}</s>
+            <b className="texto-cor" style={{ color: cor }}>{variosPrecos ? "a partir de " : ""}{formatarPreco(comPromocao(menor, produto))}</b>
+          </span>
+        ) : (
+          <span className="texto-cor block text-sm font-semibold" style={{ color: cor }}>
+            {menor != null ? `${variosPrecos ? "a partir de " : ""}${formatarPreco(menor)}` : "Sob consulta"}
+          </span>
+        )}
         <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>
       </Link>
       </Inclinar3D>

@@ -85,6 +85,15 @@ function Formulario() {
           borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} aoMudar={(v) => setC({ ...c, ...v })} />
       </Bloco>
 
+      <Bloco titulo="🎄 Faixa especial na página inicial (Natal, Páscoa...)">
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!c.especial_ativo} onChange={(e) => setC({ ...c, especial_ativo: e.target.checked })} /> Mostrar a faixa especial</label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="Título da faixa"><input className={estiloInput} value={c.especial_titulo ?? ""} onChange={(e) => mudar("especial_titulo", e.target.value || null)} placeholder="🎄 Especial de Natal" /></Campo>
+          <Campo rotulo="Palavra no nome das coleções"><input className={estiloInput} value={c.especial_termo ?? ""} onChange={(e) => mudar("especial_termo", e.target.value || null)} placeholder="Natal" /></Campo>
+        </div>
+        <p className="text-xs opacity-60">Junta os produtos das coleções de TODAS as lojas que têm essa palavra no nome (ex.: “Coleção Natal” da VitraForma + “Natal” da Gallerie), alternando uma loja de cada vez. Em abril, troque para “Páscoa”. 😉</p>
+      </Bloco>
+
       <Bloco titulo="🤝 Página de parceiros">
         <Campo rotulo="Título"><input className={estiloInput} value={c.parceiros_titulo ?? ""} onChange={(e) => mudar("parceiros_titulo", e.target.value || null)} placeholder="🤝 Parceiros" /></Campo>
         <Campo rotulo="Subtítulo"><input className={estiloInput} value={c.parceiros_subtitulo ?? ""} onChange={(e) => mudar("parceiros_subtitulo", e.target.value || null)} /></Campo>

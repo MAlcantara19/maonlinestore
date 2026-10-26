@@ -33,6 +33,7 @@ export type Loja = {
   unidade_tamanho?: string; // unidade padrão dos tamanhos (cm, ml, g...)
   prazo_padrao?: string | null; // prazo que já vem no cadastro de produto
   banner_url?: string | null; // imagem do topo da loja
+  fretes?: { nome: string; valor: number }[]; // opções de entrega
   banner_escurecer?: number; // 0 a 90: quanto a cor da loja cobre a imagem
   razao_social?: string | null; // dados legais (aparecem no rodapé)
   documento?: string | null; // CNPJ ou CPF
@@ -103,6 +104,10 @@ export type Produto = {
   selo: string | null; // fitinha no canto da foto (ex.: Novo)
   categoria_id: string | null;
   produtos_categorias?: { categoria_id: string }[]; // todas as categorias do produto
+  ordem?: number; // ordem manual na loja
+  promocao_pct?: number | null; // % de desconto
+  promocao_ate?: string | null; // fim da promoção
+  giro_360?: boolean; // fotos formam um giro 360°
   variacoes: Variacao[];
   midias: Midia[];
 };
@@ -170,6 +175,9 @@ export type ConfigSite = {
   parceiros_fundo_animacao?: AnimacaoFundo;
   parceiros_efeito?: Efeito;
   parceiros_fundo_cor?: string | null;
+  especial_ativo?: boolean; // faixa especial (Natal, Páscoa...)
+  especial_titulo?: string | null;
+  especial_termo?: string | null;
 };
 
 export type AnimacaoFundo = "nenhuma" | "respirar" | "zoom_lento" | "deslizar";

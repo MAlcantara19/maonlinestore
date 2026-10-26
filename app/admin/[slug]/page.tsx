@@ -24,7 +24,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -61,6 +61,7 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
     if (!loja) return;
     setSalvando(true);
     const { id, slug: _slug, ...campos } = loja; // id e slug não mudam por aqui
+    if (campos.fretes) campos.fretes = campos.fretes.filter((f) => f.nome.trim()).map((f) => ({ nome: f.nome.trim(), valor: Number(f.valor) || 0 }));
     const { data, error } = await supabaseNavegador().from("lojas").update(campos).eq("id", id).select("id");
     if (error) setMensagem({ tipo: "erro", texto: `Não deu para salvar: ${error.message}` });
     else if (!data || data.length === 0) setMensagem({ tipo: "erro", texto: "Sua conta não tem permissão para alterar esta loja." });
@@ -98,6 +99,25 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         <AjusteLogo src={loja.logo_url}
           valor={{ logo_ajuste: loja.logo_ajuste ?? "cobrir", logo_zoom: Number(loja.logo_zoom ?? 1), logo_fundo: loja.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
+      </Bloco>
+
+      <Bloco titulo="🚚 Entrega e frete">
+        <p className="text-xs opacity-60">Opções que o cliente escolhe no carrinho. O valor entra no total do pedido. Deixe vazio se combinar tudo pelo WhatsApp.</p>
+        {(loja.fretes ?? []).map((f, i) => (
+          <div key={i} className="flex gap-2">
+            <input className={`${input} flex-1`} value={f.nome} placeholder="Ex.: Três Rios - Centro"
+              onChange={(e) => mudar("fretes", (loja.fretes ?? []).map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)))} />
+            <input className={`${input} w-28`} inputMode="decimal" value={String(f.valor).replace(".", ",")} placeholder="0,00"
+              onChange={(e) => mudar("fretes", (loja.fretes ?? []).map((x, j) => (j === i ? { ...x, valor: Number(e.target.value.replace(",", ".")) || 0 } : x)))} />
+            <button type="button" onClick={() => mudar("fretes", (loja.fretes ?? []).filter((_, j) => j !== i))} className="px-2 text-red-600" aria-label="Remover">🗑️</button>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => mudar("fretes", [...(loja.fretes ?? []), { nome: "", valor: 0 }])} className="rounded-full border px-4 py-2 text-sm">+ Opção de entrega</button>
+          {!(loja.fretes ?? []).some((f) => /retir/i.test(f.nome)) && (
+            <button type="button" onClick={() => mudar("fretes", [...(loja.fretes ?? []), { nome: "Retirar com a loja", valor: 0 }])} className="rounded-full border px-4 py-2 text-sm">+ Retirar com a loja (grátis)</button>
+          )}
+        </div>
       </Bloco>
 
       <Bloco titulo="📞 Contato">

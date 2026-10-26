@@ -4,6 +4,7 @@
 // e a pessoa cai direto nele — e o link aparece com FOTO e PREÇO na
 // prévia da conversa (generateMetadata, logo abaixo).
 // =====================================================================
+import GaleriaOu360 from "@/components/GaleriaOu360";
 import Avaliacoes from "@/components/Avaliacoes";
 import BotaoFavorito from "@/components/BotaoFavorito";
 import RegistrarVisita from "@/components/RegistrarVisita";
@@ -24,9 +25,9 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Busca loja + produto (usado pela prévia do link e pela página).
 async function buscar(slug: string, id: string) {
@@ -99,7 +100,9 @@ async function ConteudoDoProduto({ params }: Props) {
       <RegistrarVisita slug={slug} produtoId={produto.id} />
         {/* Celular: uma coluna. Computador (md): fotos à esquerda, informações à direita */}
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
-          <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />
+          {produto.giro_360 && midias.filter((m) => m.tipo === "foto").length >= 4
+            ? <GaleriaOu360 midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />
+            : <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />}
 
           <div>
             <div className="mt-4 flex items-start justify-between gap-3 md:mt-0">
@@ -126,7 +129,7 @@ async function ConteudoDoProduto({ params }: Props) {
               </div>
             )}
 
-            <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl />
+            <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl whatsapp={loja.whatsapp} />
           </div>
         </div>
         <Avaliacoes itens={avaliacoes} cor={cor} />

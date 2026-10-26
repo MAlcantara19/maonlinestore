@@ -28,6 +28,7 @@ import type { Categoria, Disponibilidade } from "@/lib/tipos";
 type Dados = {
   nome: string; descricao: string; restricoes: string; preco: string; disponibilidade: Disponibilidade;
   prazo: string; selo: string; destaque: boolean; ativo: boolean;
+  promocao_pct: string; promocao_ate: string; giro_360: boolean; // promoção (%) até a data · fotos em 360°
 };
 type LinhaVariacao = {
   id?: string; tipo: "unidade" | "kit"; nome: string; descricao: string; tamanho: string; cor: string;
@@ -41,7 +42,7 @@ const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
   { valor: "sob_encomenda", rotulo: "Sob encomenda" },
   { valor: "esgotado", rotulo: "Esgotado" },
 ];
-const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true });
+const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false });
 const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true });
 const precoTexto = (v: unknown) => (v != null ? String(v).replace(".", ",") : "");
 
@@ -98,6 +99,7 @@ function Formulario() {
           setDados({
             nome: p.nome, descricao: p.descricao ?? "", restricoes: p.restricoes ?? "", preco: precoTexto(p.preco),
             disponibilidade: p.disponibilidade, prazo: p.prazo ?? "", selo: p.selo ?? "", destaque: p.destaque, ativo: p.ativo,
+            promocao_pct: p.promocao_pct ? String(p.promocao_pct) : "", promocao_ate: p.promocao_ate ? String(p.promocao_ate).slice(0, 10) : "", giro_360: !!p.giro_360,
           });
           const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setVariacoes(vs.map((v: Record<string, unknown>) => ({
@@ -174,6 +176,9 @@ function Formulario() {
         loja_id: loja.id, nome: dados.nome.trim(), descricao: dados.descricao || null, restricoes: dados.restricoes || null,
         preco: paraNumero(dados.preco), disponibilidade: dados.disponibilidade, prazo: prazoComDias(dados.prazo), selo: dados.selo.trim() || null,
         destaque: dados.destaque, ativo: dados.ativo, categoria_id: catsMarcadas[0] ?? null,
+        promocao_pct: Number(dados.promocao_pct) >= 1 && Number(dados.promocao_pct) <= 90 ? Math.round(Number(dados.promocao_pct)) : null,
+        promocao_ate: dados.promocao_pct && dados.promocao_ate ? new Date(`${dados.promocao_ate}T23:59:59`).toISOString() : null,
+        giro_360: dados.giro_360,
       };
       const r = novo
         ? await supabase.from("produtos").insert(linha).select("id").single()
@@ -454,9 +459,27 @@ function Formulario() {
         <ListaSugestoes id="lista-prazo" opcoes={SUGESTOES_PRAZO} />
       </Bloco>
 
+      <Bloco titulo="🔥 Promoção">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="Desconto (%) — vazio = sem promoção">
+            <input className={estiloInput} inputMode="numeric" value={dados.promocao_pct} placeholder="Ex.: 15"
+              onChange={(e) => mudar("promocao_pct", e.target.value.replace(/\D/g, "").slice(0, 2))} />
+          </Campo>
+          <Campo rotulo="Termina em (vazio = sem data)">
+            <input type="date" className={estiloInput} value={dados.promocao_ate} onChange={(e) => mudar("promocao_ate", e.target.value)} />
+          </Campo>
+        </div>
+        {Number(dados.promocao_pct) > 0 && paraNumero(dados.preco) != null && (
+          <p className="text-sm">Na loja: <s className="opacity-50">{dados.preco}</s> por <b className="text-red-600">
+            R$ {(Math.round(Number(paraNumero(dados.preco)) * (100 - Number(dados.promocao_pct))) / 100).toFixed(2).replace(".", ",")}</b> 🔥 (vale também para as variações)</p>
+        )}
+      </Bloco>
+
       <Bloco titulo="👀 Visibilidade">
         <Interruptor rotulo="Visível na loja" ajuda="Desligado: o produto some da loja (sem apagar)." ligado={dados.ativo} aoMudar={(v) => mudar("ativo", v)} />
         <Interruptor rotulo="⭐ Destaque" ajuda="Aparece na seção Destaques e na Vitrine do dia." ligado={dados.destaque} aoMudar={(v) => mudar("destaque", v)} />
+        <Interruptor rotulo="🔄 Fotos em giro 360°" ajuda="Use quando as fotos forem tiradas girando o produto (12 a 36 fotos, na ordem). Na loja, o cliente arrasta e o produto gira."
+          ligado={dados.giro_360} aoMudar={(v) => mudar("giro_360", v)} />
       </Bloco>
 
       <BarraSalvar mensagem={mensagem} salvando={salvando} aoSalvar={salvar} cor={cor}

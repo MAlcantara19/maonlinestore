@@ -62,7 +62,13 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const desconto = cupom && cupomVale
     ? Math.min(subtotal, cupom.tipo === "porcentagem" ? (subtotal * Number(cupom.valor)) / 100 : Number(cupom.valor))
     : 0;
-  const total = subtotal - desconto;
+  // Entrega/frete (opções cadastradas pela loja)
+  const fretes = loja.fretes ?? [];
+  const [entrega, setEntrega] = useState("");
+  const freteEscolhido = fretes.find((f) => f.nome === entrega);
+  const valorFrete = freteEscolhido ? Number(freteEscolhido.valor) || 0 : 0;
+  const [avisoEntrega, setAvisoEntrega] = useState(false);
+  const total = subtotal - desconto + valorFrete;
 
   // Pergunta ao banco se o cupom vale (os códigos não ficam expostos no site)
   async function aplicarCupom() {
@@ -75,6 +81,8 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   }
 
   async function enviar(tipo: "pedido" | "orcamento") {
+    // Loja com opções de entrega: precisa escolher uma antes de enviar
+    if (fretes.length && !freteEscolhido) { setAvisoEntrega(true); return; }
     setEnviando(true);
     setAviao(true); // ✈️ o pedido "voa"
     // Abre a aba JÁ no clique (se esperar o banco, alguns celulares bloqueiam a janela nova)
@@ -86,6 +94,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         p_loja: loja.id, p_tipo: tipo, p_nome: nome || null,
         p_itens: itens.map((i) => ({ nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao })),
         p_total: total, p_desconto: desconto || null, p_cupom: cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
+        p_entrega: freteEscolhido?.nome ?? null, p_frete: freteEscolhido ? valorFrete : null,
       });
       codigo = (r as string) ?? null;
     } catch {}
@@ -105,6 +114,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
     const mensagem = montarMensagem({
       tipo, loja: loja.nome, codigo, nome, itens, subtotal, desconto, cupom: cupomVale ? cupom!.codigo : null,
       total, temSobConsulta, data, urgente, linkAcompanhar: codigo ? `${window.location.origin}/pedido/${codigo}` : null,
+      entrega: freteEscolhido?.nome ?? null, frete: freteEscolhido ? valorFrete : null,
     });
     const numero = (loja.whatsapp ?? "").replace(/\D/g, "");
     const url = linkWhatsApp(numero, mensagem);
@@ -163,10 +173,11 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
       {/* Valores */}
       <div className="mt-4 space-y-1 text-sm">
-        {desconto > 0 && (
+        {(desconto > 0 || freteEscolhido) && (
           <>
             <p className="flex justify-between"><span>Subtotal</span><span>{formatarPreco(subtotal)}</span></p>
-            <p className="flex justify-between text-green-700"><span>🏷️ Cupom {cupom!.codigo}</span><span>− {formatarPreco(desconto)}</span></p>
+            {desconto > 0 && <p className="flex justify-between text-green-700"><span>🏷️ Cupom {cupom!.codigo}</span><span>− {formatarPreco(desconto)}</span></p>}
+            {freteEscolhido && <p className="flex justify-between"><span>🚚 {freteEscolhido.nome}</span><span>{valorFrete ? formatarPreco(valorFrete) : "grátis"}</span></p>}
           </>
         )}
         <p className="flex justify-between text-lg font-bold"><span>Total estimado</span><span className="texto-cor" style={{ color: cor }}>{formatarPreco(total)}</span></p>
@@ -181,6 +192,16 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         <label className="block text-sm font-semibold">📅 Para quando você precisa? <span className="font-normal opacity-60">(opcional)</span>
           <input type="date" className={`${campo} mt-1`} value={data} onChange={(e) => setData(e.target.value)} />
         </label>
+        {fretes.length > 0 && (
+          <label className="block text-sm font-semibold">🚚 Entrega
+            <select className={`${campo} mt-1`} value={entrega} onChange={(e) => { setEntrega(e.target.value); setAvisoEntrega(false); }}
+              style={avisoEntrega ? { borderColor: "#dc2626" } : {}}>
+              <option value="">Escolha como receber...</option>
+              {fretes.map((f) => <option key={f.nome} value={f.nome}>{f.nome} — {Number(f.valor) ? formatarPreco(Number(f.valor)) : "grátis"}</option>)}
+            </select>
+            {avisoEntrega && <span className="mt-1 block text-xs font-normal text-red-600">Escolha como você quer receber para enviar o pedido.</span>}
+          </label>
+        )}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={urgente} onChange={(e) => setUrgente(e.target.checked)} /> ⚡ <b>É urgente</b>
         </label>
