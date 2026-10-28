@@ -9,6 +9,7 @@
 // Preço, prazo, situação e o texto da opção vêm da variação escolhida.
 // Ao adicionar: confete 🎉, a miniatura voa até o carrinho e ele abre.
 // =====================================================================
+import { estoqueDa, semEstoque } from "@/lib/estoque";
 import { comPromocao, promocaoAtiva, textoFimPromocao } from "@/lib/promocao";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { useEffect, useState, type MouseEvent } from "react";
@@ -77,7 +78,8 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
   const preco = precoCheio != null ? comPromocao(Number(precoCheio), produto) : null;
   const disponibilidade = variacao?.disponibilidade ?? produto.disponibilidade;
   const prazo = variacao?.prazo ?? produto.prazo;
-  const esgotado = disponibilidade === "esgotado";
+  const estoque = estoqueDa(produto, variacao);
+  const esgotado = disponibilidade === "esgotado" || semEstoque(estoque);
 
   // Link com ?opcao=&tamanho=&cor= já abre com a variação escolhida
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       cor: corValida === COR_A_ESCOLHER ? "A escolher (ver observação)" : corValida || null,
       preco: preco != null ? Number(preco) : null,
       promocao: emPromocao ? produto.promocao_pct : null,
-      quantidade,
+      quantidade: estoque != null ? Math.min(quantidade, estoque) : quantidade,
       observacao: observacao.trim(),
       prazo,
     });
@@ -164,7 +166,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
         {preco != null ? formatarPreco(Number(preco)) : "Sob consulta"}
       </p>
       <p className="text-sm opacity-70">
-        {disponibilidade === "sob_encomenda" ? "Sob encomenda" : esgotado ? "Esgotado" : "Pronta entrega"}
+        {esgotado ? "Esgotado" : disponibilidade === "sob_encomenda" ? "Sob encomenda" : "Pronta entrega"}
         {prazo ? ` · prazo: ${prazo}` : ""}
       </p>
 
@@ -198,7 +200,9 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       <div className="flex items-center gap-3">
         <button type="button" className="h-10 w-10 rounded-lg border text-lg" onClick={() => setQuantidade((q) => Math.max(1, q - 1))}>−</button>
         <span className="w-6 text-center">{quantidade}</span>
-        <button type="button" className="h-10 w-10 rounded-lg border text-lg" onClick={() => setQuantidade((q) => q + 1)}>+</button>
+        <button type="button" className="h-10 w-10 rounded-lg border text-lg" disabled={estoque != null && quantidade >= estoque}
+          onClick={() => setQuantidade((q) => (estoque != null ? Math.min(estoque, q + 1) : q + 1))}>+</button>
+        {estoque != null && estoque > 0 && estoque <= 5 && <span className="text-sm font-semibold text-orange-600">⏳ Só {estoque === 1 ? "resta 1" : `restam ${estoque}`}!</span>}
       </div>
 
       {/* Observação livre */}

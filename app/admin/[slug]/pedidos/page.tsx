@@ -71,6 +71,10 @@ function Lista() {
   return (
     <>
       <AbasLoja slug={slug} nome={loja.nome} cor={cor} />
+      <p className="mb-3 rounded-xl bg-sky-50 p-3 text-xs text-sky-900">
+        📦 Produtos com estoque controlado: o estoque <b>baixa sozinho</b> quando o pedido muda para &quot;Em produção&quot;, &quot;Pronto&quot; ou &quot;Entregue&quot;,
+        e <b>volta</b> se você cancelar.
+      </p>
       {aviso && <p className="fixed inset-x-0 top-4 z-50 mx-auto w-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg">{aviso}</p>}
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">

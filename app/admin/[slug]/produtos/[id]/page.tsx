@@ -29,10 +29,11 @@ type Dados = {
   nome: string; descricao: string; restricoes: string; preco: string; disponibilidade: Disponibilidade;
   prazo: string; selo: string; destaque: boolean; ativo: boolean;
   promocao_pct: string; promocao_ate: string; giro_360: boolean; // promoção (%) até a data · fotos em 360°
+  estoque: string; // vazio = não controla
 };
 type LinhaVariacao = {
   id?: string; tipo: "unidade" | "kit"; nome: string; descricao: string; tamanho: string; cor: string;
-  preco: string; disponibilidade: Disponibilidade | ""; prazo: string; ativa: boolean;
+  preco: string; disponibilidade: Disponibilidade | ""; prazo: string; ativa: boolean; estoque: string;
 };
 type LinhaMidia = { id?: string; tipo: "foto" | "video"; url: string; cor?: string | null };
 type ColecaoSimples = { id: string; nome: string };
@@ -42,8 +43,8 @@ const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
   { valor: "sob_encomenda", rotulo: "Sob encomenda" },
   { valor: "esgotado", rotulo: "Esgotado" },
 ];
-const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false });
-const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true });
+const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "" });
+const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true, estoque: "" });
 const precoTexto = (v: unknown) => (v != null ? String(v).replace(".", ",") : "");
 
 export default function PainelProduto() {
@@ -100,12 +101,14 @@ function Formulario() {
             nome: p.nome, descricao: p.descricao ?? "", restricoes: p.restricoes ?? "", preco: precoTexto(p.preco),
             disponibilidade: p.disponibilidade, prazo: p.prazo ?? "", selo: p.selo ?? "", destaque: p.destaque, ativo: p.ativo,
             promocao_pct: p.promocao_pct ? String(p.promocao_pct) : "", promocao_ate: p.promocao_ate ? String(p.promocao_ate).slice(0, 10) : "", giro_360: !!p.giro_360,
+            estoque: p.estoque != null ? String(p.estoque) : "",
           });
           const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setVariacoes(vs.map((v: Record<string, unknown>) => ({
             id: v.id as string, tipo: (v.tipo as "unidade" | "kit") ?? "unidade", nome: (v.nome as string) ?? "", descricao: (v.descricao as string) ?? "",
             tamanho: (v.tamanho as string) ?? "", cor: (v.cor as string) ?? "", preco: precoTexto(v.preco),
             disponibilidade: (v.disponibilidade as Disponibilidade) ?? "", prazo: (v.prazo as string) ?? "", ativa: v.ativa as boolean,
+            estoque: v.estoque != null ? String(v.estoque) : "",
           })));
           const ms = [...p.midias].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setMidias(ms.map((m: { id: string; tipo: "foto" | "video"; url: string; cor: string | null }) => ({ id: m.id, tipo: m.tipo, url: m.url, cor: m.cor })));
@@ -179,6 +182,7 @@ function Formulario() {
         promocao_pct: Number(dados.promocao_pct) >= 1 && Number(dados.promocao_pct) <= 90 ? Math.round(Number(dados.promocao_pct)) : null,
         promocao_ate: dados.promocao_pct && dados.promocao_ate ? new Date(`${dados.promocao_ate}T23:59:59`).toISOString() : null,
         giro_360: dados.giro_360,
+        estoque: dados.estoque.trim() === "" ? null : Math.max(0, Math.round(Number(dados.estoque)) || 0),
       };
       const r = novo
         ? await supabase.from("produtos").insert(linha).select("id").single()
@@ -194,6 +198,7 @@ function Formulario() {
         produto_id: produtoId, tipo: v.tipo, nome: v.nome.trim() || null, descricao: v.descricao.trim() || null,
         tamanho: tamanhoComUnidade(v.tamanho, loja.unidade_tamanho) || null, cor: comMaiuscula(v.cor) || null,
         preco: paraNumero(v.preco), disponibilidade: v.disponibilidade || null, prazo: prazoComDias(v.prazo), ativa: v.ativa, ordem,
+        estoque: v.estoque.trim() === "" ? null : Math.max(0, Math.round(Number(v.estoque)) || 0),
       });
       const vExistentes = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => v.id).map(({ v, i }) => ({ id: v.id, ...paraBanco(v, i) }));
       const vNovas = variacoes.map((v, i) => ({ v, i })).filter(({ v }) => !v.id).map(({ v, i }) => paraBanco(v, i));
@@ -346,7 +351,14 @@ function Formulario() {
           </Campo>
           <Campo rotulo="Prazo (padrão da loja já preenchido)"><input list="lista-prazo" className={estiloInput} value={dados.prazo} onChange={(e) => mudar("prazo", e.target.value)} placeholder="10 dias" /></Campo>
         </div>
-        <p className="text-xs opacity-60">Se o produto tiver variações com preço, o cartão mostra "a partir de" o menor preço delas.</p>
+        <Campo rotulo="📦 Estoque (quantidade disponível · vazio = não controlar)">
+          <input className={estiloInput} inputMode="numeric" value={dados.estoque} placeholder="Ex.: 10"
+            onChange={(e) => mudar("estoque", e.target.value.replace(/\D/g, ""))} />
+        </Campo>
+        <p className="text-xs opacity-60">
+          Se o produto tiver variações com preço, o cartão mostra &quot;a partir de&quot; o menor preço delas. Tem variações? Use o estoque de cada variação.
+          O estoque baixa sozinho quando você muda o pedido para &quot;Em produção&quot; e volta se cancelar. Chegou a 0 = aparece &quot;Esgotado&quot;.
+        </p>
       </Bloco>
 
       <Bloco titulo="🗂️ Categorias e coleções">
@@ -402,7 +414,7 @@ function Formulario() {
               <button type="button" onClick={() => mudarVariacao(i, "ativa", !v.ativa)} className="rounded-lg border px-2 py-1 text-xs">{v.ativa ? "Ativa" : "Oculta"}</button>
               <button type="button" onClick={() => setVariacoes(variacoes.filter((_, j) => j !== i))} className="rounded-lg px-2 py-1 text-red-600" aria-label="Remover variação">🗑️</button>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
               <input list="lista-tamanho" className={celula} placeholder="Tamanho" value={v.tamanho} onChange={(e) => mudarVariacao(i, "tamanho", e.target.value)} />
               <input list="lista-cor" className={celula} placeholder="Cor" value={v.cor} onChange={(e) => mudarVariacao(i, "cor", e.target.value)} />
               <input className={celula} placeholder="Preço" inputMode="decimal" value={v.preco} onChange={(e) => mudarVariacao(i, "preco", e.target.value)} />
@@ -411,6 +423,8 @@ function Formulario() {
                 {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
               </select>
               <input list="lista-prazo" className={celula} placeholder="Prazo (do produto)" value={v.prazo} onChange={(e) => mudarVariacao(i, "prazo", e.target.value)} />
+              <input className={celula} inputMode="numeric" placeholder="📦 Estoque" title="Estoque desta opção (vazio = não controlar)" value={v.estoque}
+                onChange={(e) => mudarVariacao(i, "estoque", e.target.value.replace(/\D/g, ""))} />
             </div>
             <textarea rows={1} className={celula} placeholder="Texto da opção (opcional) — ex.: 3 corações + 3 estrelas + 3 nuvens" value={v.descricao} onChange={(e) => mudarVariacao(i, "descricao", e.target.value)} />
           </div>

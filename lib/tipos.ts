@@ -73,6 +73,7 @@ export type Variacao = {
   tipo?: "unidade" | "kit"; // venda por unidade ou kit
   nome?: string | null; // opção/modelo (ex.: "Clipes de coração")
   descricao?: string | null; // texto da opção (ex.: "3 de cada modelo")
+  estoque?: number | null; // quantidade desta opção (vazio = não controla)
   tamanho: string | null; // vazio = tamanho único
   cor: string | null; // vazio = todas as cores
   preco: number | null;
@@ -108,6 +109,7 @@ export type Produto = {
   promocao_pct?: number | null; // % de desconto
   promocao_ate?: string | null; // fim da promoção
   giro_360?: boolean; // fotos formam um giro 360°
+  estoque?: number | null; // quantidade (vazio = não controla)
   variacoes: Variacao[];
   midias: Midia[];
 };

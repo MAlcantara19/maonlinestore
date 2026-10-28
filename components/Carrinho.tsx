@@ -92,7 +92,11 @@ export default function Carrinho({ loja }: { loja: Loja }) {
     try {
       const { data: r } = await supabaseNavegador().rpc("criar_pedido", {
         p_loja: loja.id, p_tipo: tipo, p_nome: nome || null,
-        p_itens: itens.map((i) => ({ nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao })),
+        p_itens: itens.map((i) => {
+          const variacao = i.chave.split("|")[1];
+          return { nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao,
+            produto_id: i.produtoId, variacao_id: variacao && variacao !== "unico" ? variacao : null };
+        }),
         p_total: total, p_desconto: desconto || null, p_cupom: cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
         p_entrega: freteEscolhido?.nome ?? null, p_frete: freteEscolhido ? valorFrete : null,
       });

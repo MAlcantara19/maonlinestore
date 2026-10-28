@@ -9,7 +9,7 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 import type { Produto } from "@/lib/tipos";
 import CardDoProduto from "@/components/CardDoProduto";
 
-const COLUNAS = "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+const COLUNAS = "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 export default function ListaFavoritos({ slug, lojaId, cor }: { slug: string; lojaId: string; cor: string }) {
   const ids = usarFavoritos(slug);

@@ -80,6 +80,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
           <li>💬 Atendimento direto pelo WhatsApp</li>
           <li>🛡️ Dados protegidos (LGPD)</li>
           <li><Link href="/sacola" className="hover:underline">🛍️ Minha sacola</Link></li>
+          <li><Link href="/meus-pedidos" className="hover:underline">🧾 Meus pedidos</Link></li>
         </ul>
       </div>
 

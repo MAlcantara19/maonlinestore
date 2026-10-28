@@ -3,6 +3,7 @@
 // selo, nome, preço "a partir de", situação e o botão "+" de adicionar
 // rápido. Usado na página da loja e no resultado da busca.
 // =====================================================================
+import { estoqueTotal, semEstoque, textoUltimas } from "@/lib/estoque";
 import { comPromocao, promocaoAtiva } from "@/lib/promocao";
 import BotaoFavorito from "@/components/BotaoFavorito";
 import Inclinar3D from "@/components/Inclinar3D";
@@ -18,7 +19,9 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
   const foto = [...produto.midias].filter((m) => m.tipo === "foto").sort((a, b) => a.ordem - b.ordem)[0];
   const variosPrecos = produto.variacoes.filter((v) => v.ativa && v.preco != null).length > 1;
   const menor = precoMinimo(produto);
-  const esgotado = produto.disponibilidade === "esgotado";
+  const estoque = estoqueTotal(produto);
+  const esgotado = produto.disponibilidade === "esgotado" || semEstoque(estoque);
+  const ultimas = textoUltimas(estoque);
   const emPromocao = promocaoAtiva(produto);
 
   return (
@@ -68,7 +71,8 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
             {menor != null ? `${variosPrecos ? "a partir de " : ""}${formatarPreco(menor)}` : "Sob consulta"}
           </span>
         )}
-        <span className="block text-xs opacity-60">{textoDisponibilidade(produto.disponibilidade)}</span>
+        <span className="block text-xs opacity-60">{esgotado ? "Esgotado" : textoDisponibilidade(produto.disponibilidade)}</span>
+        {ultimas && !esgotado && <span className="block text-xs font-bold text-orange-600">⏳ {ultimas}</span>}
       </Link>
       </Inclinar3D>
 
