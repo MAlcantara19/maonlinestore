@@ -49,6 +49,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
             <span className="text-xs opacity-60">Adicionar, editar, destacar e desativar parceiros</span>
           </Link>
           <BotaoBackup />
+          <NovaLoja />
           <Link href="/admin/administradores" className="clicavel rounded-2xl bg-white p-4 shadow-sm">
             <b className="block">👥 Administradores</b>
             <span className="text-xs opacity-60">Dar acesso aos usuários, escolher as lojas de cada um e trocar senhas</span>
@@ -104,5 +105,73 @@ function BotaoBackup() {
         {estado === "baixando" ? "Gerando o arquivo..." : estado === "erro" ? "Não deu (confira a SUPABASE_SECRET_KEY)" : "Todos os dados do site num arquivo. Faça toda semana e guarde no Drive."}
       </span>
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------
+// ➕ Nova loja (só master): nome, endereço, cor e WhatsApp. A loja nasce
+// "Em breve" e você termina de montar nas Configurações dela.
+// ---------------------------------------------------------------------
+const paraEndereco = (nome: string) =>
+  nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+function NovaLoja() {
+  const [aberto, setAberto] = useState(false);
+  const [nome, setNome] = useState("");
+  const [slug, setSlug] = useState("");
+  const [mexeuSlug, setMexeuSlug] = useState(false);
+  const [cor, setCor] = useState("#0E7C7B");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [criando, setCriando] = useState(false);
+  const campo = "mt-1 w-full rounded-lg border px-3 py-2 text-sm";
+
+  async function criar() {
+    setCriando(true); setAviso("");
+    const { data, error } = await supabaseNavegador().rpc("criar_loja", { p_nome: nome, p_slug: slug, p_cor: cor, p_whatsapp: whatsapp || null, p_descricao: descricao || null });
+    setCriando(false);
+    if (error) return setAviso(error.message);
+    window.location.href = `/admin/${data}`; // vai direto para as configurações da loja nova
+  }
+
+  if (!aberto) {
+    return (
+      <button type="button" onClick={() => setAberto(true)} className="clicavel rounded-2xl bg-white p-4 text-left shadow-sm">
+        <b className="block">➕ Nova loja</b>
+        <span className="text-xs opacity-60">Criar uma loja nova na MA Online Store (nasce “Em breve”).</span>
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm sm:col-span-2">
+      <b className="block">➕ Nova loja</b>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        <label className="text-sm font-semibold">Nome da loja
+          <input className={campo} value={nome} placeholder="Cais Tropical"
+            onChange={(e) => { setNome(e.target.value); if (!mexeuSlug) setSlug(paraEndereco(e.target.value)); }} />
+        </label>
+        <label className="text-sm font-semibold">Endereço
+          <input className={campo} value={slug} onChange={(e) => { setMexeuSlug(true); setSlug(paraEndereco(e.target.value)); }} />
+          <span className="text-xs font-normal opacity-60">maonlinestore.vercel.app/<b>{slug || "..."}</b></span>
+        </label>
+        <label className="text-sm font-semibold">WhatsApp da loja (com DDD)
+          <input className={campo} inputMode="tel" value={whatsapp} placeholder="24 99999-9999" onChange={(e) => setWhatsapp(e.target.value)} />
+        </label>
+        <label className="text-sm font-semibold">Cor principal
+          <span className="mt-1 flex items-center gap-2"><input type="color" value={cor} onChange={(e) => setCor(e.target.value)} className="h-10 w-14 rounded" /> <span className="font-mono text-xs">{cor}</span></span>
+        </label>
+        <label className="text-sm font-semibold sm:col-span-2">Descrição curta
+          <input className={campo} value={descricao} placeholder="Ecobags pintadas à mão" onChange={(e) => setDescricao(e.target.value)} />
+        </label>
+      </div>
+      {aviso && <p className="mt-2 text-sm text-red-600">{aviso}</p>}
+      <div className="mt-3 flex gap-2">
+        <button type="button" onClick={() => setAberto(false)} className="rounded-xl border px-4 text-sm">Cancelar</button>
+        <button type="button" onClick={criar} disabled={criando || !nome.trim() || !slug} className="flex-1 rounded-xl bg-stone-900 p-3 font-semibold text-white disabled:opacity-40">
+          {criando ? "Criando..." : "Criar loja"}
+        </button>
+      </div>
+    </div>
   );
 }
