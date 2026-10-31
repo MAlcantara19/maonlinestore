@@ -102,8 +102,10 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
         return (
           <li key={item.id}>
             <div className="flex items-center gap-1">
+              {/* Categoria principal: fundo de "botão" e barrinha na cor da loja; os outros itens ficam simples */}
               <Link href={`/${slug}#${item.id}`} onClick={aoClicar}
-                className="clicavel flex-1 rounded-lg px-3 py-2 text-sm font-medium hover:bg-white/60" style={{ color: cor }}>
+                className={`clicavel flex-1 rounded-lg px-3 py-2 text-sm hover:bg-white/60 ${item.grupo === "categorias" ? "bg-white/70 font-bold shadow-sm" : "font-medium"}`}
+                style={{ color: cor, ...(item.grupo === "categorias" ? { borderLeft: `4px solid ${cor}` } : {}) }}>
                 {item.rotulo}
               </Link>
               {temFilhos && (
@@ -120,7 +122,7 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
             {temFilhos && (
               <div className="grid transition-[grid-template-rows] duration-300 ease-out"
                 style={{ gridTemplateRows: expandido ? "1fr" : "0fr" }}>
-                <ul className="overflow-hidden pl-4">
+                <ul className="ml-4 overflow-hidden border-l-2 pl-2" style={{ borderColor: `${cor}40` }}>
                   {item.filhos!.map((f) => (
                     <li key={f.id}>
                       <Link href={`/${slug}#${f.id}`} onClick={aoClicar}

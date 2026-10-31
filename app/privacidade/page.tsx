@@ -50,6 +50,10 @@ export default function Privacidade() {
           Contamos, de forma anônima, visitas, produtos vistos, itens colocados ou tirados do carrinho e favoritos, para as
           lojas saberem o que mais agrada. Não guardamos nome, telefone nem o endereço de internet (IP) de ninguém: o IP é
           transformado num código embaralhado, usado só para evitar abusos (como robôs enviando pedidos falsos).
+          Cada aparelho recebe um código anônimo (ex.: “#A3F2K9”) guardado no próprio navegador, para a loja entender o
+          caminho das visitas. Se você enviar um pedido ou dúvida informando seu nome, a loja pode ver esse nome junto do
+          histórico daquele aparelho — por exemplo, para te indicar produtos parecidos com os que você viu. Para apagar o
+          código, basta limpar os dados do site no seu navegador.
         </p>
 
         <h2 className={h}>2.1. Carrinho e favoritos</h2>

@@ -51,6 +51,11 @@ function Conteudo() {
   const [dias, setDias] = useState(30);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState("");
+  // Histórico de visitas (linha do tempo por visitante)
+  type Visita = { criado_em: string; tipo: string; produto: string | null; visitante: string | null; aparelho: string | null; detalhe: string | null; nome: string | null };
+  const [historico, setHistorico] = useState<Visita[] | null>(null);
+  const [visitante, setVisitante] = useState<string | null>(null);
+  const [recarregar, setRecarregar] = useState(0);
 
   useEffect(() => { lojaPeloSlug(slug).then(setLoja); }, [slug]);
   useEffect(() => {
@@ -58,7 +63,12 @@ function Conteudo() {
     setDados(null);
     supabaseNavegador().rpc("estatisticas_loja", { p_loja: loja.id, p_dias: dias })
       .then(({ data, error }: { data: Dados | null; error: { message: string } | null }) => (error ? setErro(error.message) : setDados(data)));
-  }, [loja, dias]);
+  }, [loja, dias, recarregar]);
+  useEffect(() => {
+    if (!loja) return;
+    supabaseNavegador().rpc("historico_visitas", { p_loja: loja.id, p_visitante: visitante, p_limite: visitante ? 500 : 150 })
+      .then(({ data }: { data: Visita[] | null }) => setHistorico(data ?? []), () => setHistorico([]));
+  }, [loja, visitante, recarregar]);
 
   if (!loja) return <p className="opacity-60">Carregando...</p>;
   const cor = loja.cor ?? "#333";
@@ -136,7 +146,47 @@ function Conteudo() {
               </ul>
             )}
           </Bloco>
-          <p className="text-xs opacity-50">As estatísticas são anônimas: não guardamos nome, telefone nem o endereço de internet de ninguém.</p>
+          <Bloco titulo="🕵️ Histórico de visitas">
+            <p className="text-xs opacity-60">
+              Cada aparelho tem um código anônimo. O nome só aparece se a pessoa mandou um pedido ou dúvida e digitou o nome no carrinho.
+              Toque num visitante para ver tudo o que ele viu.
+            </p>
+            {visitante && (
+              <button type="button" onClick={() => setVisitante(null)} className="w-fit rounded-full px-3 py-1 text-sm text-white" style={{ background: cor }}>
+                Visitante #{visitante} ✕ (ver todos)
+              </button>
+            )}
+            {!historico ? <p className="text-sm opacity-60">Carregando...</p> : historico.length === 0 ? <p className="text-sm opacity-60">Nada ainda.</p> : (
+              <ul className="max-h-[520px] space-y-1 overflow-y-auto pr-1 text-sm">
+                {historico.map((h, n) => (
+                  <li key={n} className="flex flex-wrap items-center gap-x-2 rounded-lg bg-stone-50 px-3 py-2">
+                    <span className="w-24 shrink-0 font-mono text-xs opacity-60">{new Date(h.criado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                    {h.visitante && (
+                      <button type="button" onClick={() => setVisitante(h.visitante)} className="rounded-full border px-2 py-0.5 text-xs font-semibold" style={{ borderColor: cor, color: cor }}>
+                        {h.nome ? `👤 ${h.nome}` : `#${h.visitante}`}
+                      </button>
+                    )}
+                    <span className="text-xs opacity-60">{h.aparelho}</span>
+                    <span className="flex-1">{INFO[h.tipo]?.icone} {INFO[h.tipo]?.frase(h.produto) ?? h.tipo}{h.detalhe ? ` ${h.detalhe}` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Bloco>
+
+          <Bloco titulo="🧹 Zerar estatísticas">
+            <p className="text-sm opacity-70">Apaga visitas, cliques, favoritos e o histórico desta loja (por exemplo, depois dos seus testes). Os pedidos continuam — para tirar pedidos de teste, use “🧪 Marcar como teste” na aba Pedidos.</p>
+            <button type="button" className="w-fit rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700"
+              onClick={async () => {
+                if (!confirm("Zerar TODAS as estatísticas desta loja? Não dá para desfazer.")) return;
+                const { error } = await supabaseNavegador().from("eventos").delete().eq("loja_id", loja.id);
+                if (error) return alert(`Não deu: ${error.message}`);
+                setVisitante(null); setRecarregar((n) => n + 1);
+              }}>
+              🧹 Zerar estatísticas
+            </button>
+          </Bloco>
+          <p className="text-xs opacity-50">Não guardamos o endereço de internet (IP) de ninguém: cada aparelho tem só um código anônimo.</p>
         </>
       )}
     </>

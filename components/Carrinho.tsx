@@ -107,7 +107,8 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       codigo = (r as string) ?? null;
     } catch {}
 
-    registrarEvento(loja.slug, "pedido"); // estatísticas
+    // Estatísticas: o pedido entra no histórico com o código e o nome que a pessoa digitou
+    registrarEvento(loja.slug, tipo === "orcamento" ? "whatsapp" : "pedido", null, codigo ? `#${codigo}${nome.trim() ? ` · ${nome.trim()}` : ""}` : null);
 
     // Guarda o pedido no aparelho do cliente ("Seus pedidos recentes")
     if (codigo) {
