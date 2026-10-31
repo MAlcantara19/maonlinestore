@@ -4,7 +4,8 @@
 // aparecem as lojas e os produtos de qualquer loja com isso no nome.
 // =====================================================================
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Portal from "@/components/Portal";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { formatarPreco } from "@/lib/formato";
 
@@ -15,6 +16,17 @@ export default function BuscaGlobal({ lojas }: { lojas: LojaSimples[] }) {
   const [texto, setTexto] = useState("");
   const [achados, setAchados] = useState<Achado[] | null>(null);
   const [aberto, setAberto] = useState(false);
+  // A lista de resultados é desenhada "por cima de tudo" (não fica cortada pelo topo da página)
+  const caixa = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const medir = () => { const r = caixa.current?.getBoundingClientRect(); if (r) setPos({ top: r.bottom + 8, left: r.left, width: r.width }); };
+    medir();
+    window.addEventListener("scroll", medir, true);
+    window.addEventListener("resize", medir);
+    return () => { window.removeEventListener("scroll", medir, true); window.removeEventListener("resize", medir); };
+  }, [aberto, texto]);
 
   useEffect(() => {
     const termo = texto.trim();
@@ -36,12 +48,14 @@ export default function BuscaGlobal({ lojas }: { lojas: LojaSimples[] }) {
   const lojasAchadas = termo ? lojas.filter((l) => l.nome.toLowerCase().includes(termo)) : [];
 
   return (
-    <div className="relative mx-auto mt-6 max-w-xl text-left">
+    <div ref={caixa} className="relative mx-auto mt-6 max-w-xl text-left">
       <input type="search" value={texto} onChange={(e) => { setTexto(e.target.value); setAberto(true); }}
         onFocus={() => setAberto(true)} onBlur={() => setTimeout(() => setAberto(false), 150)}
         placeholder="🔍 Buscar em todas as lojas..." className="w-full rounded-full border border-white/30 bg-white/95 px-5 py-3 text-stone-900 shadow-lg outline-none focus:ring-2 focus:ring-white/60" />
-      {aberto && termo && (achados || lojasAchadas.length > 0) && (
-        <div className="deslizar absolute inset-x-0 top-full z-40 mt-2 max-h-[60vh] overflow-y-auto rounded-2xl bg-white text-stone-900 shadow-2xl">
+      {aberto && termo && pos && (achados || lojasAchadas.length > 0) && (
+        <Portal>
+        <div className="deslizar fixed z-[60] max-h-[60vh] overflow-y-auto rounded-2xl bg-white text-left text-stone-900 shadow-2xl"
+          style={{ top: pos.top, left: pos.left, width: pos.width }} onMouseDown={(e) => e.preventDefault()}>
           {lojasAchadas.map((l) => (
             <Link key={l.slug} href={`/${l.slug}`} className="flex items-center gap-2 border-b px-4 py-2 text-sm font-semibold hover:bg-black/5" style={{ color: l.cor ?? "#333" }}>
               🏬 Loja {l.nome}
@@ -59,6 +73,7 @@ export default function BuscaGlobal({ lojas }: { lojas: LojaSimples[] }) {
             </Link>
           ))}
         </div>
+        </Portal>
       )}
     </div>
   );
