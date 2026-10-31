@@ -30,7 +30,7 @@ export type DadosMensagem = {
 const dataBR = (iso: string) => iso.split("-").reverse().join("/");
 
 export function montarMensagem(d: DadosMensagem): string {
-  const titulo = d.tipo === "orcamento" ? "📝 *PEDIDO DE ORÇAMENTO*" : "🛒 *NOVO PEDIDO*";
+  const titulo = d.tipo === "orcamento" ? "💬 *DÚVIDA SOBRE ESTES ITENS*" : "🛒 *NOVO PEDIDO*";
   const partes: string[] = [];
 
   partes.push(`${titulo} · ${d.loja}`);
@@ -61,7 +61,7 @@ export function montarMensagem(d: DadosMensagem): string {
   partes.push(`✅ *Total estimado: ${formatarPreco(d.total)}*${d.temSobConsulta ? " + itens sob consulta" : ""}`);
   partes.push("_(valor final confirmado na conversa)_");
   if (d.linkAcompanhar) partes.push("", `🔗 Acompanhe o pedido: ${d.linkAcompanhar}`);
-  partes.push("", d.tipo === "orcamento" ? "Pode me passar o orçamento? 😊" : "Quero finalizar este pedido! 😊");
+  partes.push("", d.tipo === "orcamento" ? "Tenho algumas dúvidas antes de fechar. Pode me ajudar? 😊" : "Quero finalizar este pedido! 😊");
 
   return partes.join("\n");
 }

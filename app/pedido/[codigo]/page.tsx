@@ -4,6 +4,8 @@
 //   📥 Recebido → 🛠️ Em produção → 🎁 Pronto → ✅ Entregue
 // A loja muda o andamento no painel (aba Pedidos).
 // =====================================================================
+import { ETAPAS_PEDIDO } from "@/lib/statusPedido";
+import PainelRapidoPedido from "@/components/PainelRapidoPedido";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { IconeTelefone } from "@/components/Icones";
 import type { Metadata } from "next";
@@ -19,12 +21,8 @@ type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: 
 
 export const metadata: Metadata = { title: "Acompanhar pedido · MA Online Store", robots: { index: false } };
 
-const ETAPAS = [
-  { valor: "recebido", rotulo: "Recebido", icone: "📥" },
-  { valor: "em_producao", rotulo: "Em produção", icone: "🛠️" },
-  { valor: "pronto", rotulo: "Pronto", icone: "🎁" },
-  { valor: "entregue", rotulo: "Entregue", icone: "✅" },
-];
+// Linha do tempo (sem o "cancelado", que aparece à parte)
+const ETAPAS = ETAPAS_PEDIDO.filter((e) => e.valor !== "cancelado");
 
 export default function PaginaPedido({ params }: Props) {
   return (
@@ -65,7 +63,9 @@ async function Conteudo({ params }: Props) {
       <header className="text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
         <div className="mx-auto max-w-xl px-4 py-8">
           <Link href={`/${p.loja_slug}`} className="rounded-full bg-white/15 px-3 py-1.5 text-sm">← {p.loja_nome as string}</Link>
-          <h1 className="mt-4 text-2xl font-bold">{p.tipo === "orcamento" ? "📝 Orçamento" : "🧾 Pedido"} #{p.codigo as string}</h1>
+          {/* Só aparece para quem administra a loja (logado neste aparelho) */}
+          <PainelRapidoPedido codigo={p.codigo as string} />
+          <h1 className="mt-4 text-2xl font-bold">{p.tipo === "orcamento" ? "💬 Dúvida" : "🧾 Pedido"} #{p.codigo as string}</h1>
           <p className="text-sm opacity-90">Feito em {data_(p.criado_em as string)}</p>
         </div>
       </header>

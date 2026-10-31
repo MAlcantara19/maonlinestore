@@ -68,6 +68,8 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const freteEscolhido = fretes.find((f) => f.nome === entrega);
   const valorFrete = freteEscolhido ? Number(freteEscolhido.valor) || 0 : 0;
   const [avisoEntrega, setAvisoEntrega] = useState(false);
+  const [telefone, setTelefone] = useState(""); // WhatsApp do cliente (para os avisos do pedido)
+  useEffect(() => { try { setTelefone(localStorage.getItem("meu-whatsapp") ?? ""); } catch {} }, []);
   const total = subtotal - desconto + valorFrete;
 
   // Pergunta ao banco se o cupom vale (os códigos não ficam expostos no site)
@@ -81,6 +83,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   }
 
   async function enviar(tipo: "pedido" | "orcamento") {
+    try { if (telefone.trim()) localStorage.setItem("meu-whatsapp", telefone.trim()); } catch {}
     // Loja com opções de entrega: precisa escolher uma antes de enviar
     if (fretes.length && !freteEscolhido) { setAvisoEntrega(true); return; }
     setEnviando(true);
@@ -99,6 +102,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         }),
         p_total: total, p_desconto: desconto || null, p_cupom: cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
         p_entrega: freteEscolhido?.nome ?? null, p_frete: freteEscolhido ? valorFrete : null,
+        p_telefone: telefone.replace(/\D/g, "") || null,
       });
       codigo = (r as string) ?? null;
     } catch {}
@@ -193,6 +197,9 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         <label className="block text-sm font-semibold">👤 Seu nome <span className="font-normal opacity-60">(opcional)</span>
           <input className={`${campo} mt-1`} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Como podemos te chamar?" />
         </label>
+        <label className="block text-sm font-semibold">📲 Seu WhatsApp <span className="font-normal opacity-60">(opcional — para receber o andamento do pedido)</span>
+          <input type="tel" inputMode="tel" className={`${campo} mt-1`} value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(24) 99999-9999" autoComplete="tel" />
+        </label>
         <label className="block text-sm font-semibold">📅 Para quando você precisa? <span className="font-normal opacity-60">(opcional)</span>
           <input type="date" className={`${campo} mt-1`} value={data} onChange={(e) => setData(e.target.value)} />
         </label>
@@ -220,19 +227,25 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         </div>
       )}
 
-      {/* Envio */}
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <button onClick={() => enviar("orcamento")} disabled={enviando} className="texto-cor borda-cor rounded-xl border-2 p-4 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
-          📝 Pedir orçamento
-        </button>
+      {/* Envio: 1) finalizar (principal) · 2) tirar dúvidas · 3) continuar comprando */}
+      <div className="mt-4 space-y-2">
         <Magnetico forca={0.12}>
           <button onClick={() => enviar("pedido")} disabled={enviando}
-            className="botao-vivo pulsar inline-flex w-full items-center justify-center gap-2 rounded-xl p-4 font-semibold text-white disabled:opacity-50">
+            className="botao-vivo pulsar inline-flex w-full items-center justify-center gap-2 rounded-xl p-4 text-lg font-semibold text-white disabled:opacity-50">
             <span className="icone-tremer"><IconeTelefone /></span> Finalizar pedido
           </button>
         </Magnetico>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button onClick={() => enviar("orcamento")} disabled={enviando} className="texto-cor borda-cor rounded-xl border-2 p-3 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
+            💬 Tirar dúvidas antes
+          </button>
+          <Link href={`/${loja.slug}`} onClick={() => window.dispatchEvent(new Event("fechar-carrinho"))}
+            className="rounded-xl border-2 border-stone-300 p-3 text-center font-semibold">
+            🛍️ Continuar comprando
+          </Link>
+        </div>
       </div>
-      <p className="mt-2 text-center text-xs opacity-60">Os dois abrem o WhatsApp da loja com tudo já escrito.</p>
+      <p className="mt-2 text-center text-xs opacity-60">“Finalizar” e “Tirar dúvidas” abrem o WhatsApp da loja com seus itens já escritos.</p>
 
       {/* ✈️ Tela "preparando seu pedido" + aviãozinho de papel */}
       {aviao && (

@@ -35,8 +35,10 @@ export default function CarrinhoFlutuante({ loja }: { loja: Loja }) {
   // Qualquer parte do site pode pedir para abrir o carrinho (evento "abrir-carrinho").
   useEffect(() => {
     const abrir = () => setAberto(true);
+    const fechar = () => setAberto(false);
     window.addEventListener("abrir-carrinho", abrir);
-    return () => window.removeEventListener("abrir-carrinho", abrir);
+    window.addEventListener("fechar-carrinho", fechar);
+    return () => { window.removeEventListener("abrir-carrinho", abrir); window.removeEventListener("fechar-carrinho", fechar); };
   }, []);
 
   // Carrinho aberto: a página de trás não rola, e Esc fecha.

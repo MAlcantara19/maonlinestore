@@ -31,6 +31,12 @@ export default function Privacidade() {
           você acompanhar o andamento pelo link enviado.
         </p>
 
+        <h2 className={h}>1.0. WhatsApp para avisos do pedido (opcional)</h2>
+        <p>
+          Se você quiser, pode informar seu WhatsApp no carrinho. Ele fica guardado junto do pedido e é usado <b>só</b> pela
+          loja para te avisar do andamento (aceito, em produção, pronto, enviado...).
+        </p>
+
         <h2 className={h}>1.1. Quem cuida dos seus dados do pedido</h2>
         <p>
           Quando você envia um pedido, a conversa e os dados que você passar (nome, endereço, telefone) ficam com a{" "}
