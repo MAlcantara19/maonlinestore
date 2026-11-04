@@ -59,16 +59,6 @@ export default function CabecalhoReativo({ loja, menu }: { loja: Loja; menu: Ite
         <Link href="/" className="clicavel rounded-full bg-white/15 px-3 py-1.5 text-sm">🏬 Lojas</Link>
       </div>
 
-      {/* Atalhos (só no celular; no computador já existe o menu lateral) */}
-      {menu.length > 0 && (
-        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-2 lg:hidden">
-          {menu.map((item) => (
-            <Link key={item.id} href={`/${loja.slug}#${item.id}`} className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm">
-              {item.rotulo}
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

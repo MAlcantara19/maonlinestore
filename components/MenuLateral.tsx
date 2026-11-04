@@ -140,23 +140,6 @@ export default function MenuLateral({ slug, cor, corSecundaria, menu, whatsapp }
 
   return (
     <>
-      {/* ===== CELULAR: barra presa no topo ===== */}
-      <div className="shadow-sm lg:hidden" style={{ background: fundo }}>
-        <div className="flex gap-2 overflow-x-auto px-4 py-2">
-          <button type="button" onClick={() => setGaveta(true)}
-            className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-white" style={{ background: cor }}>
-            ☰ Menu
-          </button>
-          {menu.map((item) => (
-            <Link key={item.id} href={`/${slug}#${item.id}`}
-              className="clicavel shrink-0 rounded-full border bg-white/70 px-3 py-1.5 text-sm font-medium"
-              style={{ borderColor: cor, color: cor }}>
-              {item.rotulo}
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* ===== CELULAR: fundo escuro + gaveta que desliza ===== */}
       <div onClick={() => setGaveta(false)}
         className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 lg:hidden ${gaveta ? "opacity-100" : "pointer-events-none opacity-0"}`} />

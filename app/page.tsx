@@ -5,6 +5,7 @@
 //   2. Um círculo para cada loja ATIVA ("Em breve" aparece apagadinha)
 //   3. Faixa de parceiros (quantidade configurável)
 // =====================================================================
+import MenusDaHome from "@/components/MenusDaHome";
 import BotaoSacola from "@/components/BotaoSacola";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import ImagemLogo from "@/components/ImagemLogo";
@@ -36,6 +37,9 @@ export default function PaginaInicial() {
     <div className="flex min-h-screen flex-col">
       <EstilosAnimacao />
       <BotaoSacola />
+      <Suspense fallback={null}>
+        <MenusLaterais />
+      </Suspense>
       <Suspense fallback={<div className="h-56 animate-pulse bg-black/10" />}>
         <Topo />
       </Suspense>
@@ -353,4 +357,16 @@ async function FaixaEspecial() {
       </div>
     </section>
   );
+}
+
+// ---------------------------------------------------------------------
+// MENUS LATERAIS: lojas (esquerda) e parceiros (direita)
+// ---------------------------------------------------------------------
+async function MenusLaterais() {
+  await connection();
+  const [{ data: lojas }, parceiros] = await Promise.all([
+    supabase.from("lojas").select("id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, em_breve, descricao").eq("ativa", true).order("ordem"),
+    buscarParceiros().catch(() => []),
+  ]);
+  return <MenusDaHome lojas={lojas ?? []} parceiros={parceiros} />;
 }

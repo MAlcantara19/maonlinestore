@@ -71,29 +71,30 @@ async function Conteudo({ params }: Props) {
       <EstilosAnimacao />
       {p.efeito && p.efeito !== "nenhum" && <EfeitoFestivo tipo={p.efeito} cor={cor} logo={p.logo_url} />}
 
-      {/* Banner: foto grande de fundo + logo redonda no meio + nome */}
-      <header className="relative overflow-hidden text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
-        {p.foto_url && (
-          <>
-            <img src={p.foto_url} alt="" className="parallax-fundo absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-          </>
-        )}
-        <div className="parallax-conteudo relative mx-auto max-w-4xl px-4 pt-4 pb-10 text-center">
-          <div className="text-left">
-            <Link href="/parceiros" className="rounded-full bg-white/15 px-3 py-1.5 text-sm">← Parceiros</Link>
-          </div>
-          <div className="mt-8 flex flex-col items-center">
+      {/* Banner INTEIRO (sem cortar) + logo redonda à esquerda e o nome ao lado */}
+      <header className="text-white" style={{ background: `linear-gradient(135deg, ${cor}, ${cor}cc)` }}>
+        <div className="mx-auto max-w-5xl px-4 pt-4">
+          <Link href="/parceiros" className="rounded-full bg-white/15 px-3 py-1.5 text-sm">← Parceiros</Link>
+          {p.foto_url && (
+            // A imagem aparece inteira; as sobras são preenchidas com ela mesma, desfocada
+            <div className="animar-entrada relative mt-4 overflow-hidden rounded-2xl shadow-2xl" style={{ aspectRatio: "16 / 10", maxHeight: "62vh", width: "100%" }}>
+              <img src={p.foto_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+              <img src={p.foto_url} alt={p.nome} className="relative h-full w-full object-contain" />
+            </div>
+          )}
+          <div className={`flex items-center gap-4 pb-6 ${p.foto_url ? "-mt-10 px-2 sm:px-6" : "pt-8"}`}>
             {p.logo_url && (
-              <span className="animar-entrada block h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-white shadow-2xl">
+              <span className="animar-entrada relative block h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-2xl sm:h-28 sm:w-28">
                 <ImagemLogo src={p.logo_url} ajuste={p.logo_ajuste} zoom={p.logo_zoom} fundo={p.logo_fundo} />
               </span>
             )}
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {p.categoria && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">{p.categoria}</span>}
-              {p.selo && <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-stone-900">{p.selo}</span>}
+            <div className={`min-w-0 ${p.foto_url ? "pt-10" : ""}`}>
+              <div className="flex flex-wrap gap-2">
+                {p.categoria && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">{p.categoria}</span>}
+                {p.selo && <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-stone-900">{p.selo}</span>}
+              </div>
+              <h1 className="animar-entrada mt-1 text-2xl font-bold drop-shadow-lg sm:text-4xl" style={{ animationDelay: "100ms" }}>{p.nome}</h1>
             </div>
-            <h1 className="animar-entrada mt-2 text-3xl font-bold drop-shadow-lg sm:text-4xl" style={{ animationDelay: "100ms" }}>{p.nome}</h1>
           </div>
         </div>
       </header>

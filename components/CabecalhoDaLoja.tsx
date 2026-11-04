@@ -6,6 +6,7 @@
 //      - Instagram e a BUSCA de produtos
 //   2. Cabeçalho reativo: aparece ao rolar para cima.
 // =====================================================================
+import BotaoAbrirMenu from "@/components/BotaoAbrirMenu";
 import LinkTopo from "@/components/LinkTopo";
 import BotaoTema from "@/components/BotaoTema";
 import NavDeslizante from "@/components/NavDeslizante";
@@ -51,6 +52,8 @@ export default function CabecalhoDaLoja({ loja, menu }: { loja: Loja; menu: Item
         </div>
         <div className="relative mx-auto max-w-[90rem] px-4 pt-4 pb-6">
           <div className="flex items-start justify-between gap-2">
+            {/* Celular: o ☰ abre as categorias (no computador o menu lateral já fica aberto) */}
+            <BotaoAbrirMenu className="clicavel shrink-0 rounded-full bg-white/25 px-3 py-1.5 text-sm font-semibold lg:hidden" />
             {/* Menu com a linha que desliza de um botão para o outro */}
             <NavDeslizante classeItem={botao} itens={[
               { href: "/", rotulo: "🏬 Todas as lojas" },
