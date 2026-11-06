@@ -4,6 +4,7 @@
 //   📥 Recebido → 🛠️ Em produção → 🎁 Pronto → ✅ Entregue
 // A loja muda o andamento no painel (aba Pedidos).
 // =====================================================================
+import AvaliarPedido from "@/components/AvaliarPedido";
 import { ETAPAS_PEDIDO } from "@/lib/statusPedido";
 import PainelRapidoPedido from "@/components/PainelRapidoPedido";
 import { linkWhatsApp } from "@/lib/whatsapp";
@@ -40,6 +41,8 @@ async function Conteudo({ params }: Props) {
   const { codigo } = await params;
   const { data } = await supabase.rpc("consultar_pedido", { p_codigo: codigo });
   const p = (data as Record<string, unknown>[] | null)?.[0];
+  const { data: ext } = await supabase.rpc("pedido_extras", { p_codigo: codigo });
+  const extra = (ext as { previsao_entrega: string | null; entrega: string | null; frete: number | null; avaliado: boolean }[] | null)?.[0];
 
   if (!p) {
     return (
@@ -90,6 +93,13 @@ async function Conteudo({ params }: Props) {
           </ol>
         )}
         <p className="mt-2 text-xs opacity-60">Atualizado em {data_(p.atualizado_em as string)}</p>
+        {extra?.previsao_entrega && !["entregue", "cancelado"].includes(status) && (
+          <p className="mt-3 rounded-xl p-3 text-center text-lg font-bold text-white shadow" style={{ background: cor }}>
+            📅 Previsão de entrega: {extra.previsao_entrega.split("-").reverse().join("/")}
+          </p>
+        )}
+        {/* Entregue: pede a avaliação (uma vez) */}
+        {status === "entregue" && extra && !extra.avaliado && p.tipo !== "orcamento" && <AvaliarPedido codigo={p.codigo as string} cor={cor} />}
 
         {/* Recado da loja */}
         {p.nota_loja ? (
@@ -112,6 +122,7 @@ async function Conteudo({ params }: Props) {
           {Number(p.desconto) > 0 && <p className="mt-2 text-sm text-green-700">🏷️ Cupom {p.cupom as string}: − {formatarPreco(Number(p.desconto))}</p>}
           <p className="mt-2 font-bold">Total estimado: {formatarPreco(Number(p.total ?? 0))}</p>
           {p.data_desejada ? <p className="text-sm">📅 Para: {(p.data_desejada as string).split("-").reverse().join("/")}</p> : null}
+          {extra?.entrega ? <p className="text-sm">🚚 Entrega: {extra.entrega}{extra.frete ? ` (${formatarPreco(Number(extra.frete))})` : ""}</p> : null}
           {p.urgente ? <p className="text-sm font-semibold">⚡ Urgente</p> : null}
         </section>
 

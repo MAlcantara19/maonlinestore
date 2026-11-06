@@ -14,10 +14,11 @@ export const ETAPAS_PEDIDO = [
 export const etapaDo = (status: string) => ETAPAS_PEDIDO.find((e) => e.valor === status);
 
 // Mensagem pronta para o cliente
-export function mensagemDeAndamento(p: { codigo: string; status: string; cliente_nome?: string | null; nota_loja?: string | null }, origem: string, loja?: string) {
+export function mensagemDeAndamento(p: { codigo: string; status: string; cliente_nome?: string | null; nota_loja?: string | null; previsao_entrega?: string | null }, origem: string, loja?: string) {
   const etapa = etapaDo(p.status);
   return `Oi${p.cliente_nome ? `, ${p.cliente_nome}` : ""}! 😊` +
     `\n${etapa?.icone ?? "📦"} Pedido *#${p.codigo}*${loja ? ` (${loja})` : ""}: ${etapa?.aviso ?? p.status}` +
+    (p.previsao_entrega && !["entregue", "cancelado"].includes(p.status) ? `\n📅 Previsão de entrega: ${p.previsao_entrega.split("-").reverse().join("/")}` : "") +
     (p.nota_loja ? `\n💬 ${p.nota_loja}` : "") +
     `\n🔗 Acompanhe: ${origem}/pedido/${p.codigo}`;
 }

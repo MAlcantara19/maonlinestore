@@ -94,7 +94,13 @@ function Conteudo() {
         </div>
       </Bloco>
 
-      <Bloco titulo="💬 Avaliações publicadas">
+      {lista.some((a) => !a.ativo) && (
+        <p className="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+          ⭐ Tem avaliação nova esperando! As que os clientes mandam pelo acompanhamento do pedido chegam <b>ocultas</b> (apagadinhas abaixo):
+          toque em <b>Editar</b>, marque “Aparecer no site” e salve para publicar.
+        </p>
+      )}
+      <Bloco titulo="💬 Avaliações">
         {lista.length === 0 ? <p className="text-sm opacity-60">Nenhuma ainda.</p> : lista.map((a) => (
           <div key={a.id} className={`flex gap-3 rounded-xl bg-stone-50 p-3 ${a.ativo ? "" : "opacity-50"}`}>
             {a.foto_url && <img src={a.foto_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />}

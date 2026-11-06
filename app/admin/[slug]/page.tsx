@@ -6,6 +6,7 @@
 // ativa/inativa. Mostra uma prévia do banner enquanto edita.
 // Quem pode salvar é decidido pelo banco (regras RLS).
 // =====================================================================
+import { NOMES_REGIOES, type Regiao, type RegrasFrete } from "@/lib/frete";
 import { documentoBonito, documentoValido } from "@/lib/formato";
 import { SITE } from "@/lib/config";
 import EditorBordaLogo from "@/components/admin/EditorBordaLogo";
@@ -24,7 +25,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -99,6 +100,33 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         <AjusteLogo src={loja.logo_url}
           valor={{ logo_ajuste: loja.logo_ajuste ?? "cobrir", logo_zoom: Number(loja.logo_zoom ?? 1), logo_fundo: loja.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
+      </Bloco>
+
+      <Bloco titulo="📦 Frete aproximado por CEP (o cliente calcula sozinho)">
+        <p className="text-xs opacity-60">O cliente digita o CEP no produto ou no carrinho e vê uma estimativa. Deixe vazio o que não quiser usar (aparece “a combinar”). Use valores um pouco acima do real, já que o final é combinado no WhatsApp.</p>
+        {(() => {
+          const r = loja.frete_cep ?? {};
+          const m = (c: Partial<RegrasFrete>) => mudar("frete_cep", { ...r, ...c });
+          const valor = (v: number | null | undefined) => (v == null ? "" : String(v).replace(".", ","));
+          const ler = (t: string) => (t.trim() === "" ? null : Number(t.replace(",", ".")) || 0);
+          return (
+            <div className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-[1fr_120px]">
+                <Campo rotulo="Sua cidade"><input className={input} value={r.cidade ?? ""} onChange={(e) => m({ cidade: e.target.value })} placeholder="Três Rios" /></Campo>
+                <Campo rotulo="Frete na cidade"><input className={input} inputMode="decimal" value={valor(r.cidade_valor)} onChange={(e) => m({ cidade_valor: ler(e.target.value) })} placeholder="0 = grátis" /></Campo>
+                <Campo rotulo="Seu estado (UF)"><input className={input} maxLength={2} value={r.uf ?? ""} onChange={(e) => m({ uf: e.target.value.toUpperCase() })} placeholder="RJ" /></Campo>
+                <Campo rotulo="Frete no estado"><input className={input} inputMode="decimal" value={valor(r.uf_valor)} onChange={(e) => m({ uf_valor: ler(e.target.value) })} placeholder="20,00" /></Campo>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {(Object.keys(NOMES_REGIOES) as Regiao[]).map((k) => (
+                  <Campo key={k} rotulo={NOMES_REGIOES[k]}>
+                    <input className={input} inputMode="decimal" value={valor(r.regioes?.[k])} onChange={(e) => m({ regioes: { ...(r.regioes ?? {}), [k]: ler(e.target.value) } })} placeholder="a combinar" />
+                  </Campo>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </Bloco>
 
       <Bloco titulo="🚚 Entrega e frete">

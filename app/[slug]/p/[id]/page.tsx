@@ -4,6 +4,7 @@
 // e a pessoa cai direto nele — e o link aparece com FOTO e PREÇO na
 // prévia da conversa (generateMetadata, logo abaixo).
 // =====================================================================
+import CalculoFrete from "@/components/CalculoFrete";
 import GaleriaOu360 from "@/components/GaleriaOu360";
 import Avaliacoes from "@/components/Avaliacoes";
 import BotaoFavorito from "@/components/BotaoFavorito";
@@ -25,7 +26,7 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
@@ -130,6 +131,7 @@ async function ConteudoDoProduto({ params }: Props) {
             )}
 
             <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl whatsapp={loja.whatsapp} />
+            <CalculoFrete slug={slug} regras={loja.frete_cep} cor={cor} />
           </div>
         </div>
         <Avaliacoes itens={avaliacoes} cor={cor} />

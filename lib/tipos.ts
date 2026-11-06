@@ -34,6 +34,7 @@ export type Loja = {
   prazo_padrao?: string | null; // prazo que já vem no cadastro de produto
   banner_url?: string | null; // imagem do topo da loja
   fretes?: { nome: string; valor: number }[]; // opções de entrega
+  frete_cep?: import("@/lib/frete").RegrasFrete | null; // frete aproximado por CEP
   banner_escurecer?: number; // 0 a 90: quanto a cor da loja cobre a imagem
   razao_social?: string | null; // dados legais (aparecem no rodapé)
   documento?: string | null; // CNPJ ou CPF

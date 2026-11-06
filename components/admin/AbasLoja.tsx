@@ -29,6 +29,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       { href: base, rotulo: "⚙️ Configurações", exato: true },
       { href: `${base}/estatisticas`, rotulo: "📊 Estatísticas" },
       { href: `${base}/pedidos`, rotulo: "🧾 Pedidos" },
+      { href: `${base}/financeiro`, rotulo: "💰 Financeiro" },
     ] },
     { titulo: "Catálogo", itens: [
       { href: `${base}/produtos`, rotulo: "📦 Produtos" },

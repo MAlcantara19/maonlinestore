@@ -23,6 +23,7 @@ export type DadosMensagem = {
   urgente: boolean;
   linkAcompanhar: string | null;
   entrega?: string | null; // ex.: "Três Rios - Centro"
+  freteEstimado?: string | null; // ex.: "Juiz de Fora - MG (CEP ...): cerca de R$ 25,00"
   frete?: number | null;
 };
 
@@ -53,6 +54,7 @@ export function montarMensagem(d: DadosMensagem): string {
   });
 
   partes.push(LINHA);
+  if (d.freteEstimado) partes.push(`📦 Frete estimado: ${d.freteEstimado}`);
   if (d.entrega) partes.push(`🚚 Entrega: *${d.entrega}*${d.frete ? ` — ${formatarPreco(d.frete)}` : d.frete === 0 ? " — grátis" : ""}`);
   if (d.desconto > 0) {
     partes.push(`💵 Subtotal: ${formatarPreco(d.subtotal)}`);

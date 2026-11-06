@@ -20,7 +20,7 @@ type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: 
 type Pedido = {
   id: string; codigo: string; tipo: "pedido" | "orcamento"; cliente_nome: string | null; itens: Item[]; total: number | null;
   desconto: number | null; cupom: string | null; data_desejada: string | null; urgente: boolean; status: string; nota_loja: string | null; criado_em: string; estoque_baixado?: boolean;
-  entrega?: string | null; frete?: number | null; cliente_whatsapp?: string | null; teste?: boolean;
+  entrega?: string | null; frete?: number | null; cliente_whatsapp?: string | null; teste?: boolean; previsao_entrega?: string | null;
 };
 
 // As etapas ficam em lib/statusPedido.ts (as mesmas do acompanhamento do cliente)
@@ -173,7 +173,12 @@ function Lista() {
                     title="Pedido de teste não entra nas estatísticas">{p.teste ? "✓ É teste" : "🧪 Marcar como teste"}</button>
                   <button type="button" onClick={() => apagar(p)} className="rounded-lg border px-3 py-2 text-sm text-red-600" aria-label="Apagar pedido">🗑️</button>
                 </div>
-                <textarea defaultValue={p.nota_loja ?? ""} rows={2} placeholder="💬 Recado para o cliente (ex.: previsão de entrega). Salva ao sair do campo."
+                <label className="mt-2 flex flex-wrap items-center gap-2 text-sm">📅 Previsão de entrega:
+                  <input type="date" defaultValue={p.previsao_entrega ?? ""} className="rounded-lg border bg-stone-50 px-2 py-1"
+                    onChange={(e) => atualizar(p, { previsao_entrega: e.target.value || null })} />
+                  <span className="text-xs opacity-60">(o cliente vê no acompanhamento)</span>
+                </label>
+                <textarea defaultValue={p.nota_loja ?? ""} rows={2} placeholder="💬 Recado para o cliente. Salva ao sair do campo."
                   onBlur={(e) => e.target.value !== (p.nota_loja ?? "") && atualizar(p, { nota_loja: e.target.value || null })}
                   className="mt-2 w-full rounded-lg border bg-stone-50 p-2 text-sm" />
               </article>

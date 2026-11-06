@@ -6,6 +6,7 @@
 // Ao enviar: o pedido é SALVO (ganha um código, ex.: #A3F9K2) e abre o
 // WhatsApp da loja com a mensagem pronta e o link de acompanhamento.
 // =====================================================================
+import CalculoFrete, { chaveFrete } from "@/components/CalculoFrete";
 import Portal from "@/components/Portal";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import Link from "next/link";
@@ -124,6 +125,12 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       tipo, loja: loja.nome, codigo, nome, itens, subtotal, desconto, cupom: cupomVale ? cupom!.codigo : null,
       total, temSobConsulta, data, urgente, linkAcompanhar: codigo ? `${window.location.origin}/pedido/${codigo}` : null,
       entrega: freteEscolhido?.nome ?? null, frete: freteEscolhido ? valorFrete : null,
+      freteEstimado: (() => {
+        try {
+          const e = JSON.parse(localStorage.getItem(chaveFrete(loja.slug)) ?? "null");
+          return e ? `${e.cidade} - ${e.uf} (CEP ${e.cep}): ${e.valor == null ? "a combinar" : e.valor === 0 ? "grátis" : `cerca de ${formatarPreco(e.valor)}`}` : null;
+        } catch { return null; }
+      })(),
     });
     const numero = (loja.whatsapp ?? "").replace(/\D/g, "");
     const url = linkWhatsApp(numero, mensagem);
@@ -204,6 +211,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         <label className="block text-sm font-semibold">📅 Para quando você precisa? <span className="font-normal opacity-60">(opcional)</span>
           <input type="date" className={`${campo} mt-1`} value={data} onChange={(e) => setData(e.target.value)} />
         </label>
+        <CalculoFrete slug={loja.slug} regras={loja.frete_cep} cor={cor} />
         {fretes.length > 0 && (
           <label className="block text-sm font-semibold">🚚 Entrega
             <select className={`${campo} mt-1`} value={entrega} onChange={(e) => { setEntrega(e.target.value); setAvisoEntrega(false); }}
