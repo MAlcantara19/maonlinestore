@@ -5,6 +5,7 @@
 //   - Celular/tela menor: botão "☰ Menu da loja" que abre a lista
 // A "🧮 Calculadora 3D" só aparece nas lojas com ela ligada (VitraForma).
 // =====================================================================
+import NotificadorPedidos from "@/components/admin/NotificadorPedidos";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,11 +31,13 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       { href: `${base}/estatisticas`, rotulo: "📊 Estatísticas" },
       { href: `${base}/pedidos`, rotulo: "🧾 Pedidos" },
       { href: `${base}/financeiro`, rotulo: "💰 Financeiro" },
+      { href: `${base}/clientes`, rotulo: "👥 Clientes" },
     ] },
     { titulo: "Catálogo", itens: [
       { href: `${base}/produtos`, rotulo: "📦 Produtos" },
       { href: `${base}/categorias`, rotulo: "🗂️ Categorias e coleções" },
       { href: `${base}/opcoes`, rotulo: "🎨 Cores e tamanhos" },
+      { href: `${base}/compras`, rotulo: "🛒 Lista de compras" },
       ...(calc ? [{ href: `${base}/calculadora`, rotulo: "🧮 Calculadora 3D" }] : []),
     ] },
     { titulo: "Vendas e visual", itens: [
@@ -42,6 +45,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       { href: `${base}/avaliacoes`, rotulo: "💬 Avaliações" },
       { href: `${base}/efeitos`, rotulo: "✨ Efeitos" },
       { href: `${base}/cartao`, rotulo: "📇 Cartão com QR" },
+      { href: `/${slug}/catalogo`, rotulo: "📄 Catálogo em PDF" },
       { href: `${base}/historico`, rotulo: "📜 Histórico" },
     ] },
   ];
@@ -70,6 +74,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
 
   return (
     <div className="mb-5">
+      <NotificadorPedidos slug={slug} cor={cor} />
       <Link href="/admin" className="text-sm opacity-60">← Suas lojas</Link>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{nome}</h1>

@@ -4,6 +4,7 @@
 // e a pessoa cai direto nele — e o link aparece com FOTO e PREÇO na
 // prévia da conversa (generateMetadata, logo abaixo).
 // =====================================================================
+import BotaoComparar from "@/components/BotaoComparar";
 import CalculoFrete from "@/components/CalculoFrete";
 import GaleriaOu360 from "@/components/GaleriaOu360";
 import Avaliacoes from "@/components/Avaliacoes";
@@ -26,9 +27,9 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Busca loja + produto (usado pela prévia do link e pela página).
 async function buscar(slug: string, id: string) {
@@ -103,7 +104,7 @@ async function ConteudoDoProduto({ params }: Props) {
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
           {produto.giro_360 && midias.filter((m) => m.tipo === "foto").length >= 4
             ? <GaleriaOu360 midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />
-            : <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />}
+            : <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} previaCor={produto.previa_cor} />}
 
           <div>
             <div className="mt-4 flex items-start justify-between gap-3 md:mt-0">
@@ -118,6 +119,7 @@ async function ConteudoDoProduto({ params }: Props) {
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <BotaoCompartilhar titulo={`${produto.nome} · ${loja.nome}`} cor={cor} />
                 <BotaoFavorito slug={slug} produtoId={produto.id} comTexto className="rounded-full border px-4 py-2" />
+                <BotaoComparar slug={slug} produtoId={produto.id} className="rounded-full border px-4 py-2 text-sm" />
               </div>
             </div>
             {produto.descricao && <p className="mt-2 whitespace-pre-line">{produto.descricao}</p>}

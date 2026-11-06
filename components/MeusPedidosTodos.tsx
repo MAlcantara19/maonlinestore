@@ -6,8 +6,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatarPreco } from "@/lib/formato";
+import { adicionarAoCarrinho, type ItemCarrinho } from "@/lib/carrinho";
 
-type Pedido = { codigo: string; quando: string; total: number; loja: string };
+type Pedido = { codigo: string; quando: string; total: number; loja: string; itens?: ItemCarrinho[] };
 
 export default function MeusPedidosTodos() {
   const [lista, setLista] = useState<Pedido[] | null>(null);
@@ -38,7 +39,8 @@ export default function MeusPedidosTodos() {
     <div className="mt-4 space-y-2">
       <p className="text-sm opacity-70">Pedidos enviados deste aparelho. Toque para ver como está cada um.</p>
       {lista.map((p, i) => (
-        <Link key={p.codigo} href={`/pedido/${p.codigo}`} className="animar-entrada clicavel flex items-center gap-3 rounded-2xl border bg-white/80 p-4 shadow-sm" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
+        <div key={p.codigo}>
+        <Link href={`/pedido/${p.codigo}`} className="animar-entrada clicavel flex items-center gap-3 rounded-2xl border bg-white/80 p-4 shadow-sm" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
           <span className="text-2xl">🧾</span>
           <span className="min-w-0 flex-1">
             <b className="font-mono">#{p.codigo}</b> <span className="text-sm capitalize opacity-70">· {p.loja.replace(/-/g, " ")}</span>
@@ -47,6 +49,15 @@ export default function MeusPedidosTodos() {
           <b>{formatarPreco(p.total)}</b>
           <span className="opacity-50">›</span>
         </Link>
+        {p.itens?.length ? (
+          <div className="-mt-1 mb-2 flex flex-wrap items-center gap-2 px-2 text-xs">
+            {p.itens.slice(0, 4).map((i, n) => i.foto ? <img key={n} src={i.foto} alt="" className="h-8 w-8 rounded-lg object-cover" /> : null)}
+            <span className="opacity-70">{p.itens.map((i) => `${i.quantidade}x ${i.nome}`).join(" · ")}</span>
+            <button type="button" onClick={() => { p.itens!.forEach((i) => adicionarAoCarrinho(p.loja, i)); window.location.href = `/${p.loja}/carrinho`; }}
+              className="ml-auto rounded-full border px-3 py-1 font-semibold">🔁 Pedir de novo</button>
+          </div>
+        ) : null}
+        </div>
       ))}
     </div>
   );

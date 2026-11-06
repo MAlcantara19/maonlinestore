@@ -56,6 +56,9 @@ function Conteudo() {
   const [historico, setHistorico] = useState<Visita[] | null>(null);
   const [visitante, setVisitante] = useState<string | null>(null);
   const [recarregar, setRecarregar] = useState(0);
+  // 📣 Links de campanha: de onde vieram as visitas
+  const [origens, setOrigens] = useState<[string, number][]>([]);
+  const [nomeCampanha, setNomeCampanha] = useState("instagram");
 
   useEffect(() => { lojaPeloSlug(slug).then(setLoja); }, [slug]);
   useEffect(() => {
@@ -69,6 +72,16 @@ function Conteudo() {
     supabaseNavegador().rpc("historico_visitas", { p_loja: loja.id, p_visitante: visitante, p_limite: visitante ? 500 : 150 })
       .then(({ data }: { data: Visita[] | null }) => setHistorico(data ?? []), () => setHistorico([]));
   }, [loja, visitante, recarregar]);
+  useEffect(() => {
+    if (!loja) return;
+    const desde = new Date(Date.now() - dias * 86400000).toISOString();
+    supabaseNavegador().from("eventos").select("detalhe").eq("loja_id", loja.id).like("detalhe", "origem:%").gte("criado_em", desde).limit(5000)
+      .then(({ data }: { data: { detalhe: string }[] | null }) => {
+        const m = new Map<string, number>();
+        (data ?? []).forEach((e) => { const o = e.detalhe.slice(7); m.set(o, (m.get(o) ?? 0) + 1); });
+        setOrigens([...m.entries()].sort((a, b) => b[1] - a[1]));
+      }, () => setOrigens([]));
+  }, [loja, dias, recarregar]);
 
   if (!loja) return <p className="opacity-60">Carregando...</p>;
   const cor = loja.cor ?? "#333";
@@ -146,6 +159,19 @@ function Conteudo() {
               </ul>
             )}
           </Bloco>
+          <Bloco titulo="📣 De onde vieram (links de campanha)">
+            <p className="text-xs opacity-60">Use um link diferente em cada lugar (bio do Instagram, status, grupo...) e veja aqui quantas visitas cada um trouxe.</p>
+            <div className="flex flex-wrap gap-2">
+              <input className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-sm" value={nomeCampanha} onChange={(e) => setNomeCampanha(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))} placeholder="nome (ex.: instagram, status, grupo-escola)" />
+              <button type="button" className="rounded-lg px-4 text-sm font-semibold text-white" style={{ background: cor }}
+                onClick={async () => { await navigator.clipboard.writeText(`${window.location.origin}/${slug}?origem=${nomeCampanha || "campanha"}`).catch(() => {}); alert("✓ Link copiado! Cole na bio, no status ou no grupo."); }}>
+                🔗 Copiar link
+              </button>
+            </div>
+            <p className="text-xs opacity-60">Exemplo: {typeof window !== "undefined" ? window.location.origin : ""}/{slug}?origem={nomeCampanha || "campanha"}</p>
+            {origens.length > 0 ? <GraficoBarras itens={origens.map(([o, n]) => ({ rotulo: o, valor: n }))} cor={cor} /> : <p className="text-sm opacity-60">Nenhuma visita por link de campanha ainda.</p>}
+          </Bloco>
+
           <Bloco titulo="🕵️ Histórico de visitas">
             <p className="text-xs opacity-60">
               Cada aparelho tem um código anônimo. O nome só aparece se a pessoa mandou um pedido ou dúvida e digitou o nome no carrinho.

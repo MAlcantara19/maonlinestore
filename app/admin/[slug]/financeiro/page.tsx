@@ -22,6 +22,7 @@ type ItemMov = { nome: string; quantidade: number; preco: number; produto_id?: s
 type Mov = {
   id: string; tipo: "entrada" | "saida"; data: string; categoria: string; descricao: string | null; valor: number;
   forma_pagamento: string | null; pedido_id: string | null; pedido_numero: string | null; itens: ItemMov[]; observacao: string | null; criado_por: string | null;
+  pago?: boolean; vencimento?: string | null; // contas a pagar
 };
 type PedidoResumo = { id: string; codigo: string; cliente_nome: string | null; total: number | null; status: string; criado_em: string; pagamento_status?: string | null; valor_pago?: number | null; restante_quando?: string | null;
   itens: { nome: string; quantidade: number; preco: number | null; opcao?: string | null; tamanho?: string | null; cor?: string | null; produto_id?: string | null }[] };
@@ -34,7 +35,7 @@ const FORMAS = [["pix", "⚡ Pix"], ["dinheiro", "💵 Dinheiro"], ["credito", "
 const rotulo = (lista: readonly (readonly [string, string])[], v: string | null) => lista.find(([k]) => k === v)?.[1] ?? v ?? "—";
 const todasCategorias = [...CATEGORIAS.entrada, ...CATEGORIAS.saida];
 const hoje = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-const vazio = (): Omit<Mov, "id" | "criado_por"> => ({ tipo: "entrada", data: hoje(), categoria: "venda", descricao: "", valor: 0, forma_pagamento: "pix", pedido_id: null, pedido_numero: "", itens: [], observacao: "" });
+const vazio = (): Omit<Mov, "id" | "criado_por"> => ({ tipo: "entrada", data: hoje(), categoria: "venda", descricao: "", valor: 0, forma_pagamento: "pix", pedido_id: null, pedido_numero: "", itens: [], observacao: "", pago: true, vencimento: null });
 
 export default function PainelFinanceiro() {
   return <AreaAdmin>{() => <Financeiro />}</AreaAdmin>;
@@ -52,6 +53,9 @@ function Financeiro() {
   const [aviso, setAviso] = useState("");
   const [historico, setHistorico] = useState<{ mes: string; entradas: number; saidas: number }[]>([]);
   const [custos, setCustos] = useState<Record<string, { nome: string; custo: number | null }>>({});
+  const [meta, setMeta] = useState<number | null>(null);
+  const [aPagar, setAPagar] = useState<Mov[]>([]);
+  const [editandoMeta, setEditandoMeta] = useState(false);
 
   const carregar = useCallback(async (l: LojaResumo, m: string) => {
     const sb = supabaseNavegador();
@@ -79,10 +83,17 @@ function Financeiro() {
       setCustos(Object.fromEntries((ps ?? []).map((x: { id: string; nome: string; custo: number | null }) => [x.id, { nome: x.nome, custo: x.custo }])));
     } else setCustos({});
     if (r1.error) setAviso(`Rode a atualização 25 no Supabase. (${r1.error.message})`);
+    // 📌 Contas a pagar (de qualquer mês)
+    const { data: contas } = await sb.from("movimentacoes").select("*").eq("loja_id", l.id).eq("pago", false).order("vencimento", { ascending: true });
+    setAPagar((contas ?? []) as Mov[]);
     setMovs((r1.data ?? []) as Mov[]);
     setPedidos((r2.data ?? []) as PedidoResumo[]);
   }, []);
   useEffect(() => { lojaPeloSlug(slug).then((l) => { setLoja(l); if (l) carregar(l, mes); }); }, [slug, mes, carregar]);
+  useEffect(() => {
+    supabaseNavegador().from("lojas").select("meta_mensal").eq("slug", slug).maybeSingle()
+      .then(({ data }: { data: { meta_mensal: number | null } | null }) => setMeta(data?.meta_mensal != null ? Number(data.meta_mensal) : null), () => {});
+  }, [slug]);
 
   // Pedidos que ainda não têm nenhuma entrada registrada
   const semPagamento = useMemo(() => {
@@ -95,7 +106,7 @@ function Financeiro() {
   const avisar = (t: string) => { setAviso(t); setTimeout(() => setAviso(""), 2500); };
 
   // ---------- Resumo ----------
-  const lista = movs ?? [];
+  const lista = (movs ?? []).filter((m) => m.pago !== false); // contas a pagar ficam fora até serem pagas
   const entradas = lista.filter((m) => m.tipo === "entrada").reduce((s, m) => s + Number(m.valor), 0);
   const saidas = lista.filter((m) => m.tipo === "saida").reduce((s, m) => s + Number(m.valor), 0);
   const somarPor = (chave: "forma_pagamento" | "categoria", tipo: "entrada" | "saida") => {
@@ -165,6 +176,7 @@ function Financeiro() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <input type="month" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} className="rounded-xl border bg-white px-3 py-2" />
         <button type="button" onClick={exportar} disabled={!lista.length} className="rounded-xl border bg-white px-4 py-2 text-sm disabled:opacity-40">📥 Exportar para Excel</button>
+        <a href={`/admin/${slug}/relatorio?mes=${mes}`} className="rounded-xl border bg-white px-4 py-2 text-sm">📄 Relatório do mês (PDF)</a>
       </div>
 
       {/* Resumo */}
@@ -173,6 +185,34 @@ function Financeiro() {
         <div className="rounded-2xl bg-white p-4 shadow-sm"><span className="text-xs opacity-60">⬇️ Saídas</span><b className="block text-xl text-red-600">{formatarPreco(saidas)}</b></div>
         <div className="rounded-2xl p-4 text-white shadow-sm" style={{ background: entradas - saidas >= 0 ? "#15803d" : "#b91c1c" }}><span className="text-xs opacity-80">💰 Saldo do mês</span><b className="block text-xl">{formatarPreco(entradas - saidas)}</b></div>
       </div>
+      {/* 🎯 Meta do mês (entradas) */}
+      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+        {meta && !editandoMeta ? (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <b>🎯 Meta do mês: {formatarPreco(meta)}</b>
+              <span>{entradas >= meta ? "🎉 Meta batida!" : `Faltam ${formatarPreco(meta - entradas)}`}</span>
+              <button type="button" onClick={() => setEditandoMeta(true)} className="text-xs underline opacity-60">mudar</button>
+            </div>
+            <div className="mt-2 h-4 overflow-hidden rounded-full bg-stone-200">
+              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, (entradas / meta) * 100)}%`, background: entradas >= meta ? "#15803d" : cor }} />
+            </div>
+            <p className="mt-1 text-xs opacity-60">{Math.round((entradas / meta) * 100)}% da meta em entradas neste mês</p>
+          </>
+        ) : (
+          <form className="flex flex-wrap items-center gap-2 text-sm" onSubmit={async (e) => {
+            e.preventDefault();
+            const v = paraNumero(String(new FormData(e.currentTarget).get("meta") ?? ""));
+            await supabaseNavegador().from("lojas").update({ meta_mensal: v }).eq("id", loja.id);
+            setMeta(v); setEditandoMeta(false);
+          }}>
+            <b>🎯 Meta de entradas por mês:</b>
+            <input name="meta" defaultValue={meta ? String(meta).replace(".", ",") : ""} inputMode="decimal" placeholder="Ex.: 1500,00" className="w-36 rounded-lg border px-3 py-1.5" />
+            <button className="rounded-lg px-3 py-1.5 font-semibold text-white" style={{ background: cor }}>Salvar</button>
+          </form>
+        )}
+      </div>
+
       {lista.length > 0 && (
         <div className="mb-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl bg-white p-4 text-sm shadow-sm">
@@ -248,6 +288,26 @@ function Financeiro() {
         );
       })()}
 
+      {/* 📌 Contas a pagar */}
+      {aPagar.length > 0 && (
+        <Bloco titulo={`📌 Contas a pagar (${formatarPreco(aPagar.reduce((s, m) => s + Number(m.valor), 0))})`}>
+          <ul className="space-y-1 text-sm">
+            {aPagar.map((m) => {
+              const vencida = m.vencimento && m.vencimento < hoje();
+              return (
+                <li key={m.id} className={`flex flex-wrap items-center gap-2 rounded-lg px-3 py-2 ${vencida ? "bg-red-50" : "bg-stone-50"}`}>
+                  <b className="flex-1">{m.descricao || rotulo(todasCategorias, m.categoria)}</b>
+                  <span className={vencida ? "font-bold text-red-700" : "opacity-70"}>{m.vencimento ? `${vencida ? "⚠️ venceu" : "vence"} ${m.vencimento.split("-").reverse().join("/")}` : "sem data"}</span>
+                  <b>{formatarPreco(Number(m.valor))}</b>
+                  <button type="button" className="rounded-full bg-green-600 px-3 py-1 text-xs font-semibold text-white"
+                    onClick={async () => { await supabaseNavegador().from("movimentacoes").update({ pago: true, data: hoje() }).eq("id", m.id); if (loja) carregar(loja, mes); }}>✓ Paguei</button>
+                </li>
+              );
+            })}
+          </ul>
+        </Bloco>
+      )}
+
       {/* Atalho: pedidos sem pagamento registrado */}
       {semPagamento.length > 0 && (
         <Bloco titulo="⏳ Pedidos sem pagamento registrado">
@@ -316,6 +376,12 @@ function Financeiro() {
             {FORMAS.map(([v, r]) => <button key={v} type="button" onClick={() => mudar({ forma_pagamento: v })} className="rounded-full border px-3 py-1.5 text-sm" style={chip(form.forma_pagamento === v)}>{r}</button>)}
           </div>
         </div>
+        {form.tipo === "saida" && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 p-3 text-sm">
+            <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={form.pago === false} onChange={(e) => mudar({ pago: !e.target.checked })} /> 📌 Ainda não paguei (conta a pagar)</label>
+            {form.pago === false && <label>Vence em <input type="date" className="ml-1 rounded-lg border px-2 py-1" value={form.vencimento ?? ""} onChange={(e) => mudar({ vencimento: e.target.value || null })} /></label>}
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-semibold">Descrição<input className={`${campo} mt-1`} value={form.descricao ?? ""} onChange={(e) => mudar({ descricao: e.target.value })} placeholder={form.tipo === "saida" ? "Ex.: 2 kg PLA roxo — loja X" : "Ex.: Venda na feira"} /></label>
           <label className="text-sm font-semibold">Observação<input className={`${campo} mt-1`} value={form.observacao ?? ""} onChange={(e) => mudar({ observacao: e.target.value })} placeholder="Qualquer detalhe" /></label>

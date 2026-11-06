@@ -6,10 +6,13 @@
 //   - Clicou na foto: abre em TELA CHEIA, crescendo, com fundo escuro
 //   - Bolinhas "líquidas": a atual se estica com efeito elástico
 // =====================================================================
+import { corDoNome } from "@/lib/cores";
 import { useEffect, useRef, useState } from "react";
 import type { Midia } from "@/lib/tipos";
 
-export default function Galeria({ midias, nome, cor, produtoId }: { midias: Midia[]; nome: string; cor: string; produtoId?: string }) {
+export default function Galeria({ midias, nome, cor, produtoId, previaCor }: { midias: Midia[]; nome: string; cor: string; produtoId?: string; previaCor?: boolean }) {
+  // 🎨 Prévia da cor: pinta a foto com a cor escolhida (quando não há foto daquela cor)
+  const [tinta, setTinta] = useState<{ nome: string; hex: string } | null>(null);
   const trilho = useRef<HTMLDivElement>(null);
   const [atual, setAtual] = useState(0);
   const [rolando, setRolando] = useState(false);
@@ -37,11 +40,13 @@ export default function Galeria({ midias, nome, cor, produtoId }: { midias: Midi
       if (produto !== produtoId || !escolhida) return;
       const i = midias.findIndex((m) => m.cor && m.cor.toLowerCase().trim() === escolhida.toLowerCase().trim());
       const el = trilho.current;
-      if (i >= 0 && el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+      if (i >= 0 && el) { el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" }); setTinta(null); return; }
+      const hex = corDoNome(escolhida);
+      setTinta(previaCor && hex ? { nome: escolhida, hex } : null);
     };
     window.addEventListener("cor-escolhida", aoEscolher);
     return () => window.removeEventListener("cor-escolhida", aoEscolher);
-  }, [midias, produtoId]);
+  }, [midias, produtoId, previaCor]);
 
   // Tela cheia: Esc fecha, setas trocam a foto
   useEffect(() => {
@@ -67,7 +72,17 @@ export default function Galeria({ midias, nome, cor, produtoId }: { midias: Midi
   const naTela = telaCheia !== null ? midias[telaCheia] : null;
 
   return (
-    <div>
+    <div className="relative">
+      {/* Prévia aproximada da cor escolhida (por cima das fotos) */}
+      {tinta && (
+        <>
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10 aspect-[4/5] rounded-xl md:aspect-square"
+            style={{ background: tinta.hex, mixBlendMode: "color", opacity: 0.65 }} />
+          <button type="button" onClick={() => setTinta(null)} className="absolute left-2 top-2 z-20 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-900 shadow">
+            🎨 Prévia em {tinta.nome} (aproximada) ✕
+          </button>
+        </>
+      )}
       <div ref={trilho} onScroll={aoRolar} className="flex snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none]"
         style={{ filter: rolando ? "blur(1.5px)" : "none", transition: "filter .15s" }}>
         {midias.map((m, i) => (

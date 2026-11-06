@@ -36,6 +36,10 @@ export type Loja = {
   fretes?: { nome: string; valor: number }[]; // opções de entrega
   frete_cep?: import("@/lib/frete").RegrasFrete | null; // frete aproximado por CEP
   cep_origem?: string | null; // CEP de onde a loja envia (frete exato)
+  desconto_pix?: number | null; // % no Pix / à vista
+  boas_vindas_pct?: number | null; // % na primeira compra (pelo WhatsApp)
+  fidelidade_a_cada?: number | null; // a cada R$ X gastos...
+  fidelidade_premio_pct?: number | null; // ...ganha X% (cupom)
   banner_escurecer?: number; // 0 a 90: quanto a cor da loja cobre a imagem
   razao_social?: string | null; // dados legais (aparecem no rodapé)
   documento?: string | null; // CNPJ ou CPF
@@ -112,6 +116,7 @@ export type Produto = {
   promocao_ate?: string | null; // fim da promoção
   giro_360?: boolean; // fotos formam um giro 360°
   estoque?: number | null; // quantidade (vazio = não controla)
+  previa_cor?: boolean; // mostra a prévia da cor na foto
   variacoes: Variacao[];
   midias: Midia[];
 };
@@ -182,6 +187,9 @@ export type ConfigSite = {
   especial_ativo?: boolean; // faixa especial (Natal, Páscoa...)
   especial_titulo?: string | null;
   especial_termo?: string | null;
+  quem_somos_titulo?: string | null; // página Quem somos
+  quem_somos_texto?: string | null;
+  quem_somos_foto?: string | null;
 };
 
 export type AnimacaoFundo = "nenhuma" | "respirar" | "zoom_lento" | "deslizar";

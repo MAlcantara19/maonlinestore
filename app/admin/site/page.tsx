@@ -85,6 +85,17 @@ function Formulario() {
           borda={{ cor: c.logo_borda_cor, largura: c.logo_borda }} aoMudar={(v) => setC({ ...c, ...v })} />
       </Bloco>
 
+      <Bloco titulo="💜 Página “Quem somos”">
+        <Campo rotulo="Título"><input className={estiloInput} value={c.quem_somos_titulo ?? ""} onChange={(e) => mudar("quem_somos_titulo", e.target.value || null)} placeholder="Quem somos" /></Campo>
+        <Campo rotulo="A história de vocês (pode usar emojis e pular linha)">
+          <textarea rows={8} className={estiloInput} value={c.quem_somos_texto ?? ""} onChange={(e) => mudar("quem_somos_texto", e.target.value || null)}
+            placeholder="Como tudo começou, quem são vocês, o que fazem com carinho..." />
+        </Campo>
+        <CampoImagem rotulo="Foto de vocês (opcional)" valor={c.quem_somos_foto ?? null} aoMudar={(url) => mudar("quem_somos_foto", url)} pasta="site"
+          dica="📐 Ideal: 1600 × 900 px (deitada)" recorte={{ proporcao: 16 / 9, largura: 1600, cores: [c.cor, c.cor_secundaria] }} />
+        <a href="/quem-somos" target="_blank" className="text-sm underline">Ver a página →</a>
+      </Bloco>
+
       <Bloco titulo="🎄 Faixa especial na página inicial (Natal, Páscoa...)">
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!c.especial_ativo} onChange={(e) => setC({ ...c, especial_ativo: e.target.checked })} /> Mostrar a faixa especial</label>
         <div className="grid gap-3 sm:grid-cols-2">

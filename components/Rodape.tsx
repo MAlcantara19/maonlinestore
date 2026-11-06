@@ -93,6 +93,7 @@ export default function Rodape({ loja }: { loja?: Loja }) {
             <span className="flex gap-3 opacity-80">
               <Link href="/privacidade" className="hover:underline">Política de Privacidade</Link>
               <Link href="/termos" className="hover:underline">Termos de Uso</Link>
+              <Link href="/quem-somos" className="hover:underline">Quem somos</Link>
               <Link href="/admin" className="hover:underline">🔐 Área do lojista</Link>
             </span>
           </div>

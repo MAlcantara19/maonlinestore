@@ -21,6 +21,7 @@ export default function PainelRapidoPedido({ codigo }: { codigo: string }) {
 
   // Só encontra o pedido quem administra a loja (o banco garante isso)
   useEffect(() => {
+    try { if (sessionStorage.getItem("ver-como-cliente")) return; } catch {}
     supabaseNavegador().from("pedidos").select("id, codigo, status, cliente_nome, cliente_whatsapp, nota_loja, lojas(slug, nome)").eq("codigo", codigo).maybeSingle()
       .then(({ data }: { data: PedidoAdmin | null }) => setP(data), () => {});
   }, [codigo]);
@@ -40,19 +41,22 @@ export default function PainelRapidoPedido({ codigo }: { codigo: string }) {
   }
 
   return (
-    <section className="mt-4 rounded-2xl border-2 border-dashed border-stone-400 bg-white p-4 text-sm shadow-sm">
+    <section className="mt-4 rounded-2xl border-2 border-dashed border-stone-400 p-4 text-sm shadow-sm" style={{ background: "#ffffff", color: "#1c1917" }}>
       <b>⚙️ Painel da loja</b> <span className="opacity-60">(só você vê, porque está logado como administrador)</span>
       <div className="mt-3 flex flex-wrap gap-2">
         {ETAPAS_PEDIDO.map((e) => (
           <button key={e.valor} type="button" onClick={() => mudar(e.valor)} disabled={e.valor === p.status}
             className="rounded-full border px-3 py-1.5 font-semibold disabled:opacity-100"
-            style={e.valor === p.status ? { background: e.cor, color: "white", borderColor: e.cor } : {}}>
+            style={e.valor === p.status ? { background: e.cor, color: "white", borderColor: e.cor } : { background: "#f5f5f4", color: "#1c1917", borderColor: "#d6d3d1" }}>
             {e.icone} {e.rotulo}
           </button>
         ))}
       </div>
       {aviso && <p className="mt-2">{aviso}</p>}
-      <a href={`/admin/${p.lojas.slug}/pedidos?codigo=${p.codigo}`} className="mt-3 inline-block font-semibold underline">Abrir este pedido no painel →</a>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <a href={`/admin/${p.lojas.slug}/pedidos?codigo=${p.codigo}`} className="font-semibold underline" style={{ color: "#1c1917" }}>Abrir este pedido no painel →</a>
+        <button type="button" onClick={() => { try { sessionStorage.setItem("ver-como-cliente", "1"); } catch {} setP(null); }} className="underline opacity-70">👁️ Ver como o cliente vê</button>
+      </div>
     </section>
   );
 }

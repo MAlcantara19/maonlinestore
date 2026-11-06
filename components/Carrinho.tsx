@@ -11,7 +11,7 @@ import Portal from "@/components/Portal";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { salvarCarrinho, usarCarrinho } from "@/lib/carrinho";
+import { adicionarAoCarrinho, salvarCarrinho, usarCarrinho, type ItemCarrinho } from "@/lib/carrinho";
 import { formatarPreco } from "@/lib/formato";
 import { montarMensagem } from "@/lib/mensagem";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
@@ -23,7 +23,11 @@ import { IconeTelefone } from "@/components/Icones";
 type Cupom = { codigo: string; tipo: "porcentagem" | "valor"; valor: number; minimo: number | null };
 
 export default function Carrinho({ loja }: { loja: Loja }) {
-  const itens = usarCarrinho(loja.slug);
+  const todos = usarCarrinho(loja.slug);
+  // Itens marcados para ESTE pedido (os desmarcados continuam no carrinho)
+  const [fora, setFora] = useState<string[]>([]);
+  const chaveItem = (i: { chave: string; observacao?: string }) => `${i.chave}§${i.observacao ?? ""}`;
+  const itens = todos.filter((i) => !fora.includes(chaveItem(i)));
   const cor = loja.cor ?? "#333";
   const [nome, setNome] = useState("");
   const [data, setData] = useState("");
@@ -35,7 +39,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const [aviao, setAviao] = useState(false); // ✈️ animação do envio
 
   // Cupom que veio por link (?cupom=...) já entra aplicado
-  const [meusPedidos, setMeusPedidos] = useState<{ codigo: string; quando: string; total: number }[]>([]);
+  const [meusPedidos, setMeusPedidos] = useState<PedidoGuardado[]>([]);
   useEffect(() => {
     try {
       const guardado = localStorage.getItem(`cupom:${loja.slug}`);
@@ -50,7 +54,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
   // Muda a quantidade de um item; se chegar a zero, remove.
   function mudarQuantidade(indice: number, delta: number) {
-    const novos = [...itens];
+    const novos = [...todos];
     novos[indice] = { ...novos[indice], quantidade: novos[indice].quantidade + delta };
     if (novos[indice].quantidade <= 0) registrarEvento(loja.slug, "carrinho_remove", novos[indice].produtoId); // estatísticas
     salvarCarrinho(loja.slug, novos.filter((i) => i.quantidade > 0));
@@ -60,9 +64,14 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const subtotal = itens.reduce((s, i) => s + (i.preco ?? 0) * i.quantidade, 0);
   const temSobConsulta = itens.some((i) => i.preco == null);
   const cupomVale = cupom && (!cupom.minimo || subtotal >= Number(cupom.minimo));
-  const desconto = cupom && cupomVale
+  const descontoCupom = cupom && cupomVale
     ? Math.min(subtotal, cupom.tipo === "porcentagem" ? (subtotal * Number(cupom.valor)) / 100 : Number(cupom.valor))
     : 0;
+  // 🎁 Primeira compra (pelo WhatsApp): vale o MAIOR entre cupom e boas-vindas (não somam)
+  const [primeira, setPrimeira] = useState(false);
+  const descontoBoasVindas = primeira && loja.boas_vindas_pct ? Math.round(subtotal * loja.boas_vindas_pct) / 100 : 0;
+  const usaBoasVindas = descontoBoasVindas > descontoCupom;
+  const desconto = Math.max(descontoCupom, descontoBoasVindas);
   // Entrega/frete (opções cadastradas pela loja)
   const fretes = loja.fretes ?? [];
   const [entrega, setEntrega] = useState("");
@@ -72,6 +81,27 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const [telefone, setTelefone] = useState(""); // WhatsApp do cliente (para os avisos do pedido)
   useEffect(() => { try { setTelefone(localStorage.getItem("meu-whatsapp") ?? ""); } catch {} }, []);
   const total = subtotal - desconto + valorFrete;
+  // ⚡ Preço no Pix / à vista (desconto da loja)
+  const totalPix = loja.desconto_pix ? Math.round((subtotal - desconto) * (100 - loja.desconto_pix)) / 100 + valorFrete : null;
+  useEffect(() => {
+    const tel = telefone.replace(/\D/g, "");
+    if (!loja.boas_vindas_pct || tel.length < 10) { setPrimeira(false); return; }
+    const t = setTimeout(() => {
+      supabaseNavegador().rpc("primeira_compra", { p_slug: loja.slug, p_telefone: tel }).then(({ data }: { data: boolean | null }) => setPrimeira(!!data), () => setPrimeira(false));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [telefone, loja.boas_vindas_pct, loja.slug]);
+  // ⭐ Fidelidade: quanto falta para o próximo prêmio (só a porcentagem)
+  const [fidelidade, setFidelidade] = useState<{ progresso: number; premio: number } | null>(null);
+  useEffect(() => {
+    const tel = telefone.replace(/\D/g, "");
+    if (!loja.fidelidade_a_cada || tel.length < 10) { setFidelidade(null); return; }
+    const t = setTimeout(() => {
+      supabaseNavegador().rpc("fidelidade_progresso", { p_slug: loja.slug, p_telefone: tel })
+        .then(({ data }: { data: { progresso: number; premio: number }[] | null }) => setFidelidade(data?.[0] ?? null), () => setFidelidade(null));
+    }, 600);
+    return () => clearTimeout(t);
+  }, [telefone, loja.fidelidade_a_cada, loja.slug]);
 
   // Pergunta ao banco se o cupom vale (os códigos não ficam expostos no site)
   async function aplicarCupom() {
@@ -101,7 +131,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
           return { nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao,
             produto_id: i.produtoId, variacao_id: variacao && variacao !== "unico" ? variacao : null, foto: i.foto ?? null };
         }),
-        p_total: total, p_desconto: desconto || null, p_cupom: cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
+        p_total: total, p_desconto: desconto || null, p_cupom: usaBoasVindas ? "PRIMEIRA-COMPRA" : cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
         p_entrega: freteEscolhido?.nome ?? null, p_frete: freteEscolhido ? valorFrete : null,
         p_telefone: telefone.replace(/\D/g, "") || null,
       });
@@ -114,7 +144,8 @@ export default function Carrinho({ loja }: { loja: Loja }) {
     // Guarda o pedido no aparelho do cliente ("Seus pedidos recentes")
     if (codigo) {
       try {
-        const lista = [{ codigo, quando: new Date().toISOString(), total }, ...meusPedidos].slice(0, 10);
+        // Guarda também os itens (para o "🔁 Pedir de novo")
+        const lista = [{ codigo, quando: new Date().toISOString(), total, itens: itens.map((i) => ({ ...i })) }, ...meusPedidos].slice(0, 10);
         localStorage.setItem(`meus-pedidos:${loja.slug}`, JSON.stringify(lista));
         setMeusPedidos(lista);
       } catch {}
@@ -122,7 +153,9 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
     // 2) Monta a mensagem bonita e abre o WhatsApp da loja
     const mensagem = montarMensagem({
-      tipo, loja: loja.nome, codigo, nome, itens, subtotal, desconto, cupom: cupomVale ? cupom!.codigo : null,
+      tipo, loja: loja.nome, codigo, nome, itens, subtotal, desconto, cupom: !usaBoasVindas && cupomVale ? cupom!.codigo : null,
+      boasVindas: usaBoasVindas ? { pct: loja.boas_vindas_pct!, valor: descontoBoasVindas } : null,
+      pix: totalPix != null ? { pct: loja.desconto_pix!, valor: totalPix } : null,
       total, temSobConsulta, data, urgente, linkAcompanhar: codigo ? `${window.location.origin}/pedido/${codigo}` : null,
       entrega: freteEscolhido?.nome ?? null, frete: freteEscolhido ? valorFrete : null,
       freteEstimado: (() => {
@@ -138,17 +171,19 @@ export default function Carrinho({ loja }: { loja: Loja }) {
     setTimeout(() => {
       if (janela) janela.location.href = url;
       else window.location.href = url;
+      // Pedido enviado: saem do carrinho só os itens que foram no pedido
+      if (tipo === "pedido") { salvarCarrinho(loja.slug, todos.filter((i) => fora.includes(chaveItem(i)))); setFora([]); }
       setAviao(false);
       setEnviando(false);
     }, 1300);
   }
 
-  if (itens.length === 0) {
+  if (todos.length === 0) {
     return (
       <div className="mt-8 text-center">
         <p className="opacity-70">Seu carrinho está vazio.</p>
         <Link href={`/${loja.slug}`} className="mt-3 inline-block font-semibold underline">Ver produtos</Link>
-        <PedidosRecentes lista={meusPedidos} cor={cor} />
+        <PedidosRecentes lista={meusPedidos} cor={cor} slug={loja.slug} />
       </div>
     );
   }
@@ -158,10 +193,18 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   return (
     <div className="mt-4">
       {/* Itens */}
-      {itens.map((i, indice) => (
+      {todos.length > 1 && (
+        <p className="mb-1 text-xs opacity-60">☑️ Desmarque o que <b>não</b> quer pedir agora — continua guardado no carrinho.</p>
+      )}
+      {todos.map((i, indice) => (
         <div key={`${i.chave}-${i.observacao}`} className="flex items-start justify-between gap-3 border-b py-3">
+          {/* Marcar/desmarcar para este pedido */}
+          {todos.length > 1 && (
+            <input type="checkbox" className="mt-6 h-5 w-5 shrink-0" checked={!fora.includes(chaveItem(i))} aria-label="Incluir neste pedido"
+              onChange={() => setFora((f) => (f.includes(chaveItem(i)) ? f.filter((x) => x !== chaveItem(i)) : [...f, chaveItem(i)]))} />
+          )}
           {/* Foto do produto */}
-          <span className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black/5">
+          <span className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black/5 ${fora.includes(chaveItem(i)) ? "opacity-40" : ""}`}>
             {i.foto ? <img src={i.foto} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center text-2xl">📦</span>}
           </span>
           <div className="min-w-0 flex-1">
@@ -196,12 +239,22 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         {(desconto > 0 || freteEscolhido) && (
           <>
             <p className="flex justify-between"><span>Subtotal</span><span>{formatarPreco(subtotal)}</span></p>
-            {desconto > 0 && <p className="flex justify-between text-green-700"><span>🏷️ Cupom {cupom!.codigo}</span><span>− {formatarPreco(desconto)}</span></p>}
+            {desconto > 0 && (usaBoasVindas
+              ? <p className="flex justify-between text-green-700"><span>🎁 Primeira compra ({loja.boas_vindas_pct}%)</span><span>− {formatarPreco(desconto)}</span></p>
+              : <p className="flex justify-between text-green-700"><span>🏷️ Cupom {cupom!.codigo}</span><span>− {formatarPreco(desconto)}</span></p>)}
             {freteEscolhido && <p className="flex justify-between"><span>🚚 {freteEscolhido.nome}</span><span>{valorFrete ? formatarPreco(valorFrete) : "grátis"}</span></p>}
           </>
         )}
         <p className="flex justify-between text-lg font-bold"><span>Total estimado</span><span className="texto-cor" style={{ color: cor }}>{formatarPreco(total)}</span></p>
         {temSobConsulta && <p className="text-right text-xs opacity-70">+ itens sob consulta</p>}
+        {/* Cartão × Pix */}
+        {totalPix != null && total > 0 && (
+          <div className="mt-2 grid grid-cols-2 gap-2 text-center text-sm">
+            <div className="rounded-xl border p-2"><span className="block text-xs opacity-60">💳 Cartão (1x)</span><b>{formatarPreco(total)}</b></div>
+            <div className="rounded-xl border-2 border-green-600 bg-green-50 p-2 text-green-800"><span className="block text-xs">⚡ Pix / à vista (−{loja.desconto_pix}%)</span><b>{formatarPreco(totalPix)}</b></div>
+          </div>
+        )}
+        {fora.length > 0 && <p className="mt-1 text-right text-xs opacity-60">{fora.length} item(ns) fora deste pedido</p>}
       </div>
 
       {/* Dados do pedido */}
@@ -211,6 +264,14 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         </label>
         <label className="block text-sm font-semibold">📲 Seu WhatsApp <span className="font-normal opacity-60">(opcional — para receber o andamento do pedido)</span>
           <input type="tel" inputMode="tel" className={`${campo} mt-1`} value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(24) 99999-9999" autoComplete="tel" />
+          {loja.boas_vindas_pct && !primeira && <span className="mt-1 block text-xs font-normal text-green-700">🎁 Primeira compra aqui? Coloque seu WhatsApp e ganhe {loja.boas_vindas_pct}% de desconto!</span>}
+          {fidelidade && (
+            <span className="mt-2 block text-xs font-normal">
+              ⭐ Programa de fidelidade: <b>{fidelidade.progresso}%</b> do caminho para ganhar <b>{fidelidade.premio}% de desconto</b>
+              <span className="mt-1 block h-2 overflow-hidden rounded-full bg-black/10"><span className="block h-full rounded-full bg-amber-400" style={{ width: `${fidelidade.progresso}%` }} /></span>
+            </span>
+          )}
+          {primeira && <span className="mt-1 block text-xs font-bold text-green-700">🎉 Primeira compra! Desconto de {loja.boas_vindas_pct}% aplicado{descontoCupom > descontoBoasVindas ? " (seu cupom é maior, então vale o cupom)" : ""}.</span>}
         </label>
         <label className="block text-sm font-semibold">📅 Para quando você precisa? <span className="font-normal opacity-60">(opcional)</span>
           <input type="date" className={`${campo} mt-1`} value={data} onChange={(e) => setData(e.target.value)} />
@@ -243,13 +304,13 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       {/* Envio: 1) finalizar (principal) · 2) tirar dúvidas · 3) continuar comprando */}
       <div className="mt-4 space-y-2">
         <Magnetico forca={0.12}>
-          <button onClick={() => enviar("pedido")} disabled={enviando}
+          <button onClick={() => enviar("pedido")} disabled={enviando || itens.length === 0}
             className="botao-vivo pulsar inline-flex w-full items-center justify-center gap-2 rounded-xl p-4 text-lg font-semibold text-white disabled:opacity-50">
             <span className="icone-tremer"><IconeTelefone /></span> Finalizar pedido
           </button>
         </Magnetico>
         <div className="grid gap-2 sm:grid-cols-2">
-          <button onClick={() => enviar("orcamento")} disabled={enviando} className="texto-cor borda-cor rounded-xl border-2 p-3 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
+          <button onClick={() => enviar("orcamento")} disabled={enviando || itens.length === 0} className="texto-cor borda-cor rounded-xl border-2 p-3 font-semibold disabled:opacity-50" style={{ borderColor: cor, color: cor }}>
             💬 Tirar dúvidas antes
           </button>
           <Link href={`/${loja.slug}`} onClick={() => window.dispatchEvent(new Event("fechar-carrinho"))}
@@ -272,26 +333,32 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         </div>
         </Portal>
       )}
-      <button onClick={() => { itens.forEach((i) => registrarEvento(loja.slug, "carrinho_remove", i.produtoId)); salvarCarrinho(loja.slug, []); }} className="mt-3 w-full text-sm underline opacity-70">
+      <button onClick={() => { todos.forEach((i) => registrarEvento(loja.slug, "carrinho_remove", i.produtoId)); salvarCarrinho(loja.slug, []); }} className="mt-3 w-full text-sm underline opacity-70">
         Esvaziar carrinho
       </button>
-      <PedidosRecentes lista={meusPedidos} cor={cor} />
+      <PedidosRecentes lista={meusPedidos} cor={cor} slug={loja.slug} />
     </div>
   );
 }
 
 // Pedidos que esta pessoa já enviou (guardados só no aparelho dela)
-function PedidosRecentes({ lista, cor }: { lista: { codigo: string; quando: string; total: number }[]; cor: string }) {
+type PedidoGuardado = { codigo: string; quando: string; total: number; itens?: ItemCarrinho[] };
+
+// Pedidos que esta pessoa já enviou (guardados só no aparelho dela), com "🔁 Pedir de novo"
+function PedidosRecentes({ lista, cor, slug }: { lista: PedidoGuardado[]; cor: string; slug: string }) {
   if (!lista.length) return null;
   return (
     <div className="mt-6 text-left">
       <b className="text-sm">🧾 Seus pedidos recentes</b>
       <div className="mt-2 space-y-1">
         {lista.slice(0, 5).map((p) => (
-          <a key={p.codigo} href={`/pedido/${p.codigo}`} className="flex justify-between rounded-lg border px-3 py-2 text-sm hover:bg-black/5">
-            <span className="texto-cor font-mono font-bold" style={{ color: cor }}>#{p.codigo}</span>
-            <span className="opacity-70">{new Date(p.quando).toLocaleDateString("pt-BR")} · {formatarPreco(p.total)}</span>
-          </a>
+          <div key={p.codigo} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+            <a href={`/pedido/${p.codigo}`} className="texto-cor font-mono font-bold" style={{ color: cor }}>#{p.codigo}</a>
+            <span className="flex-1 opacity-70">{new Date(p.quando).toLocaleDateString("pt-BR")} · {formatarPreco(p.total)}</span>
+            {p.itens?.length ? (
+              <button type="button" className="rounded-full border px-2 py-0.5 text-xs" onClick={() => p.itens!.forEach((i) => adicionarAoCarrinho(slug, i))}>🔁 Pedir de novo</button>
+            ) : null}
+          </div>
         ))}
       </div>
     </div>

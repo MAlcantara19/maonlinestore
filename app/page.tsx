@@ -253,7 +253,7 @@ async function FaixaDeMarcas() {
 async function VitrineDoDia() {
   await connection();
   const { data } = await supabase.from("produtos")
-    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve, ordem)")
+    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ativa, em_breve, ordem)")
     .eq("destaque", true).eq("ativo", true).eq("lojas.ativa", true).eq("lojas.em_breve", false).limit(80);
   type ItemVitrine = Produto & { lojas: { slug: string; nome: string; cor: string | null; ordem: number | null } };
   const todos = (data ?? []) as unknown as ItemVitrine[];
@@ -332,7 +332,7 @@ async function FaixaEspecial() {
   const ids = [...new Set(((cols ?? []) as unknown as { produtos_colecoes: { produto_id: string }[] }[]).flatMap((x) => x.produtos_colecoes.map((p) => p.produto_id)))];
   if (!ids.length) return null;
   const { data } = await supabase.from("produtos")
-    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ordem)")
+    .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor), lojas!inner(slug, nome, cor, ordem)")
     .in("id", ids.slice(0, 200)).eq("ativo", true);
   type Item = Produto & { lojas: { slug: string; nome: string; cor: string | null; ordem: number | null } };
   const porLoja = new Map<string, Item[]>();

@@ -9,6 +9,7 @@
 // Em telas menores, o "Como funciona o pedido" vira uma caixinha que
 // abre e fecha acima do conteúdo (para não roubar espaço dos produtos).
 // =====================================================================
+import BarraDaLoja from "@/components/BarraDaLoja";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { IconeTelefone } from "@/components/Icones";
 import type { ReactNode } from "react";
@@ -31,6 +32,7 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
     <TemaDaLoja loja={loja}>
       <CabecalhoDaLoja loja={loja} menu={menu} />
       <CupomDoLink lojaId={loja.id} slug={loja.slug} cor={cor} />
+      <BarraDaLoja slug={loja.slug} cor={cor} />
 
       <div className="mx-auto w-full max-w-[90rem] lg:flex lg:items-start lg:gap-6 lg:px-4">
         <MenuLateral slug={loja.slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} whatsapp={loja.whatsapp ?? null} />

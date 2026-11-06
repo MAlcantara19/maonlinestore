@@ -9,6 +9,7 @@
 //      situação · prazo · texto da opção. Com gerador "várias cores de uma vez".
 // Ao salvar um produto NOVO, a tela limpa para cadastrar o próximo.
 // =====================================================================
+import GeradorPost from "@/components/admin/GeradorPost";
 import { TAMANHOS } from "@/lib/tamanhos";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -31,6 +32,7 @@ type Dados = {
   promocao_pct: string; promocao_ate: string; giro_360: boolean; // promoção (%) até a data · fotos em 360°
   estoque: string; // vazio = não controla
   custo: string; peso_g: string; altura_cm: string; largura_cm: string; comprimento_cm: string; // lucro real e frete exato
+  previa_cor: boolean; // 🎨 pinta a foto com a cor escolhida
 };
 type LinhaVariacao = {
   id?: string; tipo: "unidade" | "kit"; nome: string; descricao: string; tamanho: string; cor: string;
@@ -44,7 +46,7 @@ const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
   { valor: "sob_encomenda", rotulo: "Sob encomenda" },
   { valor: "esgotado", rotulo: "Esgotado" },
 ];
-const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "", custo: "", peso_g: "", altura_cm: "", largura_cm: "", comprimento_cm: "" });
+const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "", custo: "", peso_g: "", altura_cm: "", largura_cm: "", comprimento_cm: "", previa_cor: false });
 const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true, estoque: "" });
 const precoTexto = (v: unknown) => (v != null ? String(v).replace(".", ",") : "");
 
@@ -105,6 +107,7 @@ function Formulario() {
             estoque: p.estoque != null ? String(p.estoque) : "",
             custo: precoTexto(p.custo), peso_g: p.peso_g != null ? String(p.peso_g) : "",
             altura_cm: precoTexto(p.altura_cm), largura_cm: precoTexto(p.largura_cm), comprimento_cm: precoTexto(p.comprimento_cm),
+            previa_cor: !!p.previa_cor,
           });
           const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setVariacoes(vs.map((v: Record<string, unknown>) => ({
@@ -188,6 +191,7 @@ function Formulario() {
         estoque: dados.estoque.trim() === "" ? null : Math.max(0, Math.round(Number(dados.estoque)) || 0),
         custo: paraNumero(dados.custo), peso_g: dados.peso_g.trim() ? Math.round(Number(dados.peso_g)) || null : null,
         altura_cm: paraNumero(dados.altura_cm), largura_cm: paraNumero(dados.largura_cm), comprimento_cm: paraNumero(dados.comprimento_cm),
+        previa_cor: dados.previa_cor,
       };
       const r = novo
         ? await supabase.from("produtos").insert(linha).select("id").single()
@@ -505,9 +509,18 @@ function Formulario() {
         )}
       </Bloco>
 
+      {!novo && (
+        <Bloco titulo="📸 Post para o Instagram / status">
+          <GeradorPost foto={midias.find((m) => m.tipo === "foto")?.url ?? null} nome={dados.nome} preco={paraNumero(dados.preco)} loja={loja.nome} cor={cor}
+            url={typeof window !== "undefined" ? `${window.location.origin}/${slug}/p/${id}` : `/${slug}/p/${id}`} />
+        </Bloco>
+      )}
+
       <Bloco titulo="👀 Visibilidade">
         <Interruptor rotulo="Visível na loja" ajuda="Desligado: o produto some da loja (sem apagar)." ligado={dados.ativo} aoMudar={(v) => mudar("ativo", v)} />
         <Interruptor rotulo="⭐ Destaque" ajuda="Aparece na seção Destaques e na Vitrine do dia." ligado={dados.destaque} aoMudar={(v) => mudar("destaque", v)} />
+        <Interruptor rotulo="🎨 Prévia da cor na foto" ajuda="Quando o cliente escolhe uma cor que não tem foto própria, a foto é “pintada” naquela cor (aproximado). Ótimo para peças sob encomenda — use foto clara/branca do produto."
+          ligado={dados.previa_cor} aoMudar={(v) => mudar("previa_cor", v)} />
         <Interruptor rotulo="🔄 Fotos em giro 360°" ajuda="Use quando as fotos forem tiradas girando o produto (12 a 36 fotos, na ordem). Na loja, o cliente arrasta e o produto gira."
           ligado={dados.giro_360} aoMudar={(v) => mudar("giro_360", v)} />
       </Bloco>

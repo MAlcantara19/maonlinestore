@@ -6,6 +6,7 @@
 // um recado: o cliente vê tudo em /pedido/<código>.
 // "Copiar aviso" copia uma mensagem pronta para colar na conversa.
 // =====================================================================
+import { Agenda, Producao, Quadro } from "@/components/admin/VisoesPedidos";
 import NovoPedidoManual from "@/components/admin/NovoPedidoManual";
 import PagamentoPedido from "@/components/admin/PagamentoPedido";
 import { CANAIS, rotuloDe } from "@/lib/pagamento";
@@ -39,6 +40,7 @@ function Lista() {
   const [loja, setLoja] = useState<LojaResumo | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [filtro, setFiltro] = useState("abertos");
+  const [visao, setVisao] = useState<"lista" | "quadro" | "agenda" | "producao">("lista");
   const [aviso, setAviso] = useState("");
   // Abrir o WhatsApp do cliente sozinho ao mudar a etapa (lembrado neste aparelho)
   const [avisarAuto, setAvisarAuto] = useState(true);
@@ -101,6 +103,20 @@ function Lista() {
     avisar("🧹 Pedidos de teste apagados.");
   }
 
+  // 📄 Duplicar: cria um pedido igual (para quem repete encomenda)
+  async function duplicar(p: Pedido) {
+    if (!loja || !confirm(`Criar um pedido novo igual ao #${p.codigo}?`)) return;
+    const codigo = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const { error } = await supabaseNavegador().from("pedidos").insert({
+      codigo, loja_id: loja.id, tipo: "pedido", status: "recebido", canal: p.canal ?? "whatsapp", cliente_nome: p.cliente_nome, cliente_whatsapp: p.cliente_whatsapp,
+      itens: p.itens, total: p.total, desconto: null, cupom: null, urgente: false, entrega: p.entrega, frete: p.frete,
+    });
+    if (error) return avisar(`Erro: ${error.message}`);
+    await carregar(loja);
+    setFiltro("todos"); setDestaque(codigo);
+    avisar(`✓ Pedido #${codigo} criado!`);
+  }
+
   async function copiarAviso(p: Pedido) {
     const texto = mensagemDeAndamento(p, window.location.origin, loja?.nome);
     await navigator.clipboard.writeText(texto);
@@ -146,7 +162,17 @@ function Lista() {
         ))}
       </div>
 
-      {!pedidos ? <p className="opacity-60">Carregando pedidos...</p> : lista.length === 0 ? <p className="opacity-70">Nenhum pedido aqui. 📭</p> : (
+      {/* Formas de ver: lista · quadro · agenda · produção */}
+      <div className="mb-3 grid grid-cols-4 gap-1 rounded-xl bg-white p-1 text-sm shadow-sm">
+        {([["lista", "📋 Lista"], ["quadro", "🗂️ Quadro"], ["agenda", "📅 Agenda"], ["producao", "🏭 Produção"]] as const).map(([v, r]) => (
+          <button key={v} type="button" onClick={() => setVisao(v)} className="rounded-lg py-2 font-semibold" style={visao === v ? { background: cor, color: "white" } : {}}>{r}</button>
+        ))}
+      </div>
+      {visao === "quadro" && pedidos && <Quadro pedidos={pedidos} cor={cor} mover={(p, s) => mudarEtapa(p as Pedido, s)} abrir={(c) => { setVisao("lista"); setFiltro("todos"); setDestaque(c); }} />}
+      {visao === "agenda" && pedidos && <Agenda pedidos={pedidos} cor={cor} abrir={(c) => { setVisao("lista"); setFiltro("todos"); setDestaque(c); }} />}
+      {visao === "producao" && pedidos && <Producao pedidos={pedidos} slug={slug} />}
+
+      {visao === "lista" && (!pedidos ? <p className="opacity-60">Carregando pedidos...</p> : lista.length === 0 ? <p className="opacity-70">Nenhum pedido aqui. 📭</p> : (
         <div className="space-y-3">
           {lista.map((p) => {
             const st = STATUS.find((s) => s.valor === p.status);
@@ -190,6 +216,10 @@ function Lista() {
                   )}
                   <button type="button" onClick={() => copiarAviso(p)} className="rounded-lg border px-3 py-2 text-sm">📋 Copiar aviso</button>
                   <a href={`/pedido/${p.codigo}`} target="_blank" className="rounded-lg border px-3 py-2 text-sm">👁️ Ver como o cliente</a>
+                  <a href={`/admin/${slug}/pedidos/${p.id}?modo=producao`} className="rounded-lg border px-3 py-2 text-sm">🖨️ Imprimir</a>
+                  <a href={`/admin/${slug}/pedidos/${p.id}?modo=recibo`} className="rounded-lg border px-3 py-2 text-sm">🧾 Recibo</a>
+                  <a href={`/admin/${slug}/pedidos/${p.id}?modo=etiqueta`} className="rounded-lg border px-3 py-2 text-sm">📦 Etiqueta</a>
+                  <button type="button" onClick={() => duplicar(p)} className="rounded-lg border px-3 py-2 text-sm">📄 Duplicar</button>
                   <button type="button" onClick={() => atualizar(p, { teste: !p.teste })} className="rounded-lg border px-3 py-2 text-sm"
                     title="Pedido de teste não entra nas estatísticas">{p.teste ? "✓ É teste" : "🧪 Marcar como teste"}</button>
                   <button type="button" onClick={() => apagar(p)} className="rounded-lg border px-3 py-2 text-sm text-red-600" aria-label="Apagar pedido">🗑️</button>
@@ -209,7 +239,7 @@ function Lista() {
             );
           })}
         </div>
-      )}
+      ))}
     </>
   );
 }

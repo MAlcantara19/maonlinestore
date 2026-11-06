@@ -20,7 +20,19 @@ import Rodape from "@/components/Rodape";
 type Props = { params: Promise<{ codigo: string }> };
 type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null };
 
-export const metadata: Metadata = { title: "Acompanhar pedido · MA Online Store", robots: { index: false } };
+// Prévia do link no WhatsApp com a CARA DA LOJA (nome e logo dela)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { codigo } = await params;
+  const { data } = await supabase.rpc("pedido_extras", { p_codigo: codigo });
+  const loja = (data as { loja_nome: string; loja_logo: string | null }[] | null)?.[0];
+  const titulo = loja ? `Pedido #${codigo.toUpperCase()} · ${loja.loja_nome}` : "Acompanhar pedido";
+  return {
+    title: `${titulo} · MA Online Store`,
+    description: loja ? `Acompanhe o andamento do seu pedido na ${loja.loja_nome} 📦` : "Acompanhe o seu pedido.",
+    robots: { index: false },
+    openGraph: { title: `${titulo} · MA Online Store`, description: loja ? `Acompanhe o seu pedido na ${loja.loja_nome} 📦` : undefined, images: loja?.loja_logo ? [loja.loja_logo] : undefined },
+  };
+}
 
 // Linha do tempo (sem o "cancelado", que aparece à parte)
 const ETAPAS = ETAPAS_PEDIDO.filter((e) => e.valor !== "cancelado");
@@ -42,7 +54,7 @@ async function Conteudo({ params }: Props) {
   const { data } = await supabase.rpc("consultar_pedido", { p_codigo: codigo });
   const p = (data as Record<string, unknown>[] | null)?.[0];
   const { data: ext } = await supabase.rpc("pedido_extras", { p_codigo: codigo });
-  const extra = (ext as { previsao_entrega: string | null; entrega: string | null; frete: number | null; avaliado: boolean }[] | null)?.[0];
+  const extra = (ext as { previsao_entrega: string | null; entrega: string | null; frete: number | null; avaliado: boolean; loja_slug: string }[] | null)?.[0];
 
   if (!p) {
     return (

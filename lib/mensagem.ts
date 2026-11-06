@@ -24,6 +24,8 @@ export type DadosMensagem = {
   linkAcompanhar: string | null;
   entrega?: string | null; // ex.: "Três Rios - Centro"
   freteEstimado?: string | null; // ex.: "Juiz de Fora - MG (CEP ...): cerca de R$ 25,00"
+  boasVindas?: { pct: number; valor: number } | null; // desconto de primeira compra
+  pix?: { pct: number; valor: number } | null; // total no Pix / à vista
   frete?: number | null;
 };
 
@@ -58,9 +60,11 @@ export function montarMensagem(d: DadosMensagem): string {
   if (d.entrega) partes.push(`🚚 Entrega: *${d.entrega}*${d.frete ? ` — ${formatarPreco(d.frete)}` : d.frete === 0 ? " — grátis" : ""}`);
   if (d.desconto > 0) {
     partes.push(`💵 Subtotal: ${formatarPreco(d.subtotal)}`);
-    partes.push(`🏷️ Cupom *${d.cupom}*: − ${formatarPreco(d.desconto)}`);
+    if (d.boasVindas) partes.push(`🎁 Primeira compra (${d.boasVindas.pct}%): − ${formatarPreco(d.boasVindas.valor)}`);
+    else partes.push(`🏷️ Cupom *${d.cupom}*: − ${formatarPreco(d.desconto)}`);
   }
   partes.push(`✅ *Total estimado: ${formatarPreco(d.total)}*${d.temSobConsulta ? " + itens sob consulta" : ""}`);
+  if (d.pix) partes.push(`⚡ *No Pix / à vista (−${d.pix.pct}%): ${formatarPreco(d.pix.valor)}*`);
   partes.push("_(valor final confirmado na conversa)_");
   if (d.linkAcompanhar) partes.push("", `🔗 Acompanhe o pedido: ${d.linkAcompanhar}`);
   partes.push("", d.tipo === "orcamento" ? "Tenho algumas dúvidas antes de fechar. Pode me ajudar? 😊" : "Quero finalizar este pedido! 😊");

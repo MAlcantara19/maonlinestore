@@ -25,7 +25,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, cep_origem, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -100,6 +100,29 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         <AjusteLogo src={loja.logo_url}
           valor={{ logo_ajuste: loja.logo_ajuste ?? "cobrir", logo_zoom: Number(loja.logo_zoom ?? 1), logo_fundo: loja.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
+      </Bloco>
+
+      <Bloco titulo="💸 Descontos automáticos e fidelidade">
+        <p className="text-xs opacity-60">Deixe vazio para desligar. Tudo aparece no carrinho e vai na mensagem do pedido — o valor final continua combinado no WhatsApp.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="⚡ Desconto no Pix / à vista (%)">
+            <input className={input} inputMode="numeric" value={loja.desconto_pix ?? ""} placeholder="Ex.: 10"
+              onChange={(e) => mudar("desconto_pix", Number(e.target.value.replace(/\D/g, "")) || null)} />
+          </Campo>
+          <Campo rotulo="🎁 Desconto na 1ª compra (%) — o cliente informa o WhatsApp">
+            <input className={input} inputMode="numeric" value={loja.boas_vindas_pct ?? ""} placeholder="Ex.: 5"
+              onChange={(e) => mudar("boas_vindas_pct", Number(e.target.value.replace(/\D/g, "")) || null)} />
+          </Campo>
+          <Campo rotulo="⭐ Fidelidade: a cada R$ ... pagos">
+            <input className={input} inputMode="decimal" value={loja.fidelidade_a_cada != null ? String(loja.fidelidade_a_cada).replace(".", ",") : ""} placeholder="Ex.: 300"
+              onChange={(e) => mudar("fidelidade_a_cada", Number(e.target.value.replace(",", ".")) || null)} />
+          </Campo>
+          <Campo rotulo="⭐ ...o cliente ganha um cupom de (%)">
+            <input className={input} inputMode="numeric" value={loja.fidelidade_premio_pct ?? ""} placeholder="Ex.: 10"
+              onChange={(e) => mudar("fidelidade_premio_pct", Number(e.target.value.replace(/\D/g, "")) || null)} />
+          </Campo>
+        </div>
+        <p className="text-xs opacity-60">Fidelidade: conta o que foi <b>pago</b> nos pedidos (aba Pedidos → 💳 Pagamento). Quando o cliente completa, a aba 👥 Clientes mostra “🎁 Liberar prêmio” e gera o cupom.</p>
       </Bloco>
 
       <Bloco titulo="📮 Frete exato (Melhor Envio)">
