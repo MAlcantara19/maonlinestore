@@ -121,6 +121,7 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       cor: corValida === COR_A_ESCOLHER ? "A escolher (ver observação)" : corValida || null,
       preco: preco != null ? Number(preco) : null,
       promocao: emPromocao ? produto.promocao_pct : null,
+      foto: foto ?? produto.midias.filter((m) => m.tipo === "foto").sort((a, b) => a.ordem - b.ordem)[0]?.url ?? null,
       quantidade: estoque != null ? Math.min(quantidade, estoque) : quantidade,
       observacao: observacao.trim(),
       prazo,

@@ -18,12 +18,13 @@ import { lojaPeloSlug, paraNumero, type LojaResumo } from "@/lib/admin";
 import { formatarPreco } from "@/lib/formato";
 import { etapaDo } from "@/lib/statusPedido";
 
-type ItemMov = { nome: string; quantidade: number; preco: number };
+type ItemMov = { nome: string; quantidade: number; preco: number; produto_id?: string | null };
 type Mov = {
   id: string; tipo: "entrada" | "saida"; data: string; categoria: string; descricao: string | null; valor: number;
   forma_pagamento: string | null; pedido_id: string | null; pedido_numero: string | null; itens: ItemMov[]; observacao: string | null; criado_por: string | null;
 };
-type PedidoResumo = { id: string; codigo: string; cliente_nome: string | null; total: number | null; status: string; criado_em: string; itens: { nome: string; quantidade: number; preco: number | null; opcao?: string | null; tamanho?: string | null; cor?: string | null }[] };
+type PedidoResumo = { id: string; codigo: string; cliente_nome: string | null; total: number | null; status: string; criado_em: string; pagamento_status?: string | null; valor_pago?: number | null; restante_quando?: string | null;
+  itens: { nome: string; quantidade: number; preco: number | null; opcao?: string | null; tamanho?: string | null; cor?: string | null; produto_id?: string | null }[] };
 
 const CATEGORIAS = {
   entrada: [["venda", "🛍️ Venda"], ["sinal", "💵 Sinal (entrada do pedido)"], ["restante", "✅ Restante do pedido"], ["outro_entrada", "➕ Outra entrada"]],
@@ -49,6 +50,8 @@ function Financeiro() {
   const [valorTexto, setValorTexto] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "entrada" | "saida">("todos");
   const [aviso, setAviso] = useState("");
+  const [historico, setHistorico] = useState<{ mes: string; entradas: number; saidas: number }[]>([]);
+  const [custos, setCustos] = useState<Record<string, { nome: string; custo: number | null }>>({});
 
   const carregar = useCallback(async (l: LojaResumo, m: string) => {
     const sb = supabaseNavegador();
@@ -56,9 +59,25 @@ function Financeiro() {
     const fim = new Date(ano, mm, 0).getDate();
     const [r1, r2] = await Promise.all([
       sb.from("movimentacoes").select("*").eq("loja_id", l.id).gte("data", `${m}-01`).lte("data", `${m}-${fim}`).order("data", { ascending: false }).order("criado_em", { ascending: false }),
-      sb.from("pedidos").select("id, codigo, cliente_nome, total, status, criado_em, itens").eq("loja_id", l.id).eq("tipo", "pedido").neq("status", "cancelado").eq("teste", false)
-        .order("criado_em", { ascending: false }).limit(60),
+      sb.from("pedidos").select("id, codigo, cliente_nome, total, status, criado_em, itens, pagamento_status, valor_pago, restante_quando").eq("loja_id", l.id).eq("tipo", "pedido").neq("status", "cancelado").eq("teste", false)
+        .order("criado_em", { ascending: false }).limit(80),
     ]);
+    // Gráfico: os 6 meses até o mês escolhido
+    const inicio = new Date(ano, mm - 6, 1);
+    const { data: seis } = await sb.from("movimentacoes").select("tipo, valor, data").eq("loja_id", l.id)
+      .gte("data", inicio.toLocaleDateString("sv-SE")).lte("data", `${m}-${fim}`);
+    const meses = Array.from({ length: 6 }, (_, i) => new Date(ano, mm - 6 + i, 1).toLocaleDateString("sv-SE").slice(0, 7));
+    setHistorico(meses.map((x) => ({
+      mes: x,
+      entradas: (seis ?? []).filter((r: { data: string; tipo: string }) => r.data.startsWith(x) && r.tipo === "entrada").reduce((s: number, r: { valor: number }) => s + Number(r.valor), 0),
+      saidas: (seis ?? []).filter((r: { data: string; tipo: string }) => r.data.startsWith(x) && r.tipo === "saida").reduce((s: number, r: { valor: number }) => s + Number(r.valor), 0),
+    })));
+    // Custo dos produtos vendidos no mês (para o lucro real)
+    const ids = [...new Set(((r1.data ?? []) as Mov[]).flatMap((x) => (x.itens ?? []).map((i) => i.produto_id)).filter(Boolean))] as string[];
+    if (ids.length) {
+      const { data: ps } = await sb.from("produtos").select("id, nome, custo").in("id", ids);
+      setCustos(Object.fromEntries((ps ?? []).map((x: { id: string; nome: string; custo: number | null }) => [x.id, { nome: x.nome, custo: x.custo }])));
+    } else setCustos({});
     if (r1.error) setAviso(`Rode a atualização 25 no Supabase. (${r1.error.message})`);
     setMovs((r1.data ?? []) as Mov[]);
     setPedidos((r2.data ?? []) as PedidoResumo[]);
@@ -90,7 +109,7 @@ function Financeiro() {
   function escolherPedido(id: string) {
     const p = pedidos.find((x) => x.id === id);
     if (!p) return mudar({ pedido_id: null, itens: [] });
-    const itens = (p.itens ?? []).map((i) => ({ nome: [i.nome, i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · "), quantidade: i.quantidade, preco: Number(i.preco ?? 0) }));
+    const itens = (p.itens ?? []).map((i) => ({ nome: [i.nome, i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · "), quantidade: i.quantidade, preco: Number(i.preco ?? 0), produto_id: i.produto_id ?? null }));
     const total = Number(p.total ?? itens.reduce((s, i) => s + i.preco * i.quantidade, 0));
     setForm({ ...form, tipo: "entrada", categoria: form.categoria.startsWith("outro") ? "venda" : form.categoria, pedido_id: p.id, itens, descricao: `Pedido #${p.codigo}${p.cliente_nome ? ` · ${p.cliente_nome}` : ""}` });
     setValorTexto(total.toFixed(2).replace(".", ","));
@@ -167,6 +186,67 @@ function Financeiro() {
           </div>
         </div>
       )}
+
+      {/* Gráfico dos últimos 6 meses */}
+      {historico.some((h) => h.entradas || h.saidas) && (
+        <Bloco titulo="📊 Últimos 6 meses">
+          <GraficoMeses dados={historico} />
+        </Bloco>
+      )}
+
+      {/* Restante a receber (pedidos com sinal) */}
+      {pedidos.some((p) => p.pagamento_status === "sinal") && (
+        <Bloco titulo="💵 Restante a receber (pedidos com sinal)">
+          <ul className="space-y-1 text-sm">
+            {pedidos.filter((p) => p.pagamento_status === "sinal").map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+                <b>#{p.codigo}</b><span>{p.cliente_nome ?? ""}</span>
+                <span className="opacity-70">pago {formatarPreco(Number(p.valor_pago ?? 0))} de {formatarPreco(Number(p.total ?? 0))}</span>
+                <b className="ml-auto text-amber-800">falta {formatarPreco(Math.max(0, Number(p.total ?? 0) - Number(p.valor_pago ?? 0)))}</b>
+                {p.restante_quando && <span className="text-xs opacity-70">({p.restante_quando})</span>}
+              </li>
+            ))}
+          </ul>
+          <a href={`/admin/${slug}/pedidos`} className="text-sm underline">Marcar como pago na aba Pedidos →</a>
+        </Bloco>
+      )}
+
+      {/* Lucro real por produto (vendas do mês × custo cadastrado no produto) */}
+      {(() => {
+        const mapa = new Map<string, { nome: string; qtd: number; receita: number; custo: number | null }>();
+        lista.filter((m) => m.tipo === "entrada").forEach((m) => (m.itens ?? []).forEach((i) => {
+          const chave = i.produto_id ?? `nome:${i.nome}`;
+          const atual = mapa.get(chave) ?? { nome: i.produto_id ? custos[i.produto_id]?.nome ?? i.nome : i.nome, qtd: 0, receita: 0, custo: i.produto_id ? custos[i.produto_id]?.custo ?? null : null };
+          atual.qtd += Number(i.quantidade); atual.receita += Number(i.preco) * Number(i.quantidade);
+          mapa.set(chave, atual);
+        }));
+        const linhas = [...mapa.values()].sort((a, b) => b.receita - a.receita);
+        if (!linhas.length) return null;
+        return (
+          <Bloco titulo="📈 Lucro por produto (vendas do mês)">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left opacity-60"><th className="py-1">Produto</th><th>Vendidos</th><th>Recebido</th><th>Custo</th><th>Lucro</th></tr></thead>
+                <tbody>
+                  {linhas.map((l) => {
+                    const custoTotal = l.custo != null ? Number(l.custo) * l.qtd : null;
+                    return (
+                      <tr key={l.nome} className="border-t">
+                        <td className="py-1.5">{l.nome}</td><td>{l.qtd}</td><td>{formatarPreco(l.receita)}</td>
+                        <td>{custoTotal != null ? formatarPreco(custoTotal) : <span className="text-xs opacity-60">cadastre o custo</span>}</td>
+                        <td className="font-semibold" style={{ color: custoTotal != null ? (l.receita - custoTotal >= 0 ? "#15803d" : "#b91c1c") : undefined }}>
+                          {custoTotal != null ? `${formatarPreco(l.receita - custoTotal)} (${l.receita ? Math.round(((l.receita - custoTotal) / l.receita) * 100) : 0}%)` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs opacity-60">O custo vem do campo “💵 Custo de produção” do produto (dá para enviar direto da 🧮 Calculadora 3D).</p>
+          </Bloco>
+        );
+      })()}
 
       {/* Atalho: pedidos sem pagamento registrado */}
       {semPagamento.length > 0 && (
@@ -274,5 +354,28 @@ function Financeiro() {
         )}
       </Bloco>
     </>
+  );
+}
+
+// Barras lado a lado: entradas (verde) × saídas (vermelho), por mês
+function GraficoMeses({ dados }: { dados: { mes: string; entradas: number; saidas: number }[] }) {
+  const max = Math.max(1, ...dados.flatMap((d) => [d.entradas, d.saidas]));
+  const nomeMes = (m: string) => new Date(`${m}-15`).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+  return (
+    <div>
+      <div className="flex h-44 items-end gap-3">
+        {dados.map((d) => (
+          <div key={d.mes} className="flex flex-1 flex-col items-center gap-1">
+            <div className="flex h-36 w-full items-end justify-center gap-1">
+              <div className="w-1/3 rounded-t bg-green-600 transition-all duration-700" style={{ height: `${(d.entradas / max) * 100}%` }} title={`Entradas: ${formatarPreco(d.entradas)}`} />
+              <div className="w-1/3 rounded-t bg-red-500 transition-all duration-700" style={{ height: `${(d.saidas / max) * 100}%` }} title={`Saídas: ${formatarPreco(d.saidas)}`} />
+            </div>
+            <span className="text-xs capitalize opacity-70">{nomeMes(d.mes)}</span>
+            <span className="text-[10px] font-semibold" style={{ color: d.entradas - d.saidas >= 0 ? "#15803d" : "#b91c1c" }}>{formatarPreco(d.entradas - d.saidas)}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 flex gap-4 text-xs"><span><span className="mr-1 inline-block h-2 w-3 rounded bg-green-600" />Entradas</span><span><span className="mr-1 inline-block h-2 w-3 rounded bg-red-500" />Saídas</span><span className="opacity-60">valor embaixo = saldo do mês</span></p>
+    </div>
   );
 }

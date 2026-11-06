@@ -25,7 +25,7 @@ import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, cep_origem, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -100,6 +100,17 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
         <AjusteLogo src={loja.logo_url}
           valor={{ logo_ajuste: loja.logo_ajuste ?? "cobrir", logo_zoom: Number(loja.logo_zoom ?? 1), logo_fundo: loja.logo_fundo ?? "#ffffff" }}
           aoMudar={(v) => { setLoja({ ...loja, ...v }); setMensagem(null); }} />
+      </Bloco>
+
+      <Bloco titulo="📮 Frete exato (Melhor Envio)">
+        <Campo rotulo="CEP de onde a loja envia">
+          <input className={input} inputMode="numeric" maxLength={9} value={loja.cep_origem ?? ""} placeholder="25800-000"
+            onChange={(e) => mudar("cep_origem", e.target.value.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2") || null)} />
+        </Campo>
+        <p className="text-xs opacity-60">
+          Com o CEP aqui, o token do Melhor Envio na Vercel e o peso/medidas no cadastro dos produtos, o cliente vê as opções reais
+          (PAC, SEDEX, Jadlog...) com preço e prazo. Sem isso, vale a estimativa por região abaixo.
+        </p>
       </Bloco>
 
       <Bloco titulo="📦 Frete aproximado por CEP (o cliente calcula sozinho)">

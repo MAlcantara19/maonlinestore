@@ -55,6 +55,7 @@ export default function SacolaUnica() {
             <ul className="divide-y px-4">
               {itens.map((i) => (
                 <li key={`${i.chave}${i.observacao}`} className="flex items-center gap-2 py-2 text-sm">
+                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-black/5">{i.foto ? <img src={i.foto} alt="" className="h-full w-full object-cover" /> : null}</span>
                   <span className="flex-1">{i.quantidade}x <b>{i.nome}</b> <span className="opacity-60">{[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}</span></span>
                   <span>{i.preco != null ? formatarPreco(i.preco * i.quantidade) : "Consulte"}</span>
                   <button type="button" aria-label="Tirar da sacola" className="px-1 text-red-600"

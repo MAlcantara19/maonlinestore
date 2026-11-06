@@ -6,6 +6,9 @@
 // um recado: o cliente vê tudo em /pedido/<código>.
 // "Copiar aviso" copia uma mensagem pronta para colar na conversa.
 // =====================================================================
+import NovoPedidoManual from "@/components/admin/NovoPedidoManual";
+import PagamentoPedido from "@/components/admin/PagamentoPedido";
+import { CANAIS, rotuloDe } from "@/lib/pagamento";
 import { ETAPAS_PEDIDO, mensagemDeAndamento } from "@/lib/statusPedido";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { useParams } from "next/navigation";
@@ -16,11 +19,12 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
 import { formatarPreco, telefoneBonito } from "@/lib/formato";
 
-type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string };
+type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null; produto_id?: string | null };
 type Pedido = {
   id: string; codigo: string; tipo: "pedido" | "orcamento"; cliente_nome: string | null; itens: Item[]; total: number | null;
   desconto: number | null; cupom: string | null; data_desejada: string | null; urgente: boolean; status: string; nota_loja: string | null; criado_em: string; estoque_baixado?: boolean;
   entrega?: string | null; frete?: number | null; cliente_whatsapp?: string | null; teste?: boolean; previsao_entrega?: string | null;
+  canal?: string | null; pagamento_status?: string | null; valor_pago?: number | null; pagamento_forma?: string | null; restante_quando?: string | null; pagamento_obs?: string | null;
 };
 
 // As etapas ficam em lib/statusPedido.ts (as mesmas do acompanhamento do cliente)
@@ -104,7 +108,12 @@ function Lista() {
   }
 
   const lista = (pedidos ?? []).filter((p) =>
-    filtro === "todos" ? true : filtro === "abertos" ? !["entregue", "cancelado"].includes(p.status) : p.status === filtro);
+    filtro === "todos" ? true
+      : filtro === "abertos" ? !["entregue", "cancelado"].includes(p.status)
+      : filtro === "receber" ? p.tipo === "pedido" && p.status !== "cancelado" && p.pagamento_status !== "pago"
+      : p.status === filtro);
+  const aReceber = (pedidos ?? []).filter((p) => p.pagamento_status === "sinal" && p.status !== "cancelado")
+    .reduce((s, p) => s + Math.max(0, Number(p.total ?? 0) - Number(p.valor_pago ?? 0)), 0);
 
   return (
     <>
@@ -113,6 +122,12 @@ function Lista() {
         📦 Produtos com estoque controlado: o estoque <b>baixa sozinho</b> quando o pedido é &quot;Aceito&quot; (ou passa para as etapas seguintes),
         e <b>volta</b> se você cancelar.
       </p>
+      <NovoPedidoManual lojaId={loja.id} cor={cor} aoCriar={() => { carregar(loja); avisar("✓ Pedido criado!"); }} />
+      {aReceber > 0 && (
+        <button type="button" onClick={() => setFiltro("receber")} className="mb-3 block w-full rounded-xl bg-amber-50 p-3 text-left text-sm text-amber-900">
+          💵 Restante a receber de pedidos com sinal: <b>{formatarPreco(aReceber)}</b> — toque para ver
+        </button>
+      )}
       {(pedidos ?? []).some((p) => p.teste) && (
         <button type="button" onClick={apagarTestes} className="mb-3 rounded-full border border-red-300 px-4 py-2 text-sm text-red-700">
           🧹 Apagar todos os pedidos de teste ({(pedidos ?? []).filter((p) => p.teste).length})
@@ -125,7 +140,7 @@ function Lista() {
       {aviso && <p className="fixed inset-x-0 top-4 z-50 mx-auto w-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg">{aviso}</p>}
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {[{ valor: "abertos", rotulo: "Em aberto" }, ...STATUS, { valor: "todos", rotulo: "Todos" }].map((f) => (
+        {[{ valor: "abertos", rotulo: "Em aberto" }, { valor: "receber", rotulo: "💵 A receber" }, ...STATUS, { valor: "todos", rotulo: "Todos" }].map((f) => (
           <button key={f.valor} type="button" onClick={() => setFiltro(f.valor)} className="shrink-0 rounded-full border px-3 py-1.5 text-sm"
             style={filtro === f.valor ? { background: cor, color: "white", borderColor: cor } : { background: "white" }}>{f.rotulo}</button>
         ))}
@@ -147,11 +162,17 @@ function Lista() {
                   <span className="flex-1" />
                   <span className="text-xs opacity-60">{new Date(p.criado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
                 </div>
-                {p.cliente_nome && <p className="text-sm">👤 {p.cliente_nome}</p>}
+                {p.cliente_nome && <p className="text-sm">👤 {p.cliente_nome}{p.canal && p.canal !== "site" ? <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs">{rotuloDe(CANAIS, p.canal)}</span> : null}</p>}
                 {p.cliente_whatsapp && <p className="text-sm">📲 {telefoneBonito(p.cliente_whatsapp)}</p>}
-                <ul className="mt-2 text-sm">
+                {/* Itens com foto */}
+                <ul className="mt-2 space-y-1.5 text-sm">
                   {p.itens.map((i, n) => (
-                    <li key={n}>• {i.quantidade}x <b>{i.nome}</b> {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.observacao ? ` — ✏️ ${i.observacao}` : ""}</li>
+                    <li key={n} className="flex items-center gap-2">
+                      <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-stone-100">
+                        {i.foto ? <img src={i.foto} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center">📦</span>}
+                      </span>
+                      <span>{i.quantidade}x <b>{i.nome}</b> {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : ""}{i.observacao ? ` — ✏️ ${i.observacao}` : ""}</span>
+                    </li>
                   ))}
                 </ul>
                 <p className="mt-1 text-sm font-semibold">
@@ -173,6 +194,9 @@ function Lista() {
                     title="Pedido de teste não entra nas estatísticas">{p.teste ? "✓ É teste" : "🧪 Marcar como teste"}</button>
                   <button type="button" onClick={() => apagar(p)} className="rounded-lg border px-3 py-2 text-sm text-red-600" aria-label="Apagar pedido">🗑️</button>
                 </div>
+                {p.tipo === "pedido" && (
+                  <PagamentoPedido p={p} lojaId={loja.id} cor={cor} aoSalvar={async (campos) => { await atualizar(p, campos as Partial<Pedido>); }} />
+                )}
                 <label className="mt-2 flex flex-wrap items-center gap-2 text-sm">📅 Previsão de entrega:
                   <input type="date" defaultValue={p.previsao_entrega ?? ""} className="rounded-lg border bg-stone-50 px-2 py-1"
                     onChange={(e) => atualizar(p, { previsao_entrega: e.target.value || null })} />

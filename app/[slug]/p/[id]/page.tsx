@@ -26,7 +26,7 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem";
 const COLUNAS_PRODUTO =
   "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
@@ -131,7 +131,7 @@ async function ConteudoDoProduto({ params }: Props) {
             )}
 
             <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl whatsapp={loja.whatsapp} />
-            <CalculoFrete slug={slug} regras={loja.frete_cep} cor={cor} />
+            <CalculoFrete slug={slug} regras={loja.frete_cep} cor={cor} exato={!!loja.cep_origem} itens={[{ produtoId: produto.id, quantidade: 1 }]} />
           </div>
         </div>
         <Avaliacoes itens={avaliacoes} cor={cor} />

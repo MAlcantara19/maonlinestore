@@ -99,7 +99,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         p_itens: itens.map((i) => {
           const variacao = i.chave.split("|")[1];
           return { nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao,
-            produto_id: i.produtoId, variacao_id: variacao && variacao !== "unico" ? variacao : null };
+            produto_id: i.produtoId, variacao_id: variacao && variacao !== "unico" ? variacao : null, foto: i.foto ?? null };
         }),
         p_total: total, p_desconto: desconto || null, p_cupom: cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
         p_entrega: freteEscolhido?.nome ?? null, p_frete: freteEscolhido ? valorFrete : null,
@@ -160,7 +160,11 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       {/* Itens */}
       {itens.map((i, indice) => (
         <div key={`${i.chave}-${i.observacao}`} className="flex items-start justify-between gap-3 border-b py-3">
-          <div>
+          {/* Foto do produto */}
+          <span className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black/5">
+            {i.foto ? <img src={i.foto} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center text-2xl">📦</span>}
+          </span>
+          <div className="min-w-0 flex-1">
             <b>{i.nome}</b>
             <p className="text-sm opacity-70">
               {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}
@@ -211,7 +215,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         <label className="block text-sm font-semibold">📅 Para quando você precisa? <span className="font-normal opacity-60">(opcional)</span>
           <input type="date" className={`${campo} mt-1`} value={data} onChange={(e) => setData(e.target.value)} />
         </label>
-        <CalculoFrete slug={loja.slug} regras={loja.frete_cep} cor={cor} />
+        <CalculoFrete slug={loja.slug} regras={loja.frete_cep} cor={cor} exato={!!loja.cep_origem} itens={itens.map((i) => ({ produtoId: i.produtoId, quantidade: i.quantidade }))} />
         {fretes.length > 0 && (
           <label className="block text-sm font-semibold">🚚 Entrega
             <select className={`${campo} mt-1`} value={entrega} onChange={(e) => { setEntrega(e.target.value); setAvisoEntrega(false); }}

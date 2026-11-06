@@ -90,8 +90,16 @@ function Calculadora() {
   const [marcados, setMarcados] = useState<number[]>([]);
   const [editarModelo, setEditarModelo] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [produtosLoja, setProdutosLoja] = useState<{ id: string; nome: string }[]>([]);
+  const [produtoAlvo, setProdutoAlvo] = useState("");
 
-  useEffect(() => { lojaPeloSlug(slug).then(setLoja); }, [slug]);
+  useEffect(() => {
+    lojaPeloSlug(slug).then((l) => {
+      setLoja(l);
+      if (l) supabaseNavegador().from("produtos").select("id, nome").eq("loja_id", l.id).is("excluido_em", null).order("nome")
+        .then(({ data }: { data: { id: string; nome: string }[] | null }) => setProdutosLoja(data ?? []));
+    });
+  }, [slug]);
   useEffect(() => {
     supabaseNavegador().from("lojas").select("whatsapp").eq("slug", slug).maybeSingle()
       .then(({ data }: { data: { whatsapp: string | null } | null }) => setWhatsLoja(data?.whatsapp ?? null), () => {});
@@ -286,6 +294,24 @@ function Calculadora() {
               <button type="button" onClick={enviarParaLoja} className="rounded-xl bg-green-600 p-2 text-sm font-semibold" title="Manda o cálculo completo para o WhatsApp da loja">📲 Resumo p/ a equipe</button>
               <button type="button" onClick={async () => avisar((await copiarTexto(resumoInterno)) ? "✓ Resumo copiado!" : "Não deu para copiar.")} className="rounded-xl bg-white/20 p-2 text-sm font-semibold">📋 Copiar resumo</button>
               <button type="button" onClick={salvarItem} className="col-span-2 rounded-xl bg-white p-2 text-sm font-semibold" style={{ color: cor }}>💾 Salvar peça (vai para a mensagem do cliente)</button>
+            </div>
+            {/* Manda o custo (e o preço, se quiser) direto para um produto do catálogo */}
+            <div className="mt-3 rounded-xl bg-white/10 p-2 text-sm">
+              <b className="block">📤 Usar num produto do catálogo</b>
+              <select value={produtoAlvo} onChange={(e) => setProdutoAlvo(e.target.value)} className="mt-1 w-full rounded-lg px-2 py-1.5 text-stone-900">
+                <option value="">Escolha o produto...</option>
+                {produtosLoja.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button type="button" disabled={!produtoAlvo || !custo} className="rounded-lg bg-white/20 p-1.5 font-semibold disabled:opacity-40"
+                  onClick={async () => { const { error } = await supabaseNavegador().from("produtos").update({ custo: Math.round(custo * 100) / 100 }).eq("id", produtoAlvo); avisar(error ? `Erro: ${error.message}` : "✓ Custo salvo no produto!"); }}>
+                  Só o custo
+                </button>
+                <button type="button" disabled={!produtoAlvo || !custo} className="rounded-lg bg-white p-1.5 font-semibold disabled:opacity-40" style={{ color: cor }}
+                  onClick={async () => { if (!confirm(`Atualizar o produto com custo ${reais(custo)} e preço ${reais(preco)}?`)) return; const { error } = await supabaseNavegador().from("produtos").update({ custo: Math.round(custo * 100) / 100, preco: Math.round(preco * 100) / 100 }).eq("id", produtoAlvo); avisar(error ? `Erro: ${error.message}` : "✓ Custo e preço salvos no produto!"); }}>
+                  Custo + preço
+                </button>
+              </div>
             </div>
           </section>
         </div>

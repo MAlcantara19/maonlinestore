@@ -9,7 +9,14 @@ import { formatarPreco } from "@/lib/formato";
 
 export const chaveFrete = (slug: string) => `frete:${slug}`;
 
-export default function CalculoFrete({ slug, regras, cor }: { slug: string; regras?: RegrasFrete | null; cor: string }) {
+type OpcaoEnvio = { servico: string; preco: number; prazo: number | null; logo?: string };
+
+export default function CalculoFrete({ slug, regras, cor, itens, exato }: {
+  slug: string; regras?: RegrasFrete | null; cor: string;
+  itens?: { produtoId: string; quantidade: number }[]; // para a cotação exata (Melhor Envio)
+  exato?: boolean; // a loja tem CEP de envio cadastrado
+}) {
+  const [opcoes, setOpcoes] = useState<OpcaoEnvio[]>([]);
   const [cep, setCep] = useState("");
   const [res, setRes] = useState<Estimativa | null>(null);
   const [erro, setErro] = useState("");
@@ -18,16 +25,26 @@ export default function CalculoFrete({ slug, regras, cor }: { slug: string; regr
   useEffect(() => {
     try { const s = JSON.parse(localStorage.getItem(chaveFrete(slug)) ?? "null"); if (s) { setRes(s); setCep(s.cep); } } catch {}
   }, [slug]);
-  if (!temRegras(regras)) return null;
+  if (!temRegras(regras) && !exato) return null;
 
   async function calcular() {
-    setBuscando(true); setErro("");
-    const r = await estimarFrete(cep, regras!);
+    setBuscando(true); setErro(""); setOpcoes([]);
+    // 1) Cotação exata (se a loja tiver Melhor Envio e os produtos tiverem medidas)
+    let melhores: OpcaoEnvio[] = [];
+    if (exato && itens?.length) {
+      melhores = await fetch("/api/frete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, cep, itens }) })
+        .then((x) => x.json()).then((x) => x.opcoes ?? []).catch(() => []);
+      setOpcoes(melhores);
+    }
+    // 2) Estimativa por região (sempre, como reserva)
+    const r = await estimarFrete(cep, regras ?? {});
     setBuscando(false);
     if (r === "cep_invalido") return setErro("Digite os 8 números do CEP.");
     if (r === "nao_achou") return setErro("Não encontramos esse CEP.");
-    setRes(r);
-    try { localStorage.setItem(chaveFrete(slug), JSON.stringify(r)); } catch {}
+    // Se veio cotação exata, a mais barata vira o valor estimado
+    const final = melhores.length ? { ...r, valor: melhores[0].preco, onde: `${melhores[0].servico}${melhores[0].prazo ? `, ${melhores[0].prazo} dias úteis` : ""}` } : r;
+    setRes(final);
+    try { localStorage.setItem(chaveFrete(slug), JSON.stringify(final)); } catch {}
     window.dispatchEvent(new Event("frete-mudou"));
   }
 
@@ -40,7 +57,19 @@ export default function CalculoFrete({ slug, regras, cor }: { slug: string; regr
         <button type="button" onClick={calcular} disabled={buscando} className="rounded-lg px-4 font-semibold text-white disabled:opacity-50" style={{ background: cor }}>{buscando ? "..." : "Calcular"}</button>
       </div>
       {erro && <p className="mt-1 text-red-600">{erro}</p>}
-      {res && !erro && (
+      {/* Opções reais de envio */}
+      {opcoes.length > 0 && !erro && (
+        <ul className="mt-2 space-y-1">
+          {opcoes.map((o) => (
+            <li key={o.servico} className="flex items-center gap-2 rounded-lg bg-black/5 px-2 py-1.5">
+              {o.logo && <img src={o.logo} alt="" className="h-5 w-auto" />}
+              <span className="flex-1">{o.servico}{o.prazo ? <span className="opacity-60"> · {o.prazo} dias úteis</span> : null}</span>
+              <b>{formatarPreco(o.preco)}</b>
+            </li>
+          ))}
+        </ul>
+      )}
+      {res && !erro && !opcoes.length && (
         <p className="mt-2">
           📍 {res.cidade} - {res.uf}:{" "}
           {res.valor == null ? <b>frete combinado pelo WhatsApp</b> : res.valor === 0 ? <b className="text-green-700">entrega grátis 🎉</b> : <b>cerca de {formatarPreco(res.valor)}</b>}

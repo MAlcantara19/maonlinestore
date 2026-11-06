@@ -30,6 +30,7 @@ type Dados = {
   prazo: string; selo: string; destaque: boolean; ativo: boolean;
   promocao_pct: string; promocao_ate: string; giro_360: boolean; // promoção (%) até a data · fotos em 360°
   estoque: string; // vazio = não controla
+  custo: string; peso_g: string; altura_cm: string; largura_cm: string; comprimento_cm: string; // lucro real e frete exato
 };
 type LinhaVariacao = {
   id?: string; tipo: "unidade" | "kit"; nome: string; descricao: string; tamanho: string; cor: string;
@@ -43,7 +44,7 @@ const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
   { valor: "sob_encomenda", rotulo: "Sob encomenda" },
   { valor: "esgotado", rotulo: "Esgotado" },
 ];
-const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "" });
+const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "", custo: "", peso_g: "", altura_cm: "", largura_cm: "", comprimento_cm: "" });
 const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true, estoque: "" });
 const precoTexto = (v: unknown) => (v != null ? String(v).replace(".", ",") : "");
 
@@ -102,6 +103,8 @@ function Formulario() {
             disponibilidade: p.disponibilidade, prazo: p.prazo ?? "", selo: p.selo ?? "", destaque: p.destaque, ativo: p.ativo,
             promocao_pct: p.promocao_pct ? String(p.promocao_pct) : "", promocao_ate: p.promocao_ate ? String(p.promocao_ate).slice(0, 10) : "", giro_360: !!p.giro_360,
             estoque: p.estoque != null ? String(p.estoque) : "",
+            custo: precoTexto(p.custo), peso_g: p.peso_g != null ? String(p.peso_g) : "",
+            altura_cm: precoTexto(p.altura_cm), largura_cm: precoTexto(p.largura_cm), comprimento_cm: precoTexto(p.comprimento_cm),
           });
           const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setVariacoes(vs.map((v: Record<string, unknown>) => ({
@@ -183,6 +186,8 @@ function Formulario() {
         promocao_ate: dados.promocao_pct && dados.promocao_ate ? new Date(`${dados.promocao_ate}T23:59:59`).toISOString() : null,
         giro_360: dados.giro_360,
         estoque: dados.estoque.trim() === "" ? null : Math.max(0, Math.round(Number(dados.estoque)) || 0),
+        custo: paraNumero(dados.custo), peso_g: dados.peso_g.trim() ? Math.round(Number(dados.peso_g)) || null : null,
+        altura_cm: paraNumero(dados.altura_cm), largura_cm: paraNumero(dados.largura_cm), comprimento_cm: paraNumero(dados.comprimento_cm),
       };
       const r = novo
         ? await supabase.from("produtos").insert(linha).select("id").single()
@@ -471,6 +476,17 @@ function Formulario() {
         <ListaSugestoes id="lista-tamanho" opcoes={[...usados.tamanhos, ...SUGESTOES_TAMANHO]} />
         <ListaSugestoes id="lista-cor" opcoes={[VALOR_COR_A_ESCOLHER, ...todasAsCores]} />
         <ListaSugestoes id="lista-prazo" opcoes={SUGESTOES_PRAZO} />
+      </Bloco>
+
+      <Bloco titulo="💵 Custo e embalagem (só vocês veem)">
+        <div className="grid gap-3 sm:grid-cols-5">
+          <Campo rotulo="Custo de produção (R$)"><input className={estiloInput} inputMode="decimal" value={dados.custo} onChange={(e) => mudar("custo", e.target.value)} placeholder="Ex.: 24,25" /></Campo>
+          <Campo rotulo="Peso c/ embalagem (g)"><input className={estiloInput} inputMode="numeric" value={dados.peso_g} onChange={(e) => mudar("peso_g", e.target.value.replace(/\D/g, ""))} placeholder="300" /></Campo>
+          <Campo rotulo="Altura (cm)"><input className={estiloInput} inputMode="decimal" value={dados.altura_cm} onChange={(e) => mudar("altura_cm", e.target.value)} placeholder="10" /></Campo>
+          <Campo rotulo="Largura (cm)"><input className={estiloInput} inputMode="decimal" value={dados.largura_cm} onChange={(e) => mudar("largura_cm", e.target.value)} placeholder="15" /></Campo>
+          <Campo rotulo="Comprimento (cm)"><input className={estiloInput} inputMode="decimal" value={dados.comprimento_cm} onChange={(e) => mudar("comprimento_cm", e.target.value)} placeholder="20" /></Campo>
+        </div>
+        <p className="text-xs opacity-60">O custo calcula o <b>lucro real</b> no 💰 Financeiro (dá para mandar da 🧮 Calculadora 3D). Peso e medidas da caixa servem para o <b>frete exato</b> (Melhor Envio).</p>
       </Bloco>
 
       <Bloco titulo="🔥 Promoção">

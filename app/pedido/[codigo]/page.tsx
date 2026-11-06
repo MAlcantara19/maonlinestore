@@ -18,7 +18,7 @@ import { formatarPreco } from "@/lib/formato";
 import Rodape from "@/components/Rodape";
 
 type Props = { params: Promise<{ codigo: string }> };
-type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string };
+type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null };
 
 export const metadata: Metadata = { title: "Acompanhar pedido · MA Online Store", robots: { index: false } };
 
@@ -113,10 +113,15 @@ async function Conteudo({ params }: Props) {
         <section className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="mb-2 font-bold">📦 Itens</h2>
           {itens.map((i, n) => (
-            <div key={n} className="border-b py-2 text-sm last:border-0">
-              <b>{i.quantidade}x {i.nome}</b>
-              <p className="opacity-70">{[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : " · sob consulta"}</p>
-              {i.observacao && <p className="text-xs opacity-70">✏️ {i.observacao}</p>}
+            <div key={n} className="flex items-center gap-3 border-b py-2 text-sm last:border-0">
+              <span className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black/5">
+                {i.foto ? <img src={i.foto} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center text-2xl">📦</span>}
+              </span>
+              <div className="min-w-0">
+                <b>{i.quantidade}x {i.nome}</b>
+                <p className="opacity-70">{[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : " · sob consulta"}</p>
+                {i.observacao && <p className="text-xs opacity-70">✏️ {i.observacao}</p>}
+              </div>
             </div>
           ))}
           {Number(p.desconto) > 0 && <p className="mt-2 text-sm text-green-700">🏷️ Cupom {p.cupom as string}: − {formatarPreco(Number(p.desconto))}</p>}
