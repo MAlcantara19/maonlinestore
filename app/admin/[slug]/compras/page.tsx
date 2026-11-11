@@ -35,6 +35,7 @@ function Compras() {
   const [novo, setNovo] = useState("");
   const [valor, setValor] = useState("");
   const [aviso, setAviso] = useState("");
+  const [materiaisBaixos, setMateriaisBaixos] = useState<{ nome: string; quantidade: number; minimo: number; unidade: string }[]>([]);
 
   useEffect(() => { try { setItens(JSON.parse(localStorage.getItem(`compras:${slug}`) ?? "[]")); } catch {} }, [slug]);
   const guardar = (l: Material[]) => { setItens(l); try { localStorage.setItem(`compras:${slug}`, JSON.stringify(l)); } catch {} };
@@ -52,6 +53,9 @@ function Compras() {
             .map((p) => ({ ...(p as unknown as Produto), falta: Math.max(1, limite * 2 - (p.total ?? 0)) }));
           setBaixos(lista);
         });
+      supabaseNavegador().from("materiais").select("nome, quantidade, minimo, unidade").eq("loja_id", l.id).not("minimo", "is", null)
+        .then(({ data }: { data: { nome: string; quantidade: number; minimo: number; unidade: string }[] | null }) =>
+          setMateriaisBaixos((data ?? []).filter((m) => Number(m.quantidade) <= Number(m.minimo))), () => {});
     });
   }, [slug, limite]);
 
@@ -62,6 +66,7 @@ function Compras() {
   const textoLista = [
     `🛒 *Lista de compras — ${loja.nome}*`,
     ...(baixos ?? []).map((p) => `☐ ${p.nome} — repor ${p.falta} (tem ${estoqueTotal(p) ?? 0})`),
+    ...materiaisBaixos.map((m) => `☐ 🧵 ${m.nome} (tem ${Math.round(Number(m.quantidade))} ${m.unidade})`),
     ...itens.filter((i) => !i.comprado).map((i) => `☐ ${i.nome}${i.quantidade ? ` — ${i.quantidade}` : ""}`),
   ].join("\n");
 
@@ -100,6 +105,13 @@ function Compras() {
           </ul>
         )}
       </Bloco>
+
+      {materiaisBaixos.length > 0 && (
+        <Bloco titulo="🧵 Materiais abaixo do mínimo (entram sozinhos)">
+          <ul className="space-y-1 text-sm">{materiaisBaixos.map((m) => <li key={m.nome} className="rounded-lg bg-orange-50 px-3 py-2">{m.nome} · tem {Math.round(Number(m.quantidade))} {m.unidade} (mínimo {Math.round(Number(m.minimo))})</li>)}</ul>
+          <a href={`/admin/${slug}/materiais`} className="text-xs underline">Atualizar estoque de materiais →</a>
+        </Bloco>
+      )}
 
       <Bloco titulo="🧵 Materiais para comprar">
         <div className="flex flex-wrap gap-1">

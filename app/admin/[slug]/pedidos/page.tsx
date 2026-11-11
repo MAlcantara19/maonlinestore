@@ -6,6 +6,7 @@
 // um recado: o cliente vê tudo em /pedido/<código>.
 // "Copiar aviso" copia uma mensagem pronta para colar na conversa.
 // =====================================================================
+import FotosProducao from "@/components/admin/FotosProducao";
 import { Agenda, Producao, Quadro } from "@/components/admin/VisoesPedidos";
 import NovoPedidoManual from "@/components/admin/NovoPedidoManual";
 import PagamentoPedido from "@/components/admin/PagamentoPedido";
@@ -20,11 +21,12 @@ import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
 import { formatarPreco, telefoneBonito } from "@/lib/formato";
 
-type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null; produto_id?: string | null };
+type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null; produto_id?: string | null; personalizacao?: string | null };
 type Pedido = {
   id: string; codigo: string; tipo: "pedido" | "orcamento"; cliente_nome: string | null; itens: Item[]; total: number | null;
   desconto: number | null; cupom: string | null; data_desejada: string | null; urgente: boolean; status: string; nota_loja: string | null; criado_em: string; estoque_baixado?: boolean;
   entrega?: string | null; frete?: number | null; cliente_whatsapp?: string | null; teste?: boolean; previsao_entrega?: string | null;
+  fotos_producao?: string[]; avaliado?: boolean; avaliacao_pedida_em?: string | null; atualizado_em?: string | null;
   canal?: string | null; pagamento_status?: string | null; valor_pago?: number | null; pagamento_forma?: string | null; restante_quando?: string | null; pagamento_obs?: string | null;
 };
 
@@ -128,6 +130,15 @@ function Lista() {
       : filtro === "abertos" ? !["entregue", "cancelado"].includes(p.status)
       : filtro === "receber" ? p.tipo === "pedido" && p.status !== "cancelado" && p.pagamento_status !== "pago"
       : p.status === filtro);
+  // 👤 Histórico do cliente: quantos pedidos já fez e quanto já comprou (pelo WhatsApp ou nome)
+  const chaveCliente = (p: Pedido) => (p.cliente_whatsapp ? `w${p.cliente_whatsapp.slice(-9)}` : p.cliente_nome ? `n${p.cliente_nome.trim().toLowerCase()}` : null);
+  const historicoCliente = (p: Pedido) => {
+    const k = chaveCliente(p);
+    if (!k) return null;
+    const dele = (pedidos ?? []).filter((x) => x.tipo === "pedido" && !x.teste && x.status !== "cancelado" && chaveCliente(x) === k);
+    const antes = dele.filter((x) => x.criado_em < p.criado_em);
+    return { ordem: antes.length + 1, total: dele.reduce((s, x) => s + Number(x.valor_pago || x.total || 0), 0), pedidos: dele.length };
+  };
   const aReceber = (pedidos ?? []).filter((p) => p.pagamento_status === "sinal" && p.status !== "cancelado")
     .reduce((s, p) => s + Math.max(0, Number(p.total ?? 0) - Number(p.valor_pago ?? 0)), 0);
 
@@ -138,6 +149,26 @@ function Lista() {
         📦 Produtos com estoque controlado: o estoque <b>baixa sozinho</b> quando o pedido é &quot;Aceito&quot; (ou passa para as etapas seguintes),
         e <b>volta</b> se você cancelar.
       </p>
+      {(() => {
+        const pedir = (pedidos ?? []).filter((p) => p.status === "entregue" && !p.avaliado && !p.avaliacao_pedida_em && p.cliente_whatsapp && !p.teste
+          && Date.now() - new Date(p.atualizado_em ?? p.criado_em).getTime() > 7 * 86400000);
+        if (!pedir.length) return null;
+        return (
+          <div className="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+            <b>⭐ Peça avaliação:</b> {pedir.length === 1 ? "1 pedido foi entregue" : `${pedir.length} pedidos foram entregues`} há mais de 7 dias e ainda não {pedir.length === 1 ? "foi avaliado" : "foram avaliados"}.
+            <div className="mt-2 flex flex-wrap gap-2">
+              {pedir.slice(0, 6).map((p) => (
+                <button key={p.id} type="button" className="rounded-full bg-amber-400 px-3 py-1 font-semibold text-stone-900"
+                  onClick={async () => {
+                    const numero = p.cliente_whatsapp!.length <= 11 ? `55${p.cliente_whatsapp}` : p.cliente_whatsapp!;
+                    window.open(linkWhatsApp(numero, `Oi${p.cliente_nome ? `, ${p.cliente_nome.split(" ")[0]}` : ""}! 😊 Tudo certo com a sua peça da ${loja.nome}?\nSe puder, deixa uma avaliação rapidinha (leva 10 segundos) — ajuda demais a gente! ⭐\n🔗 ${window.location.origin}/pedido/${p.codigo}`), "_blank");
+                    await atualizar(p, { avaliacao_pedida_em: new Date().toISOString() });
+                  }}>⭐ #{p.codigo}{p.cliente_nome ? ` · ${p.cliente_nome.split(" ")[0]}` : ""}</button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
       <NovoPedidoManual lojaId={loja.id} cor={cor} aoCriar={() => { carregar(loja); avisar("✓ Pedido criado!"); }} />
       {aReceber > 0 && (
         <button type="button" onClick={() => setFiltro("receber")} className="mb-3 block w-full rounded-xl bg-amber-50 p-3 text-left text-sm text-amber-900">
@@ -190,6 +221,11 @@ function Lista() {
                 </div>
                 {p.cliente_nome && <p className="text-sm">👤 {p.cliente_nome}{p.canal && p.canal !== "site" ? <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs">{rotuloDe(CANAIS, p.canal)}</span> : null}</p>}
                 {p.cliente_whatsapp && <p className="text-sm">📲 {telefoneBonito(p.cliente_whatsapp)}</p>}
+                {(() => {
+                  const h = historicoCliente(p);
+                  if (!h || h.pedidos < 2) return h && p.tipo === "pedido" ? <p className="text-xs opacity-60">🆕 Primeiro pedido deste cliente</p> : null;
+                  return <p className="text-xs"><span className="rounded-full bg-green-100 px-2 py-0.5 font-semibold text-green-800">🔁 {h.ordem}º pedido</span> <span className="opacity-70">· {h.pedidos} pedidos · {formatarPreco(h.total)} no total</span></p>;
+                })()}
                 {/* Itens com foto */}
                 <ul className="mt-2 space-y-1.5 text-sm">
                   {p.itens.map((i, n) => (
@@ -197,7 +233,7 @@ function Lista() {
                       <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-stone-100">
                         {i.foto ? <img src={i.foto} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center">📦</span>}
                       </span>
-                      <span>{i.quantidade}x <b>{i.nome}</b> {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : ""}{i.observacao ? ` — ✏️ ${i.observacao}` : ""}</span>
+                      <span>{i.quantidade}x <b>{i.nome}</b> {[i.opcao, i.tamanho, i.cor, i.personalizacao && `✍️ "${i.personalizacao}"`].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : ""}{i.observacao ? ` — ✏️ ${i.observacao}` : ""}</span>
                     </li>
                   ))}
                 </ul>
@@ -218,6 +254,7 @@ function Lista() {
                   <a href={`/pedido/${p.codigo}`} target="_blank" className="rounded-lg border px-3 py-2 text-sm">👁️ Ver como o cliente</a>
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=producao`} className="rounded-lg border px-3 py-2 text-sm">🖨️ Imprimir</a>
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=recibo`} className="rounded-lg border px-3 py-2 text-sm">🧾 Recibo</a>
+                  <a href={`/admin/${slug}/pedidos/${p.id}?modo=orcamento`} className="rounded-lg border px-3 py-2 text-sm">📝 Orçamento PDF</a>
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=etiqueta`} className="rounded-lg border px-3 py-2 text-sm">📦 Etiqueta</a>
                   <button type="button" onClick={() => duplicar(p)} className="rounded-lg border px-3 py-2 text-sm">📄 Duplicar</button>
                   <button type="button" onClick={() => atualizar(p, { teste: !p.teste })} className="rounded-lg border px-3 py-2 text-sm"
@@ -226,6 +263,10 @@ function Lista() {
                 </div>
                 {p.tipo === "pedido" && (
                   <PagamentoPedido p={p} lojaId={loja.id} cor={cor} aoSalvar={async (campos) => { await atualizar(p, campos as Partial<Pedido>); }} />
+                )}
+                {p.tipo === "pedido" && p.status !== "cancelado" && (
+                  <FotosProducao fotos={p.fotos_producao ?? []} pasta={`${slug}/producao`} codigo={p.codigo} cliente={p.cliente_nome} whatsapp={p.cliente_whatsapp ?? null} loja={loja.nome}
+                    aoMudar={async (fotos) => { await atualizar(p, { fotos_producao: fotos }); }} />
                 )}
                 <label className="mt-2 flex flex-wrap items-center gap-2 text-sm">📅 Previsão de entrega:
                   <input type="date" defaultValue={p.previsao_entrega ?? ""} className="rounded-lg border bg-stone-50 px-2 py-1"

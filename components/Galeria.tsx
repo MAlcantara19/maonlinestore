@@ -6,11 +6,18 @@
 //   - Clicou na foto: abre em TELA CHEIA, crescendo, com fundo escuro
 //   - Bolinhas "líquidas": a atual se estica com efeito elástico
 // =====================================================================
+import { familiaDa } from "@/lib/fontes";
 import { corDoNome } from "@/lib/cores";
 import { useEffect, useRef, useState } from "react";
-import type { Midia } from "@/lib/tipos";
+import type { Midia, Personalizacao } from "@/lib/tipos";
 
-export default function Galeria({ midias, nome, cor, produtoId, previaCor }: { midias: Midia[]; nome: string; cor: string; produtoId?: string; previaCor?: boolean }) {
+export default function Galeria({ midias, nome, cor, produtoId, previaCor, personalizacao }: { midias: Midia[]; nome: string; cor: string; produtoId?: string; previaCor?: boolean; personalizacao?: Personalizacao | null }) {
+  const [textoPers, setTextoPers] = useState("");
+  useEffect(() => {
+    const ouvir = (e: Event) => { const d = (e as CustomEvent<{ produto: string; texto: string }>).detail; if (d.produto === produtoId) setTextoPers(d.texto); };
+    window.addEventListener("personalizacao-texto", ouvir);
+    return () => window.removeEventListener("personalizacao-texto", ouvir);
+  }, [produtoId]);
   // 🎨 Prévia da cor: pinta a foto com a cor escolhida (quando não há foto daquela cor)
   const [tinta, setTinta] = useState<{ nome: string; hex: string } | null>(null);
   const trilho = useRef<HTMLDivElement>(null);
@@ -86,7 +93,16 @@ export default function Galeria({ midias, nome, cor, produtoId, previaCor }: { m
       <div ref={trilho} onScroll={aoRolar} className="flex snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none]"
         style={{ filter: rolando ? "blur(1.5px)" : "none", transition: "filter .15s" }}>
         {midias.map((m, i) => (
-          <div key={m.id} className="relative flex aspect-[4/5] w-full shrink-0 snap-center items-center justify-center overflow-hidden bg-black/5 md:aspect-square">
+          <div key={m.id} className="relative flex aspect-[4/5] w-full shrink-0 snap-center items-center justify-center overflow-hidden bg-black/5 md:aspect-square" style={{ containerType: "inline-size" }}>
+            {/* ✍️ Prévia do texto personalizado */}
+            {personalizacao && textoPers && m.tipo === "foto" && (
+              <span aria-hidden className="pointer-events-none absolute z-10 whitespace-nowrap font-bold"
+                style={{ left: `${personalizacao.x}%`, top: `${personalizacao.y}%`, transform: "translate(-50%, -50%)", color: personalizacao.cor,
+                  fontSize: `${personalizacao.tamanho}cqi`, fontFamily: familiaDa(personalizacao.fonte),
+                  textShadow: personalizacao.contorno === false ? "none" : "0 0 3px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35)" }}>
+                {textoPers}
+              </span>
+            )}
             {/* Fundo desfocado (preenche as sobras sem cortar a foto) */}
             {m.tipo === "foto" && <img src={m.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl" />}
             {m.tipo === "video" ? (

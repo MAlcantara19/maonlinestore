@@ -40,6 +40,12 @@ export type Loja = {
   boas_vindas_pct?: number | null; // % na primeira compra (pelo WhatsApp)
   fidelidade_a_cada?: number | null; // a cada R$ X gastos...
   fidelidade_premio_pct?: number | null; // ...ganha X% (cupom)
+  aniversario_pct?: number | null; // 🎂 cupom no mês do aniversário
+  indicacao_pct?: number | null; // 🤝 prêmio por indicar amigo
+  comissao_pct?: number | null; // repasse para a MA (%)
+  slides?: Slide[]; // banner rotativo de promoções
+  presente?: { ativo: boolean; preco: number; descricao?: string | null; foto?: string | null } | null; // 🎁 embalagem de presente
+  pacote_padrao?: { peso_g?: number; altura_cm?: number; largura_cm?: number; comprimento_cm?: number } | null; // 📦 caixa padrão (frete)
   banner_escurecer?: number; // 0 a 90: quanto a cor da loja cobre a imagem
   razao_social?: string | null; // dados legais (aparecem no rodapé)
   documento?: string | null; // CNPJ ou CPF
@@ -117,6 +123,10 @@ export type Produto = {
   giro_360?: boolean; // fotos formam um giro 360°
   estoque?: number | null; // quantidade (vazio = não controla)
   previa_cor?: boolean; // mostra a prévia da cor na foto
+  personalizacao?: Personalizacao | null; // ✍️ texto na foto (prévia)
+  tempo_min?: number | null; // minutos de impressão por unidade
+  meta_mensal?: number | null; // 🎯 meta de vendas (unidades/mês)
+  custo?: number | null; // custo de produção
   variacoes: Variacao[];
   midias: Midia[];
 };
@@ -206,3 +216,9 @@ export type EfeitoPersonalizado = {
   quantidade: number;
   tamanho: number;
 };
+
+// ✍️ Personalização com prévia: onde e como o texto aparece na foto
+export type Personalizacao = { rotulo: string; x: number; y: number; cor: string; tamanho: number; fonte?: string | null; max: number; contorno?: boolean };
+
+// 🖼️ Slide do banner rotativo da loja
+export type Slide = { imagem: string | null; titulo: string; texto?: string | null; link?: string | null };

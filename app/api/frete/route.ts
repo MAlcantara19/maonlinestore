@@ -20,13 +20,19 @@ export async function POST(req: Request) {
     const destino = String(cep ?? "").replace(/\D/g, "");
     if (destino.length !== 8 || !Array.isArray(itens) || !itens.length || itens.length > 30) return NextResponse.json({ opcoes: [] });
 
-    const { data: loja } = await supabase.from("lojas").select("id, cep_origem").eq("slug", slug).eq("ativa", true).maybeSingle();
+    const { data: loja } = await supabase.from("lojas").select("id, cep_origem, pacote_padrao").eq("slug", slug).eq("ativa", true).maybeSingle();
     const origem = String(loja?.cep_origem ?? "").replace(/\D/g, "");
     if (!loja || origem.length !== 8) return NextResponse.json({ opcoes: [] });
 
     const { data: produtos } = await supabase.from("produtos").select("id, preco, peso_g, altura_cm, largura_cm, comprimento_cm")
       .eq("loja_id", loja.id).in("id", itens.map((i) => i.produtoId));
-    const lista = itens.map((i) => ({ ...i, p: (produtos ?? []).find((x) => x.id === i.produtoId) }));
+    // Produto sem peso/medidas → usa a "caixa padrão" da loja (produtos leves)
+    const padrao = (loja.pacote_padrao ?? null) as { peso_g?: number; altura_cm?: number; largura_cm?: number; comprimento_cm?: number } | null;
+    const lista = itens.map((i) => {
+      const p = (produtos ?? []).find((x) => x.id === i.produtoId);
+      if (!p) return { ...i, p };
+      return { ...i, p: { ...p, peso_g: p.peso_g ?? padrao?.peso_g, altura_cm: p.altura_cm ?? padrao?.altura_cm, largura_cm: p.largura_cm ?? padrao?.largura_cm, comprimento_cm: p.comprimento_cm ?? padrao?.comprimento_cm } };
+    });
     if (lista.some((x) => !x.p?.peso_g || !x.p.altura_cm || !x.p.largura_cm || !x.p.comprimento_cm)) return NextResponse.json({ opcoes: [] });
 
     const base = process.env.MELHOR_ENVIO_SANDBOX === "1" ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br";

@@ -38,6 +38,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       { href: `${base}/categorias`, rotulo: "🗂️ Categorias e coleções" },
       { href: `${base}/opcoes`, rotulo: "🎨 Cores e tamanhos" },
       { href: `${base}/compras`, rotulo: "🛒 Lista de compras" },
+      { href: `${base}/materiais`, rotulo: "🧵 Materiais" },
       ...(calc ? [{ href: `${base}/calculadora`, rotulo: "🧮 Calculadora 3D" }] : []),
     ] },
     { titulo: "Vendas e visual", itens: [

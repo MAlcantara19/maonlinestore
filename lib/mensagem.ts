@@ -44,7 +44,7 @@ export function montarMensagem(d: DadosMensagem): string {
   partes.push(LINHA, "📦 *Itens*", "");
 
   d.itens.forEach((i, n) => {
-    const detalhes = [i.opcao && `🔹 ${i.opcao}`, i.tamanho && `📏 ${i.tamanho}`, i.cor && `🎨 ${i.cor}`, i.promocao && `🔥 promoção -${i.promocao}%`].filter(Boolean).join(" · ");
+    const detalhes = [i.opcao && `🔹 ${i.opcao}`, i.tamanho && `📏 ${i.tamanho}`, i.cor && `🎨 ${i.cor}`, i.promocao && `🔥 promoção -${i.promocao}%`, i.personalizacao && `✍️ "${i.personalizacao}"`].filter(Boolean).join(" · ");
     const preco = i.preco != null
       ? `💰 ${formatarPreco(i.preco)} cada${i.quantidade > 1 ? ` · ${formatarPreco(i.preco * i.quantidade)}` : ""}`
       : "💬 sob consulta";

@@ -79,8 +79,24 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const valorFrete = freteEscolhido ? Number(freteEscolhido.valor) || 0 : 0;
   const [avisoEntrega, setAvisoEntrega] = useState(false);
   const [telefone, setTelefone] = useState(""); // WhatsApp do cliente (para os avisos do pedido)
+  const [aniversario, setAniversario] = useState(""); // dd/mm (opcional)
+  const [indicadoPor, setIndicadoPor] = useState<string | null>(null);
+  useEffect(() => {
+    try { setAniversario(localStorage.getItem("meu-aniversario") ?? ""); setIndicadoPor(localStorage.getItem(`indicacao:${loja.slug}`)); } catch {}
+  }, [loja.slug]);
+  const aniversarioData = (() => { const [d, m] = aniversario.split("/").map(Number); return d >= 1 && d <= 31 && m >= 1 && m <= 12 ? `2000-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null; })();
   useEffect(() => { try { setTelefone(localStorage.getItem("meu-whatsapp") ?? ""); } catch {} }, []);
-  const total = subtotal - desconto + valorFrete;
+  // 🎁 Embalagem de presente (opcional)
+  const [presente, setPresente] = useState(false);
+  const [cartao, setCartao] = useState("");
+  const [semPreco, setSemPreco] = useState(false);
+  const valorPresente = presente && loja.presente?.ativo ? Number(loja.presente.preco) || 0 : 0;
+  const total = subtotal - desconto + valorFrete + valorPresente;
+  // Itens que vão no pedido (com a embalagem, se escolhida)
+  const itensEnvio: ItemCarrinho[] = presente && loja.presente?.ativo
+    ? [...itens, { chave: "presente", produtoId: "", nome: "🎁 Embalagem de presente", tamanho: null, cor: null, preco: valorPresente, quantidade: 1, prazo: null, foto: loja.presente.foto ?? null,
+        observacao: [cartao.trim() && `Cartão: "${cartao.trim()}"`, semPreco && "Não mandar preço/nota junto (é presente)"].filter(Boolean).join(" · ") } as ItemCarrinho]
+    : itens;
   // ⚡ Preço no Pix / à vista (desconto da loja)
   const totalPix = loja.desconto_pix ? Math.round((subtotal - desconto) * (100 - loja.desconto_pix)) / 100 + valorFrete : null;
   useEffect(() => {
@@ -114,7 +130,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   }
 
   async function enviar(tipo: "pedido" | "orcamento") {
-    try { if (telefone.trim()) localStorage.setItem("meu-whatsapp", telefone.trim()); } catch {}
+    try { if (telefone.trim()) localStorage.setItem("meu-whatsapp", telefone.trim()); if (aniversarioData) localStorage.setItem("meu-aniversario", aniversario); } catch {}
     // Loja com opções de entrega: precisa escolher uma antes de enviar
     if (fretes.length && !freteEscolhido) { setAvisoEntrega(true); return; }
     setEnviando(true);
@@ -126,14 +142,15 @@ export default function Carrinho({ loja }: { loja: Loja }) {
     try {
       const { data: r } = await supabaseNavegador().rpc("criar_pedido", {
         p_loja: loja.id, p_tipo: tipo, p_nome: nome || null,
-        p_itens: itens.map((i) => {
+        p_itens: itensEnvio.map((i) => {
           const variacao = i.chave.split("|")[1];
           return { nome: i.nome, opcao: i.opcao ?? null, quantidade: i.quantidade, tamanho: i.tamanho, cor: i.cor, preco: i.preco, observacao: i.observacao,
-            produto_id: i.produtoId, variacao_id: variacao && variacao !== "unico" ? variacao : null, foto: i.foto ?? null };
+            produto_id: i.produtoId || null, variacao_id: variacao && variacao !== "unico" ? variacao : null, foto: i.foto ?? null, personalizacao: i.personalizacao ?? null };
         }),
         p_total: total, p_desconto: desconto || null, p_cupom: usaBoasVindas ? "PRIMEIRA-COMPRA" : cupomVale ? cupom!.codigo : null, p_data: data || null, p_urgente: urgente,
         p_entrega: freteEscolhido?.nome ?? null, p_frete: freteEscolhido ? valorFrete : null,
         p_telefone: telefone.replace(/\D/g, "") || null,
+        p_aniversario: aniversarioData, p_indicado_por: indicadoPor,
       });
       codigo = (r as string) ?? null;
     } catch {}
@@ -153,7 +170,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
 
     // 2) Monta a mensagem bonita e abre o WhatsApp da loja
     const mensagem = montarMensagem({
-      tipo, loja: loja.nome, codigo, nome, itens, subtotal, desconto, cupom: !usaBoasVindas && cupomVale ? cupom!.codigo : null,
+      tipo, loja: loja.nome, codigo, nome, itens: itensEnvio, subtotal: subtotal + valorPresente, desconto, cupom: !usaBoasVindas && cupomVale ? cupom!.codigo : null,
       boasVindas: usaBoasVindas ? { pct: loja.boas_vindas_pct!, valor: descontoBoasVindas } : null,
       pix: totalPix != null ? { pct: loja.desconto_pix!, valor: totalPix } : null,
       total, temSobConsulta, data, urgente, linkAcompanhar: codigo ? `${window.location.origin}/pedido/${codigo}` : null,
@@ -245,6 +262,7 @@ export default function Carrinho({ loja }: { loja: Loja }) {
             {freteEscolhido && <p className="flex justify-between"><span>🚚 {freteEscolhido.nome}</span><span>{valorFrete ? formatarPreco(valorFrete) : "grátis"}</span></p>}
           </>
         )}
+        {valorPresente > 0 && <p className="flex justify-between text-sm"><span>🎁 Embalagem de presente</span><span>{formatarPreco(valorPresente)}</span></p>}
         <p className="flex justify-between text-lg font-bold"><span>Total estimado</span><span className="texto-cor" style={{ color: cor }}>{formatarPreco(total)}</span></p>
         {temSobConsulta && <p className="text-right text-xs opacity-70">+ itens sob consulta</p>}
         {/* Cartão × Pix */}
@@ -265,6 +283,24 @@ export default function Carrinho({ loja }: { loja: Loja }) {
         <label className="block text-sm font-semibold">📲 Seu WhatsApp <span className="font-normal opacity-60">(opcional — para receber o andamento do pedido)</span>
           <input type="tel" inputMode="tel" className={`${campo} mt-1`} value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(24) 99999-9999" autoComplete="tel" />
           {loja.boas_vindas_pct && !primeira && <span className="mt-1 block text-xs font-normal text-green-700">🎁 Primeira compra aqui? Coloque seu WhatsApp e ganhe {loja.boas_vindas_pct}% de desconto!</span>}
+          {loja.aniversario_pct && (
+            <span className="mt-2 flex items-center gap-2 text-xs font-normal">🎂 Seu aniversário (opcional — ganha {loja.aniversario_pct}% no mês):
+              <input value={aniversario} onChange={(e) => setAniversario(e.target.value.replace(/[^\d/]/g, "").slice(0, 5))} placeholder="dd/mm" inputMode="numeric"
+                className="w-20 rounded-lg border bg-white px-2 py-1 text-sm" />
+            </span>
+          )}
+          {indicadoPor && <span className="mt-1 block text-xs font-normal text-green-700">🤝 Você chegou por indicação de um amigo — obrigado!</span>}
+          {loja.indicacao_pct && telefone.replace(/\D/g, "").length >= 10 && (
+            <button type="button" className="mt-1 block text-left text-xs font-semibold underline" style={{ color: cor }}
+              onClick={async () => {
+                const url = `${window.location.origin}/${loja.slug}?indicacao=${telefone.replace(/\D/g, "").slice(-9)}`;
+                const texto = `Olha que legal a ${loja.nome}! 😍 Dá uma olhada:`;
+                if (navigator.share) await navigator.share({ title: loja.nome, text: texto, url }).catch(() => {});
+                else window.open(linkWhatsApp("", `${texto}\n${url}`), "_blank");
+              }}>
+              🤝 Indique amigos e ganhe {loja.indicacao_pct}% quando eles comprarem →
+            </button>
+          )}
           {fidelidade && (
             <span className="mt-2 block text-xs font-normal">
               ⭐ Programa de fidelidade: <b>{fidelidade.progresso}%</b> do caminho para ganhar <b>{fidelidade.premio}% de desconto</b>
@@ -277,6 +313,23 @@ export default function Carrinho({ loja }: { loja: Loja }) {
           <input type="date" className={`${campo} mt-1`} value={data} onChange={(e) => setData(e.target.value)} />
         </label>
         <CalculoFrete slug={loja.slug} regras={loja.frete_cep} cor={cor} exato={!!loja.cep_origem} itens={itens.map((i) => ({ produtoId: i.produtoId, quantidade: i.quantidade }))} />
+        {/* 🎁 Embalagem de presente */}
+        {loja.presente?.ativo && (
+          <div className="rounded-xl border-2 border-dashed p-3 text-sm" style={presente ? { borderColor: cor, background: `${cor}0d` } : {}}>
+            <label className="flex items-center gap-3 font-semibold">
+              <input type="checkbox" checked={presente} onChange={(e) => setPresente(e.target.checked)} className="h-5 w-5" />
+              {loja.presente.foto && <img src={loja.presente.foto} alt="" className="h-12 w-12 rounded-lg object-cover" />}
+              <span className="flex-1">🎁 Embalar para presente <span className="block text-xs font-normal opacity-70">{loja.presente.descricao}</span></span>
+              <b>+ {formatarPreco(Number(loja.presente.preco) || 0)}</b>
+            </label>
+            {presente && (
+              <div className="mt-2 space-y-2">
+                <textarea rows={2} maxLength={200} value={cartao} onChange={(e) => setCartao(e.target.value)} placeholder="💌 Mensagem do cartãozinho (opcional)" className={`${campo} text-sm`} />
+                <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={semPreco} onChange={(e) => setSemPreco(e.target.checked)} /> Não mandar preço junto (é presente)</label>
+              </div>
+            )}
+          </div>
+        )}
         {fretes.length > 0 && (
           <label className="block text-sm font-semibold">🚚 Entrega
             <select className={`${campo} mt-1`} value={entrega} onChange={(e) => { setEntrega(e.target.value); setAvisoEntrega(false); }}

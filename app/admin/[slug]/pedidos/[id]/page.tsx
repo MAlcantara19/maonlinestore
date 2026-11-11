@@ -16,12 +16,12 @@ import { formatarPreco, telefoneBonito, documentoBonito } from "@/lib/formato";
 import { etapaDo } from "@/lib/statusPedido";
 import { FORMAS_PAGAMENTO, rotuloDe } from "@/lib/pagamento";
 
-type Item = { nome: string; quantidade: number; preco: number | null; opcao?: string | null; tamanho?: string | null; cor?: string | null; observacao?: string; foto?: string | null };
+type Item = { nome: string; quantidade: number; preco: number | null; opcao?: string | null; tamanho?: string | null; cor?: string | null; observacao?: string; foto?: string | null; personalizacao?: string | null };
 type Pedido = {
   id: string; codigo: string; cliente_nome: string | null; cliente_whatsapp: string | null; itens: Item[]; total: number | null; desconto: number | null;
   status: string; criado_em: string; data_desejada: string | null; previsao_entrega: string | null; urgente: boolean; entrega: string | null; frete: number | null;
   nota_loja: string | null; pagamento_status: string | null; valor_pago: number | null; pagamento_forma: string | null; restante_quando: string | null; pagamento_obs: string | null;
-  lojas: { nome: string; cor: string | null; logo_url: string | null; whatsapp: string | null; razao_social: string | null; documento: string | null; instagram: string | null };
+  lojas: { nome: string; cor: string | null; logo_url: string | null; whatsapp: string | null; razao_social: string | null; documento: string | null; instagram: string | null; desconto_pix: number | null };
 };
 
 export default function Pagina() {
@@ -31,13 +31,13 @@ export default function Pagina() {
 function Folha() {
   const { id, slug } = useParams<{ id: string; slug: string }>();
   const m = useSearchParams().get("modo");
-  const modo = m === "recibo" ? "recibo" : m === "etiqueta" ? "etiqueta" : "producao";
+  const modo = m === "recibo" ? "recibo" : m === "etiqueta" ? "etiqueta" : m === "orcamento" ? "orcamento" : "producao";
   const [p, setP] = useState<Pedido | null | undefined>(undefined);
   const [qr, setQr] = useState("");
   const tela = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    supabaseNavegador().from("pedidos").select("*, lojas(nome, cor, logo_url, whatsapp, razao_social, documento, instagram)").eq("id", id).maybeSingle()
+    supabaseNavegador().from("pedidos").select("*, lojas(nome, cor, logo_url, whatsapp, razao_social, documento, instagram, desconto_pix)").eq("id", id).maybeSingle()
       .then(({ data }: { data: Pedido | null }) => setP(data));
   }, [id]);
   useEffect(() => {
@@ -49,7 +49,7 @@ function Folha() {
   const cor = p.lojas.cor ?? "#333";
   const total = Number(p.total ?? 0), pago = Number(p.valor_pago ?? 0);
   const data = (d: string) => new Date(d).toLocaleDateString("pt-BR");
-  const detalhe = (i: Item) => [i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ");
+  const detalhe = (i: Item) => [i.opcao, i.tamanho, i.cor, i.personalizacao && `✍️ "${i.personalizacao}"`].filter(Boolean).join(" · ");
 
   // Recibo em IMAGEM (para mandar no WhatsApp)
   async function gerarImagem(compartilhar: boolean) {
@@ -107,6 +107,7 @@ function Folha() {
         <Link href={`/admin/${slug}/pedidos?codigo=${p.codigo}`} className="rounded-full border px-4 py-2 text-sm">← Pedidos</Link>
         <Link href={`?modo=producao`} className="rounded-full border px-4 py-2 text-sm" style={modo === "producao" ? { background: cor, color: "white" } : {}}>🏷️ Folha de produção</Link>
         <Link href={`?modo=recibo`} className="rounded-full border px-4 py-2 text-sm" style={modo === "recibo" ? { background: cor, color: "white" } : {}}>🧾 Recibo</Link>
+        <Link href={`?modo=orcamento`} className="rounded-full border px-4 py-2 text-sm" style={modo === "orcamento" ? { background: cor, color: "white" } : {}}>📝 Orçamento</Link>
         <Link href={`?modo=etiqueta`} className="rounded-full border px-4 py-2 text-sm" style={modo === "etiqueta" ? { background: cor, color: "white" } : {}}>📦 Etiqueta</Link>
         <button type="button" onClick={() => window.print()} className="rounded-full px-4 py-2 text-sm font-semibold text-white" style={{ background: cor }}>🖨️ Imprimir / salvar PDF</button>
         {modo === "recibo" && <>
@@ -145,7 +146,7 @@ function Folha() {
         {p.lojas.logo_url && <img src={p.lojas.logo_url} alt="" className="h-16 w-16 rounded-full object-cover" />}
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{p.lojas.nome}</h1>
-          <p className="text-sm opacity-70">{modo === "recibo" ? "RECIBO" : "PEDIDO PARA PRODUÇÃO"} · <b>#{p.codigo}</b> · {data(p.criado_em)}</p>
+          <p className="text-sm opacity-70">{modo === "recibo" ? "RECIBO" : modo === "orcamento" ? "ORÇAMENTO" : "PEDIDO PARA PRODUÇÃO"} · <b>#{p.codigo}</b> · {data(p.criado_em)}</p>
         </div>
         {qr && <img src={qr} alt="QR do acompanhamento" className="h-24 w-24" />}
       </header>
@@ -171,12 +172,30 @@ function Folha() {
               {i.observacao && <p className="mt-1 rounded bg-amber-50 p-2 text-sm">✏️ {i.observacao}</p>}
               {modo === "producao" && <p className="mt-2 text-sm">☐ Impresso &nbsp; ☐ Acabamento &nbsp; ☐ Conferido &nbsp; ☐ Embalado</p>}
             </div>
-            {modo === "recibo" && <b>{i.preco != null ? formatarPreco(Number(i.preco) * i.quantidade) : "—"}</b>}
+            {modo !== "producao" && <b>{i.preco != null ? formatarPreco(Number(i.preco) * i.quantidade) : "—"}</b>}
           </div>
         ))}
       </section>
 
-      {modo === "producao" ? (
+      {modo === "orcamento" ? (
+        <section className="mt-4 space-y-3 text-sm">
+          <div className="rounded-xl border p-4">
+            {p.frete ? <p className="flex justify-between"><span>Frete</span><span>{formatarPreco(Number(p.frete))}</span></p> : null}
+            <p className="flex justify-between text-lg font-bold"><span>Total</span><span>{formatarPreco(total)}</span></p>
+            {p.lojas.desconto_pix ? <p className="flex justify-between font-semibold text-green-700"><span>⚡ No Pix / à vista (−{p.lojas.desconto_pix}%)</span><span>{formatarPreco(Math.round(total * (100 - p.lojas.desconto_pix)) / 100)}</span></p> : null}
+            <p className="mt-1 flex justify-between"><span>💵 Sinal para iniciar (50%)</span><span>{formatarPreco(total / 2)}</span></p>
+          </div>
+          <div className="rounded-xl border p-4">
+            <b>📌 Condições</b>
+            <div contentEditable suppressContentEditableWarning className="mt-1 whitespace-pre-line outline-none">
+              {"• 50% de sinal para iniciar a produção e o restante na entrega.\n• Prazo de produção combinado conforme a quantidade e o modelo.\n• Peças produzidas sob encomenda, em impressão 3D, podendo ser personalizadas.\n• Valores sujeitos a alteração caso o pedido mude."}
+            </div>
+          </div>
+          <p>📅 <b>Orçamento válido até:</b> <span contentEditable suppressContentEditableWarning className="rounded border-b border-dashed px-1 outline-none">{new Date(Date.now() + 15 * 86400000).toLocaleDateString("pt-BR")}</span></p>
+          <p className="nao-imprimir text-xs opacity-60">✏️ Condições e validade podem ser editadas aqui mesmo antes de imprimir/salvar o PDF.</p>
+          {(p.lojas.razao_social || p.lojas.documento) && <p className="text-xs opacity-60">{p.lojas.razao_social}{p.lojas.documento ? ` · ${documentoBonito(p.lojas.documento)}` : ""}</p>}
+        </section>
+      ) : modo === "producao" ? (
         p.nota_loja && <p className="mt-4 rounded-xl border-l-4 p-3 text-sm" style={{ borderColor: cor }}><b>📝 Observações:</b> {p.nota_loja}</p>
       ) : (
         <section className="mt-4 rounded-xl border p-4 text-sm">

@@ -55,6 +55,10 @@ function Financeiro() {
   const [custos, setCustos] = useState<Record<string, { nome: string; custo: number | null }>>({});
   const [meta, setMeta] = useState<number | null>(null);
   const [aPagar, setAPagar] = useState<Mov[]>([]);
+  // 🔁 Despesas fixas (viram "contas a pagar" sozinhas todo mês)
+  type Fixa = { id: string; descricao: string; valor: number; dia: number; categoria: string; ativo: boolean };
+  const [fixas, setFixas] = useState<Fixa[]>([]);
+  const [novaFixa, setNovaFixa] = useState({ descricao: "", valor: "", dia: "10", categoria: "taxas" });
   const [editandoMeta, setEditandoMeta] = useState(false);
 
   const carregar = useCallback(async (l: LojaResumo, m: string) => {
@@ -83,6 +87,21 @@ function Financeiro() {
       setCustos(Object.fromEntries((ps ?? []).map((x: { id: string; nome: string; custo: number | null }) => [x.id, { nome: x.nome, custo: x.custo }])));
     } else setCustos({});
     if (r1.error) setAviso(`Rode a atualização 25 no Supabase. (${r1.error.message})`);
+    // 🔁 Despesas fixas: cria a conta do mês (uma vez só) a partir do mês atual
+    const { data: fx } = await sb.from("despesas_fixas").select("*").eq("loja_id", l.id).order("dia");
+    const listaFixas = (fx ?? []) as Fixa[];
+    setFixas(listaFixas);
+    if (m >= hoje().slice(0, 7)) {
+      const { data: geradas } = await sb.from("movimentacoes").select("recorrente_id").eq("loja_id", l.id).not("recorrente_id", "is", null).gte("data", `${m}-01`).lte("data", `${m}-${fim}`);
+      const ja = new Set((geradas ?? []).map((g: { recorrente_id: string }) => g.recorrente_id));
+      const faltam = listaFixas.filter((f) => f.ativo && !ja.has(f.id));
+      if (faltam.length) {
+        await sb.from("movimentacoes").insert(faltam.map((f) => {
+          const dia = `${m}-${String(Math.min(f.dia, fim)).padStart(2, "0")}`;
+          return { loja_id: l.id, tipo: "saida", categoria: f.categoria, descricao: `${f.descricao} (fixa)`, valor: f.valor, pago: false, vencimento: dia, data: dia, recorrente_id: f.id, forma_pagamento: null };
+        }));
+      }
+    }
     // 📌 Contas a pagar (de qualquer mês)
     const { data: contas } = await sb.from("movimentacoes").select("*").eq("loja_id", l.id).eq("pago", false).order("vencimento", { ascending: true });
     setAPagar((contas ?? []) as Mov[]);
@@ -307,6 +326,31 @@ function Financeiro() {
           </ul>
         </Bloco>
       )}
+
+      {/* 🔁 Despesas fixas */}
+      <Bloco titulo="🔁 Despesas fixas (todo mês)">
+        <p className="text-xs opacity-60">Internet, luz, MEI, assinatura... Todo mês elas entram sozinhas em 📌 Contas a pagar, no dia de vencimento.</p>
+        {fixas.map((f) => (
+          <div key={f.id} className={`flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 px-3 py-2 text-sm ${f.ativo ? "" : "opacity-50"}`}>
+            <b className="flex-1">{f.descricao}</b><span>dia {f.dia}</span><b>{formatarPreco(Number(f.valor))}</b>
+            <button type="button" className="rounded border px-2 text-xs" onClick={async () => { await supabaseNavegador().from("despesas_fixas").update({ ativo: !f.ativo }).eq("id", f.id); if (loja) carregar(loja, mes); }}>{f.ativo ? "Pausar" : "Ativar"}</button>
+            <button type="button" className="text-red-600" aria-label="Apagar" onClick={async () => { if (!confirm(`Apagar a despesa fixa "${f.descricao}"?`)) return; await supabaseNavegador().from("despesas_fixas").delete().eq("id", f.id); if (loja) carregar(loja, mes); }}>🗑️</button>
+          </div>
+        ))}
+        <div className="grid gap-2 sm:grid-cols-[1fr_110px_80px_auto]">
+          <input className="rounded-lg border px-3 py-2 text-sm" value={novaFixa.descricao} onChange={(e) => setNovaFixa({ ...novaFixa, descricao: e.target.value })} placeholder="Ex.: Internet, DAS do MEI" />
+          <input className="rounded-lg border px-3 py-2 text-sm" inputMode="decimal" value={novaFixa.valor} onChange={(e) => setNovaFixa({ ...novaFixa, valor: e.target.value })} placeholder="Valor" />
+          <input className="rounded-lg border px-3 py-2 text-sm" inputMode="numeric" value={novaFixa.dia} onChange={(e) => setNovaFixa({ ...novaFixa, dia: e.target.value.replace(/\D/g, "") })} placeholder="Dia" />
+          <button type="button" className="rounded-lg px-4 text-sm font-semibold text-white" style={{ background: cor }}
+            onClick={async () => {
+              const valor = paraNumero(novaFixa.valor);
+              if (!loja || !novaFixa.descricao.trim() || !valor) return avisar("Coloque descrição e valor.");
+              await supabaseNavegador().from("despesas_fixas").insert({ loja_id: loja.id, descricao: novaFixa.descricao.trim(), valor, dia: Math.min(28, Math.max(1, Number(novaFixa.dia) || 10)), categoria: novaFixa.categoria });
+              setNovaFixa({ descricao: "", valor: "", dia: "10", categoria: "taxas" });
+              carregar(loja, mes);
+            }}>+ Adicionar</button>
+        </div>
+      </Bloco>
 
       {/* Atalho: pedidos sem pagamento registrado */}
       {semPagamento.length > 0 && (

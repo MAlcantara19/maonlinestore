@@ -18,7 +18,7 @@ import { formatarPreco } from "@/lib/formato";
 import Rodape from "@/components/Rodape";
 
 type Props = { params: Promise<{ codigo: string }> };
-type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null };
+type Item = { nome: string; opcao?: string | null; quantidade: number; tamanho: string | null; cor: string | null; preco: number | null; observacao: string; foto?: string | null; personalizacao?: string | null };
 
 // Prévia do link no WhatsApp com a CARA DA LOJA (nome e logo dela)
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -54,7 +54,7 @@ async function Conteudo({ params }: Props) {
   const { data } = await supabase.rpc("consultar_pedido", { p_codigo: codigo });
   const p = (data as Record<string, unknown>[] | null)?.[0];
   const { data: ext } = await supabase.rpc("pedido_extras", { p_codigo: codigo });
-  const extra = (ext as { previsao_entrega: string | null; entrega: string | null; frete: number | null; avaliado: boolean; loja_slug: string }[] | null)?.[0];
+  const extra = (ext as { previsao_entrega: string | null; entrega: string | null; frete: number | null; avaliado: boolean; loja_slug: string; fotos_producao?: string[] | null }[] | null)?.[0];
 
   if (!p) {
     return (
@@ -110,6 +110,19 @@ async function Conteudo({ params }: Props) {
             📅 Previsão de entrega: {extra.previsao_entrega.split("-").reverse().join("/")}
           </p>
         )}
+        {/* 📸 Fotos da produção (a loja sobe pelo painel) */}
+        {extra?.fotos_producao && extra.fotos_producao.length > 0 && (
+          <div className="mt-4">
+            <b className="text-sm">📸 Sua peça na produção</b>
+            <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-2">
+              {extra.fotos_producao.map((f) => (
+                <a key={f} href={f} target="_blank" rel="noopener noreferrer" className="w-48 shrink-0 snap-start overflow-hidden rounded-2xl shadow">
+                  <img src={f} alt="Foto da produção" className="aspect-square w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Entregue: pede a avaliação (uma vez) */}
         {status === "entregue" && extra && !extra.avaliado && p.tipo !== "orcamento" && <AvaliarPedido codigo={p.codigo as string} cor={cor} />}
 
@@ -131,7 +144,7 @@ async function Conteudo({ params }: Props) {
               </span>
               <div className="min-w-0">
                 <b>{i.quantidade}x {i.nome}</b>
-                <p className="opacity-70">{[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : " · sob consulta"}</p>
+                <p className="opacity-70">{[i.opcao, i.tamanho, i.cor, i.personalizacao && `✍️ "${i.personalizacao}"`].filter(Boolean).join(" · ")}{i.preco != null ? ` · ${formatarPreco(Number(i.preco))}` : " · sob consulta"}</p>
                 {i.observacao && <p className="text-xs opacity-70">✏️ {i.observacao}</p>}
               </div>
             </div>

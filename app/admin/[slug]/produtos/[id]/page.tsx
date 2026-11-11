@@ -9,6 +9,8 @@
 //      situação · prazo · texto da opção. Com gerador "várias cores de uma vez".
 // Ao salvar um produto NOVO, a tela limpa para cadastrar o próximo.
 // =====================================================================
+import GeradorVideo from "@/components/admin/GeradorVideo";
+import EditorPersonalizacao from "@/components/admin/EditorPersonalizacao";
 import GeradorPost from "@/components/admin/GeradorPost";
 import { TAMANHOS } from "@/lib/tamanhos";
 import Link from "next/link";
@@ -23,7 +25,7 @@ import { lojaPeloSlug, paraNumero, type LojaResumo } from "@/lib/admin";
 import { enviarArquivo } from "@/lib/upload";
 import { SUGESTOES_COR, SUGESTOES_PRAZO, SUGESTOES_SELO, SUGESTOES_TAMANHO, comMaiuscula, emOrdem, prazoComDias, tamanhoComUnidade } from "@/lib/opcoes";
 import { VALOR_COR_A_ESCOLHER } from "@/components/EscolhaDoProduto";
-import type { Categoria, Disponibilidade } from "@/lib/tipos";
+import type { Categoria, Disponibilidade, Personalizacao } from "@/lib/tipos";
 
 // Formatos usados só nesta tela (preço como texto para digitar "25,90")
 type Dados = {
@@ -33,6 +35,8 @@ type Dados = {
   estoque: string; // vazio = não controla
   custo: string; peso_g: string; altura_cm: string; largura_cm: string; comprimento_cm: string; // lucro real e frete exato
   previa_cor: boolean; // 🎨 pinta a foto com a cor escolhida
+  personalizacao: Personalizacao | null; tempo_min: string; // ✍️ texto na foto · ⏱️ minutos de impressão
+  meta_mensal: string; // 🎯 unidades por mês
 };
 type LinhaVariacao = {
   id?: string; tipo: "unidade" | "kit"; nome: string; descricao: string; tamanho: string; cor: string;
@@ -46,7 +50,7 @@ const SITUACOES: { valor: Disponibilidade; rotulo: string }[] = [
   { valor: "sob_encomenda", rotulo: "Sob encomenda" },
   { valor: "esgotado", rotulo: "Esgotado" },
 ];
-const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "", custo: "", peso_g: "", altura_cm: "", largura_cm: "", comprimento_cm: "", previa_cor: false });
+const vazio = (prazo: string): Dados => ({ nome: "", descricao: "", restricoes: "", preco: "", disponibilidade: "pronta_entrega", prazo, selo: "", destaque: false, ativo: true, promocao_pct: "", promocao_ate: "", giro_360: false, estoque: "", custo: "", peso_g: "", altura_cm: "", largura_cm: "", comprimento_cm: "", previa_cor: false, personalizacao: null, tempo_min: "", meta_mensal: "" });
 const variacaoVazia = (preco: string): LinhaVariacao => ({ tipo: "unidade", nome: "", descricao: "", tamanho: "", cor: "", preco, disponibilidade: "", prazo: "", ativa: true, estoque: "" });
 const precoTexto = (v: unknown) => (v != null ? String(v).replace(".", ",") : "");
 
@@ -70,6 +74,7 @@ function Formulario() {
   const [usados, setUsados] = useState<{ tamanhos: string[]; cores: string[] }>({ tamanhos: [], cores: [] });
   const originais = useRef<{ variacoes: string[]; midias: string[] }>({ variacoes: [], midias: [] });
   const [carregado, setCarregado] = useState(false);
+  const [historicoPrecos, setHistoricoPrecos] = useState<{ preco_antigo: number | null; preco_novo: number | null; quem: string | null; criado_em: string }[]>([]);
   const [autoria, setAutoria] = useState<{ criado_por?: string; criado_em?: string; atualizado_por?: string; atualizado_em?: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [enviando, setEnviando] = useState(0);
@@ -108,7 +113,12 @@ function Formulario() {
             custo: precoTexto(p.custo), peso_g: p.peso_g != null ? String(p.peso_g) : "",
             altura_cm: precoTexto(p.altura_cm), largura_cm: precoTexto(p.largura_cm), comprimento_cm: precoTexto(p.comprimento_cm),
             previa_cor: !!p.previa_cor,
+            personalizacao: p.personalizacao ?? null, tempo_min: p.tempo_min != null ? String(p.tempo_min) : "",
+            meta_mensal: p.meta_mensal != null ? String(p.meta_mensal) : "",
           });
+          // 📈 Histórico de preços (anotado sozinho pelo banco)
+          supabase.from("precos_historico").select("preco_antigo, preco_novo, quem, criado_em").eq("produto_id", id).order("criado_em", { ascending: false }).limit(20)
+            .then(({ data }: { data: { preco_antigo: number | null; preco_novo: number | null; quem: string | null; criado_em: string }[] | null }) => setHistoricoPrecos(data ?? []), () => {});
           const vs = [...p.variacoes].sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
           setVariacoes(vs.map((v: Record<string, unknown>) => ({
             id: v.id as string, tipo: (v.tipo as "unidade" | "kit") ?? "unidade", nome: (v.nome as string) ?? "", descricao: (v.descricao as string) ?? "",
@@ -192,6 +202,8 @@ function Formulario() {
         custo: paraNumero(dados.custo), peso_g: dados.peso_g.trim() ? Math.round(Number(dados.peso_g)) || null : null,
         altura_cm: paraNumero(dados.altura_cm), largura_cm: paraNumero(dados.largura_cm), comprimento_cm: paraNumero(dados.comprimento_cm),
         previa_cor: dados.previa_cor,
+        meta_mensal: dados.meta_mensal.trim() ? Math.round(Number(dados.meta_mensal)) || null : null,
+        personalizacao: dados.personalizacao, tempo_min: dados.tempo_min.trim() ? Math.round(Number(dados.tempo_min)) || null : null,
       };
       const r = novo
         ? await supabase.from("produtos").insert(linha).select("id").single()
@@ -483,14 +495,29 @@ function Formulario() {
       </Bloco>
 
       <Bloco titulo="💵 Custo e embalagem (só vocês veem)">
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-6">
+          <Campo rotulo="⏱️ Impressão (min/un.)"><input className={estiloInput} inputMode="numeric" value={dados.tempo_min} onChange={(e) => mudar("tempo_min", e.target.value.replace(/\D/g, ""))} placeholder="138" /></Campo>
           <Campo rotulo="Custo de produção (R$)"><input className={estiloInput} inputMode="decimal" value={dados.custo} onChange={(e) => mudar("custo", e.target.value)} placeholder="Ex.: 24,25" /></Campo>
           <Campo rotulo="Peso c/ embalagem (g)"><input className={estiloInput} inputMode="numeric" value={dados.peso_g} onChange={(e) => mudar("peso_g", e.target.value.replace(/\D/g, ""))} placeholder="300" /></Campo>
           <Campo rotulo="Altura (cm)"><input className={estiloInput} inputMode="decimal" value={dados.altura_cm} onChange={(e) => mudar("altura_cm", e.target.value)} placeholder="10" /></Campo>
           <Campo rotulo="Largura (cm)"><input className={estiloInput} inputMode="decimal" value={dados.largura_cm} onChange={(e) => mudar("largura_cm", e.target.value)} placeholder="15" /></Campo>
           <Campo rotulo="Comprimento (cm)"><input className={estiloInput} inputMode="decimal" value={dados.comprimento_cm} onChange={(e) => mudar("comprimento_cm", e.target.value)} placeholder="20" /></Campo>
         </div>
+        {(() => {
+          const c = paraNumero(dados.custo), pr = paraNumero(dados.preco);
+          if (!c || !pr) return null;
+          const m = Math.round(((pr - c) / pr) * 100);
+          return <p className={`rounded-lg px-3 py-2 text-sm font-semibold ${m < 30 ? "bg-red-50 text-red-700" : "bg-green-50 text-green-800"}`}>
+            {m < 30 ? "⚠️" : "✅"} Margem: {m}% do preço (lucro de R$ {(pr - c).toFixed(2).replace(".", ",")} por peça){m < 30 ? " — está baixa (abaixo de 30%)" : ""}</p>;
+        })()}
+        <Campo rotulo="🎯 Meta de vendas (unidades por mês, opcional)">
+          <input className={estiloInput} inputMode="numeric" value={dados.meta_mensal} onChange={(e) => mudar("meta_mensal", e.target.value.replace(/\D/g, ""))} placeholder="Ex.: 20" />
+        </Campo>
         <p className="text-xs opacity-60">O custo calcula o <b>lucro real</b> no 💰 Financeiro (dá para mandar da 🧮 Calculadora 3D). Peso e medidas da caixa servem para o <b>frete exato</b> (Melhor Envio).</p>
+      </Bloco>
+
+      <Bloco titulo="✍️ Personalização com prévia (texto na foto)">
+        <EditorPersonalizacao valor={dados.personalizacao} aoMudar={(v) => mudar("personalizacao", v)} foto={midias.find((m) => m.tipo === "foto")?.url ?? null} />
       </Bloco>
 
       <Bloco titulo="🔥 Promoção">
@@ -510,9 +537,29 @@ function Formulario() {
       </Bloco>
 
       {!novo && (
+        <Bloco titulo="🎬 Vídeo para Reels / status">
+          <GeradorVideo fotos={midias.filter((m) => m.tipo === "foto").map((m) => m.url)} nome={dados.nome} preco={paraNumero(dados.preco)} loja={loja.nome} cor={cor} />
+        </Bloco>
+      )}
+      {!novo && (
         <Bloco titulo="📸 Post para o Instagram / status">
           <GeradorPost foto={midias.find((m) => m.tipo === "foto")?.url ?? null} nome={dados.nome} preco={paraNumero(dados.preco)} loja={loja.nome} cor={cor}
             url={typeof window !== "undefined" ? `${window.location.origin}/${slug}/p/${id}` : `/${slug}/p/${id}`} />
+        </Bloco>
+      )}
+
+      {historicoPrecos.length > 0 && (
+        <Bloco titulo="📈 Histórico de preços">
+          <ul className="space-y-1 text-sm">
+            {historicoPrecos.map((h, i) => (
+              <li key={i} className="flex flex-wrap gap-2">
+                <span className="font-mono text-xs opacity-60">{new Date(h.criado_em).toLocaleDateString("pt-BR")}</span>
+                <span>{h.preco_antigo != null ? `R$ ${Number(h.preco_antigo).toFixed(2).replace(".", ",")}` : "sem preço"} → <b>{h.preco_novo != null ? `R$ ${Number(h.preco_novo).toFixed(2).replace(".", ",")}` : "sem preço"}</b></span>
+                {h.preco_antigo != null && h.preco_novo != null && <span style={{ color: h.preco_novo > h.preco_antigo ? "#b91c1c" : "#15803d" }}>{h.preco_novo > h.preco_antigo ? "▲" : "▼"} {Math.abs(Math.round(((h.preco_novo - h.preco_antigo) / h.preco_antigo) * 100))}%</span>}
+                {h.quem && <span className="text-xs opacity-50">por {h.quem}</span>}
+              </li>
+            ))}
+          </ul>
         </Bloco>
       )}
 

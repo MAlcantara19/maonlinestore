@@ -36,6 +36,7 @@ function Lista() {
   const [categoria, setCategoria] = useState("");
   const [categorias, setCategorias] = useState<{ id: string; nome: string; parent_id: string | null }[]>([]);
   const [marcados, setMarcados] = useState<string[]>([]); // seleção para editar vários de uma vez
+  const [vendidosMes, setVendidosMes] = useState<Record<string, number>>({}); // 🎯 para as metas
   const [trabalhando, setTrabalhando] = useState("");
   useEffect(() => {
     try {
@@ -55,11 +56,17 @@ function Lista() {
     await supabase.from("produtos").delete().eq("loja_id", l.id).lt("excluido_em", limite);
 
     const { data } = await supabase.from("produtos")
-      .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, ativo, excluido_em, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem)")
+      .select("id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, custo, meta_mensal, ativo, excluido_em, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem)")
       .eq("loja_id", l.id).order("criado_em", { ascending: false });
     setProdutos((data ?? []) as ProdutoAdmin[]);
     const { data: cats } = await supabase.from("categorias").select("id, nome, parent_id").eq("loja_id", l.id).order("nome");
     setCategorias((cats ?? []) as { id: string; nome: string; parent_id: string | null }[]);
+    // Vendidos neste mês (pedidos não cancelados) — para as metas por produto
+    const inicio = new Date(); inicio.setDate(1); inicio.setHours(0, 0, 0, 0);
+    const { data: peds } = await supabase.from("pedidos").select("itens").eq("loja_id", l.id).eq("tipo", "pedido").eq("teste", false).neq("status", "cancelado").gte("criado_em", inicio.toISOString());
+    const v: Record<string, number> = {};
+    ((peds ?? []) as { itens: { produto_id?: string | null; quantidade: number }[] }[]).forEach((p) => p.itens.forEach((i) => { if (i.produto_id) v[i.produto_id] = (v[i.produto_id] ?? 0) + Number(i.quantidade); }));
+    setVendidosMes(v);
   }, []);
 
   useEffect(() => {
@@ -80,6 +87,7 @@ function Lista() {
       case "sem_foto": return !p.midias.some((m) => m.tipo === "foto");
       case "sem_preco": return precoMinimo(p) == null;
       case "estoque_baixo": { const n = estoqueTotal(p); return n != null && n <= 3; }
+      case "margem_baixa": { const pr = precoMinimo(p); return !!pr && p.custo != null && (pr - Number(p.custo)) / pr < 0.3; }
       default: return true;
     }
   };
@@ -195,6 +203,7 @@ function Lista() {
             <option value="sem_foto">📷 Sem foto</option>
             <option value="sem_preco">❓ Sem preço</option>
             <option value="estoque_baixo">📦 Estoque acabando (até 3)</option>
+            <option value="margem_baixa">⚠️ Margem baixa (menos de 30%)</option>
           </select>
           <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="rounded-xl border bg-white px-3 py-2" aria-label="Categoria">
             <option value="">🗂️ Todas as categorias</option>
@@ -298,6 +307,13 @@ function Lista() {
                 {!p.ativo && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">Oculto</span>}
                 {p.destaque && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">⭐</span>}
                 {promocaoAtiva(p) && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">🔥 -{p.promocao_pct}%</span>}
+                {(() => { const pr = precoMinimo(p); const c = p.custo != null ? Number(p.custo) : null; if (!pr || c == null) return null; const m = Math.round(((pr - c) / pr) * 100);
+                  return m < 30 ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700" title="Margem abaixo de 30%">⚠️ margem {m}%</span> : null; })()}
+                {p.meta_mensal ? (
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${(vendidosMes[p.id] ?? 0) >= p.meta_mensal ? "bg-green-100 text-green-800" : "bg-sky-100 text-sky-800"}`}>
+                    🎯 {vendidosMes[p.id] ?? 0}/{p.meta_mensal}
+                  </span>
+                ) : null}
                 {estoqueTotal(p) != null && (
                   <span className={`rounded-full px-2 py-0.5 text-xs ${estoqueTotal(p)! <= 3 ? "bg-orange-100 text-orange-800" : "bg-stone-100 text-stone-700"}`}>📦 {estoqueTotal(p)} un.</span>
                 )}

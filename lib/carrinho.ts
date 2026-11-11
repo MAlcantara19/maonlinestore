@@ -14,6 +14,7 @@ export type ItemCarrinho = {
   opcao?: string | null; // ex.: "Kit · Kit 9 sortidos" ou "Clipes de coração"
   promocao?: number | null; // % de desconto aplicado (para mostrar na mensagem)
   foto?: string | null; // foto de capa (aparece no carrinho e no pedido)
+  personalizacao?: string | null; // ✍️ texto que o cliente quer na peça
   tamanho: string | null;
   cor: string | null;
   preco: number | null; // preço de UMA unidade (vazio = sob consulta)

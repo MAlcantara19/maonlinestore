@@ -92,12 +92,16 @@ function Calculadora() {
   const [aviso, setAviso] = useState("");
   const [produtosLoja, setProdutosLoja] = useState<{ id: string; nome: string }[]>([]);
   const [produtoAlvo, setProdutoAlvo] = useState("");
+  const [materiais, setMateriais] = useState<{ id: string; nome: string; quantidade: number; unidade: string }[]>([]);
+  const [materialAlvo, setMaterialAlvo] = useState("");
 
   useEffect(() => {
     lojaPeloSlug(slug).then((l) => {
       setLoja(l);
       if (l) supabaseNavegador().from("produtos").select("id, nome").eq("loja_id", l.id).is("excluido_em", null).order("nome")
         .then(({ data }: { data: { id: string; nome: string }[] | null }) => setProdutosLoja(data ?? []));
+      if (l) supabaseNavegador().from("materiais").select("id, nome, quantidade, unidade").eq("loja_id", l.id).eq("unidade", "g").order("nome")
+        .then(({ data }: { data: { id: string; nome: string; quantidade: number; unidade: string }[] | null }) => setMateriais(data ?? []), () => {});
     });
   }, [slug]);
   useEffect(() => {
@@ -295,6 +299,27 @@ function Calculadora() {
               <button type="button" onClick={async () => avisar((await copiarTexto(resumoInterno)) ? "✓ Resumo copiado!" : "Não deu para copiar.")} className="rounded-xl bg-white/20 p-2 text-sm font-semibold">📋 Copiar resumo</button>
               <button type="button" onClick={salvarItem} className="col-span-2 rounded-xl bg-white p-2 text-sm font-semibold" style={{ color: cor }}>💾 Salvar peça (vai para a mensagem do cliente)</button>
             </div>
+            {/* 🧵 Baixar o filamento usado do estoque de materiais */}
+            {materiais.length > 0 && (
+              <div className="mt-3 rounded-xl bg-white/10 p-2 text-sm">
+                <b className="block">🧵 Baixar do estoque de material</b>
+                <div className="mt-1 flex gap-2">
+                  <select value={materialAlvo} onChange={(e) => setMaterialAlvo(e.target.value)} className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-stone-900">
+                    <option value="">Qual filamento?</option>
+                    {materiais.map((m) => <option key={m.id} value={m.id}>{m.nome} ({Math.round(Number(m.quantidade))} g)</option>)}
+                  </select>
+                  <button type="button" disabled={!materialAlvo || !pesoUsado} className="rounded-lg bg-white px-3 font-semibold disabled:opacity-40" style={{ color: cor }}
+                    onClick={async () => {
+                      const m = materiais.find((x) => x.id === materialAlvo)!;
+                      const nova = Math.max(0, Number(m.quantidade) - pesoUsado);
+                      const { error } = await supabaseNavegador().from("materiais").update({ quantidade: nova }).eq("id", m.id);
+                      if (error) return avisar(`Erro: ${error.message}`);
+                      setMateriais(materiais.map((x) => (x.id === m.id ? { ...x, quantidade: nova } : x)));
+                      avisar(`✓ Baixados ${pesoUsado} g de ${m.nome} (sobram ${Math.round(nova)} g)`);
+                    }}>−{pesoUsado} g</button>
+                </div>
+              </div>
+            )}
             {/* Manda o custo (e o preço, se quiser) direto para um produto do catálogo */}
             <div className="mt-3 rounded-xl bg-white/10 p-2 text-sm">
               <b className="block">📤 Usar num produto do catálogo</b>
@@ -304,11 +329,11 @@ function Calculadora() {
               </select>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button type="button" disabled={!produtoAlvo || !custo} className="rounded-lg bg-white/20 p-1.5 font-semibold disabled:opacity-40"
-                  onClick={async () => { const { error } = await supabaseNavegador().from("produtos").update({ custo: Math.round(custo * 100) / 100 }).eq("id", produtoAlvo); avisar(error ? `Erro: ${error.message}` : "✓ Custo salvo no produto!"); }}>
+                  onClick={async () => { const { error } = await supabaseNavegador().from("produtos").update({ custo: Math.round(custo * 100) / 100, tempo_min: Math.round(totalMin) || null }).eq("id", produtoAlvo); avisar(error ? `Erro: ${error.message}` : "✓ Custo salvo no produto!"); }}>
                   Só o custo
                 </button>
                 <button type="button" disabled={!produtoAlvo || !custo} className="rounded-lg bg-white p-1.5 font-semibold disabled:opacity-40" style={{ color: cor }}
-                  onClick={async () => { if (!confirm(`Atualizar o produto com custo ${reais(custo)} e preço ${reais(preco)}?`)) return; const { error } = await supabaseNavegador().from("produtos").update({ custo: Math.round(custo * 100) / 100, preco: Math.round(preco * 100) / 100 }).eq("id", produtoAlvo); avisar(error ? `Erro: ${error.message}` : "✓ Custo e preço salvos no produto!"); }}>
+                  onClick={async () => { if (!confirm(`Atualizar o produto com custo ${reais(custo)} e preço ${reais(preco)}?`)) return; const { error } = await supabaseNavegador().from("produtos").update({ custo: Math.round(custo * 100) / 100, preco: Math.round(preco * 100) / 100, tempo_min: Math.round(totalMin) || null }).eq("id", produtoAlvo); avisar(error ? `Erro: ${error.message}` : "✓ Custo e preço salvos no produto!"); }}>
                   Custo + preço
                 </button>
               </div>

@@ -107,13 +107,26 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
   }, [tipo, nomeValido, tamanhoValido, corValida, produto.id, sincronizarUrl, variacoes.length]);
 
   const [quantidade, setQuantidade] = useState(1);
+  // 🎨 Tocou numa cor no provador → escolhe essa cor aqui
+  useEffect(() => {
+    const ouvir = (e: Event) => { const d = (e as CustomEvent<{ produto: string; cor: string }>).detail; if (d.produto === produto.id) setCorEscolhida(d.cor); };
+    window.addEventListener("provador-cor", ouvir);
+    return () => window.removeEventListener("provador-cor", ouvir);
+  }, [produto.id]);
+  // ✍️ Personalização: o texto aparece na foto (prévia) e vai no pedido
+  const pers = produto.personalizacao;
+  const [textoPers, setTextoPers] = useState("");
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("personalizacao-texto", { detail: { produto: produto.id, texto: textoPers } }));
+  }, [textoPers, produto.id]);
   const [observacao, setObservacao] = useState("");
 
   function adicionar(e: MouseEvent<HTMLButtonElement>) {
     const origem = e.currentTarget.getBoundingClientRect(); // de onde a miniatura sai voando
     const opcao = [tipo === "kit" ? "Kit" : null, variacao?.nome?.trim() || null].filter(Boolean).join(" · ") || null;
     adicionarAoCarrinho(slug, {
-      chave: `${produto.id}|${variacao?.id ?? "unico"}`,
+      chave: `${produto.id}|${variacao?.id ?? "unico"}${textoPers.trim() ? `|${textoPers.trim()}` : ""}`,
+      personalizacao: textoPers.trim() || null,
       produtoId: produto.id,
       nome: produto.nome,
       opcao,
@@ -197,6 +210,15 @@ export default function EscolhaDoProduto({ produto, slug, cor, foto, aoAdicionar
       )}
 
       {/* Quantidade */}
+      {/* ✍️ Personalização com prévia na foto */}
+      {pers && (
+        <label className="mt-4 block text-sm font-semibold">✍️ {pers.rotulo || "Texto para personalizar"}
+          <input value={textoPers} maxLength={pers.max || 20} onChange={(e) => setTextoPers(e.target.value)}
+            placeholder="Digite e veja na foto 👀" className="mt-1 w-full rounded-lg border bg-white/70 px-3 py-2 text-base" />
+          <span className="text-xs font-normal opacity-60">Prévia aproximada na foto · até {pers.max || 20} letras</span>
+        </label>
+      )}
+
       <p className="mt-4 mb-2 text-sm font-semibold">Quantidade</p>
       <div className="flex items-center gap-3">
         <button type="button" className="h-10 w-10 rounded-lg border text-lg" onClick={() => setQuantidade((q) => Math.max(1, q - 1))}>−</button>

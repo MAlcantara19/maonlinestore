@@ -5,11 +5,12 @@
 //   📅 Agenda: calendário do mês pela previsão de entrega
 //   🏭 Produção: fila de tudo que falta fazer, por data
 // =====================================================================
+import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { useEffect, useState } from "react";
 import { ETAPAS_PEDIDO } from "@/lib/statusPedido";
 import { formatarPreco } from "@/lib/formato";
 
-type Item = { nome: string; quantidade: number; foto?: string | null; observacao?: string; opcao?: string | null; tamanho?: string | null; cor?: string | null };
+type Item = { nome: string; quantidade: number; foto?: string | null; observacao?: string; opcao?: string | null; tamanho?: string | null; cor?: string | null; produto_id?: string | null; personalizacao?: string | null };
 type P = { id: string; codigo: string; cliente_nome: string | null; total: number | null; status: string; itens: Item[]; previsao_entrega?: string | null; data_desejada: string | null; urgente: boolean; tipo: string; criado_em: string };
 
 const fotos = (p: P) => p.itens.filter((i) => i.foto).slice(0, 3);
@@ -88,25 +89,42 @@ export function Agenda({ pedidos, cor, abrir }: { pedidos: P[]; cor: string; abr
 export function Producao({ pedidos, slug }: { pedidos: P[]; slug: string }) {
   const [feitos, setFeitos] = useState<string[]>([]);
   useEffect(() => { try { setFeitos(JSON.parse(localStorage.getItem(`producao:${slug}`) ?? "[]")); } catch {} }, [slug]);
+  // ⏱️ Tempo de impressão de cada produto (cadastrado no produto / pela calculadora)
+  const [tempos, setTempos] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const ids = [...new Set(pedidos.flatMap((p) => p.itens.map((i) => i.produto_id)).filter(Boolean))] as string[];
+    if (!ids.length) return;
+    supabaseNavegador().from("produtos").select("id, tempo_min").in("id", ids).not("tempo_min", "is", null)
+      .then(({ data }: { data: { id: string; tempo_min: number }[] | null }) => setTempos(Object.fromEntries((data ?? []).map((x) => [x.id, Number(x.tempo_min)]))), () => {});
+  }, [pedidos]);
+  const horas = (min: number) => `${Math.floor(min / 60)}h${String(Math.round(min % 60)).padStart(2, "0")}`;
   const marcar = (k: string) => { const n = feitos.includes(k) ? feitos.filter((x) => x !== k) : [...feitos, k]; setFeitos(n); try { localStorage.setItem(`producao:${slug}`, JSON.stringify(n)); } catch {} };
   const fila = pedidos
     .filter((p) => ["aceito", "em_producao"].includes(p.status))
     .sort((a, b) => Number(b.urgente) - Number(a.urgente) || (a.previsao_entrega ?? a.data_desejada ?? "9999").localeCompare(b.previsao_entrega ?? b.data_desejada ?? "9999"))
     .flatMap((p) => p.itens.map((i, n) => ({ p, i, k: `${p.id}:${n}` })));
   if (!fila.length) return <p className="opacity-60">Nada na fila de produção (pedidos “Aceito” ou “Em produção”). 🎉</p>;
+  const minutosFaltando = fila.filter(({ k }) => !feitos.includes(k)).reduce((s, { i }) => s + (i.produto_id && tempos[i.produto_id] ? tempos[i.produto_id] * i.quantidade : 0), 0);
   return (
+    <>
+    {minutosFaltando > 0 && (
+      <p className="mb-3 rounded-xl bg-white p-3 text-sm shadow-sm">⏱️ Impressão que falta na fila: <b>{horas(minutosFaltando)}</b>
+        <span className="opacity-60"> (≈ {Math.ceil(minutosFaltando / 60 / 10)} dia(s) de 10h de impressora)</span></p>
+    )}
     <ul className="space-y-2">
       {fila.map(({ p, i, k }) => (
         <li key={k} className={`flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ${feitos.includes(k) ? "opacity-40" : ""}`}>
           <input type="checkbox" className="h-6 w-6" checked={feitos.includes(k)} onChange={() => marcar(k)} aria-label="Feito" />
           <span className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-100">{i.foto && <img src={i.foto} alt="" className="h-full w-full object-cover" />}</span>
           <span className="min-w-0 flex-1 text-sm">
-            <b className={feitos.includes(k) ? "line-through" : ""}>{i.quantidade}x {i.nome}</b> {[i.opcao, i.tamanho, i.cor].filter(Boolean).join(" · ")}
+            <b className={feitos.includes(k) ? "line-through" : ""}>{i.quantidade}x {i.nome}</b> {[i.opcao, i.tamanho, i.cor, i.personalizacao && `✍️ "${i.personalizacao}"`].filter(Boolean).join(" · ")}
+            {i.produto_id && tempos[i.produto_id] ? <span className="ml-1 rounded-full bg-stone-100 px-2 text-xs">⏱️ {horas(tempos[i.produto_id] * i.quantidade)}</span> : null}
             {i.observacao && <span className="block text-xs text-amber-700">✏️ {i.observacao}</span>}
             <span className="block text-xs opacity-60">#{p.codigo} · {p.cliente_nome ?? ""}{p.previsao_entrega ? ` · 📅 ${p.previsao_entrega.split("-").reverse().slice(0, 2).join("/")}` : ""} {p.urgente ? "· ⚡ urgente" : ""}</span>
           </span>
         </li>
       ))}
     </ul>
+    </>
   );
 }

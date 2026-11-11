@@ -16,8 +16,8 @@ import { formatarPreco, telefoneBonito } from "@/lib/formato";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { CANAIS, rotuloDe } from "@/lib/pagamento";
 
-type PedidoC = { id: string; codigo: string; cliente_nome: string | null; cliente_whatsapp: string | null; total: number | null; valor_pago: number | null; criado_em: string; canal: string | null; itens: { nome: string; quantidade: number }[] };
-type Cliente = { chave: string; nome: string; whatsapp: string | null; pedidos: PedidoC[]; total: number; pago: number; ultima: string; canais: Set<string>; produtos: Map<string, number> };
+type PedidoC = { id: string; codigo: string; cliente_nome: string | null; cliente_whatsapp: string | null; total: number | null; valor_pago: number | null; criado_em: string; canal: string | null; itens: { nome: string; quantidade: number }[]; cliente_aniversario?: string | null; indicado_por?: string | null };
+type Cliente = { chave: string; nome: string; whatsapp: string | null; pedidos: PedidoC[]; total: number; pago: number; ultima: string; canais: Set<string>; produtos: Map<string, number>; aniversario: string | null };
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -34,18 +34,35 @@ function Clientes() {
   const [aberto, setAberto] = useState<string | null>(null);
   // ⭐ Fidelidade
   const [fiel, setFiel] = useState<{ a_cada: number; premio: number } | null>(null);
-  const [premios, setPremios] = useState<Record<string, number>>({});
+  const [premios, setPremios] = useState<Record<string, number>>({}); // só fidelidade
+  const [outrosPremios, setOutrosPremios] = useState<{ cliente_chave: string; motivo: string; criado_em: string }[]>([]);
+  const [extras, setExtras] = useState<{ aniversario: number | null; indicacao: number | null }>({ aniversario: null, indicacao: null });
   const carregarPremios = async (lojaId: string) => {
-    const { data } = await supabaseNavegador().from("fidelidade_premios").select("cliente_chave").eq("loja_id", lojaId);
+    const { data } = await supabaseNavegador().from("fidelidade_premios").select("cliente_chave, motivo, criado_em").eq("loja_id", lojaId);
+    const lista = (data ?? []) as { cliente_chave: string; motivo: string; criado_em: string }[];
     const m: Record<string, number> = {};
-    (data ?? []).forEach((x: { cliente_chave: string }) => { m[x.cliente_chave] = (m[x.cliente_chave] ?? 0) + 1; });
+    lista.filter((x) => (x.motivo ?? "fidelidade") === "fidelidade").forEach((x) => { m[x.cliente_chave] = (m[x.cliente_chave] ?? 0) + 1; });
     setPremios(m);
+    setOutrosPremios(lista.filter((x) => x.motivo && x.motivo !== "fidelidade"));
   };
+  // Cria o cupom, registra o prêmio e abre o WhatsApp com a mensagem
+  async function darCupom(c: { nome: string; whatsapp: string | null }, pct: number, motivo: string, prefixo: string, frase: string) {
+    if (!loja || !c.whatsapp) return;
+    const sb = supabaseNavegador();
+    const codigo = `${prefixo}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const validade = new Date(Date.now() + 60 * 86400000).toLocaleDateString("sv-SE");
+    const r = await sb.from("cupons").insert({ loja_id: loja.id, codigo, tipo: "porcentagem", valor: pct, validade, ativo: true });
+    if (r.error) return alert(r.error.message);
+    await sb.from("fidelidade_premios").insert({ loja_id: loja.id, cliente_chave: c.whatsapp.slice(-9), cupom: codigo, motivo });
+    carregarPremios(loja.id);
+    window.open(linkWhatsApp(c.whatsapp.length <= 11 ? `55${c.whatsapp}` : c.whatsapp,
+      `Oi, ${c.nome.split(" ")[0]}! ${frase}\nSeu presente: *${pct}% de desconto* com o cupom *${codigo}* (vale até ${validade.split("-").reverse().join("/")}). 💜 ${loja.nome}`), "_blank");
+  }
 
   useEffect(() => {
     lojaPeloSlug(slug).then((l) => {
       setLoja(l);
-      if (l) supabaseNavegador().from("pedidos").select("id, codigo, cliente_nome, cliente_whatsapp, total, valor_pago, criado_em, canal, itens")
+      if (l) supabaseNavegador().from("pedidos").select("id, codigo, cliente_nome, cliente_whatsapp, total, valor_pago, criado_em, canal, itens, cliente_aniversario, indicado_por")
         .eq("loja_id", l.id).eq("tipo", "pedido").eq("teste", false).neq("status", "cancelado").order("criado_em", { ascending: false }).limit(2000)
         .then(({ data }: { data: PedidoC[] | null }) => setPedidos(data ?? []));
       if (l) {
@@ -53,6 +70,8 @@ function Clientes() {
           .then(({ data }: { data: { fidelidade_a_cada: number | null; fidelidade_premio_pct: number | null } | null }) =>
             setFiel(data?.fidelidade_a_cada && data.fidelidade_premio_pct ? { a_cada: Number(data.fidelidade_a_cada), premio: data.fidelidade_premio_pct } : null));
         carregarPremios(l.id);
+        supabaseNavegador().from("lojas").select("aniversario_pct, indicacao_pct").eq("id", l.id).maybeSingle()
+          .then(({ data }: { data: { aniversario_pct: number | null; indicacao_pct: number | null } | null }) => setExtras({ aniversario: data?.aniversario_pct ?? null, indicacao: data?.indicacao_pct ?? null }));
       }
     });
   }, [slug]);
@@ -63,8 +82,9 @@ function Clientes() {
     (pedidos ?? []).forEach((p) => {
       const chave = p.cliente_whatsapp ? `w:${p.cliente_whatsapp.slice(-9)}` : p.cliente_nome ? `n:${semAcento(p.cliente_nome)}` : null;
       if (!chave) return;
-      const c = mapa.get(chave) ?? { chave, nome: p.cliente_nome ?? "Sem nome", whatsapp: p.cliente_whatsapp, pedidos: [], total: 0, pago: 0, ultima: p.criado_em, canais: new Set<string>(), produtos: new Map<string, number>() };
+      const c = mapa.get(chave) ?? { chave, nome: p.cliente_nome ?? "Sem nome", whatsapp: p.cliente_whatsapp, pedidos: [], total: 0, pago: 0, ultima: p.criado_em, canais: new Set<string>(), produtos: new Map<string, number>(), aniversario: null };
       c.pago += Number(p.valor_pago || 0);
+      if (!c.aniversario && p.cliente_aniversario) c.aniversario = p.cliente_aniversario;
       c.pedidos.push(p);
       c.total += Number(p.valor_pago || p.total || 0);
       if (p.criado_em > c.ultima) c.ultima = p.criado_em;
@@ -99,6 +119,32 @@ function Clientes() {
           <option value="total">💰 Quem mais gastou</option><option value="pedidos">🔁 Mais pedidos</option><option value="recente">🕓 Compra mais recente</option>
         </select>
       </div>
+      {/* 🎂 Aniversariantes do mês */}
+      {(() => {
+        const mesAtual = String(new Date().getMonth() + 1).padStart(2, "0");
+        const ano = String(new Date().getFullYear());
+        const aniv = clientes.filter((c) => c.aniversario?.slice(5, 7) === mesAtual).sort((a, b) => a.aniversario!.localeCompare(b.aniversario!));
+        if (!aniv.length) return null;
+        return (
+          <Bloco titulo="🎂 Aniversariantes do mês">
+            <ul className="space-y-1 text-sm">
+              {aniv.map((c) => {
+                const jaGanhou = outrosPremios.some((x) => x.motivo === "aniversario" && x.cliente_chave === c.whatsapp?.slice(-9) && x.criado_em.startsWith(ano));
+                return (
+                  <li key={c.chave} className="flex flex-wrap items-center gap-2 rounded-lg bg-pink-50 px-3 py-2">
+                    <b>{c.aniversario!.slice(8, 10)}/{mesAtual}</b><span className="flex-1">{c.nome}</span>
+                    {jaGanhou ? <span className="text-xs text-green-700">✓ cupom enviado</span> : extras.aniversario && c.whatsapp ? (
+                      <button type="button" className="rounded-full bg-pink-500 px-3 py-1 text-xs font-semibold text-white"
+                        onClick={() => darCupom(c, extras.aniversario!, "aniversario", "NIVER", "🎂 Feliz aniversário! A gente separou um mimo pra você:")}>🎂 Mandar cupom ({extras.aniversario}%)</button>
+                    ) : <span className="text-xs opacity-60">configure o % em Configurações</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </Bloco>
+        );
+      })()}
+
       <Bloco titulo="👥 Clientes">
         {!pedidos ? <p className="opacity-60">Carregando...</p> : lista.length === 0 ? <p className="text-sm opacity-60">Nenhum cliente ainda (aparecem quando o pedido tem nome ou WhatsApp).</p> : (
           <ul className="space-y-2">
@@ -119,6 +165,22 @@ function Clientes() {
                   <a href={linkWhatsApp(c.whatsapp.length <= 11 ? `55${c.whatsapp}` : c.whatsapp, `Oi, ${c.nome.split(" ")[0]}! 😊 Aqui é da ${loja.nome}.`)} target="_blank" rel="noopener noreferrer"
                     className="mt-1 inline-block rounded-full bg-green-600 px-3 py-1 text-xs font-semibold text-white">💬 Chamar no WhatsApp</a>
                 )}
+                {/* 🤝 Indicações: amigos que compraram (e pagaram) pelo link dele */}
+                {c.whatsapp && (() => {
+                  const fone = c.whatsapp.slice(-9);
+                  const indicados = (pedidos ?? []).filter((x) => x.indicado_por === fone && Number(x.valor_pago ?? 0) > 0);
+                  if (!indicados.length) return null;
+                  const dados = outrosPremios.filter((x) => x.motivo === "indicacao" && x.cliente_chave === fone).length;
+                  return (
+                    <p className="mt-2 text-xs">
+                      🤝 Indicou <b>{indicados.length}</b> {indicados.length === 1 ? "amigo que comprou" : "amigos que compraram"}
+                      {extras.indicacao && indicados.length > dados ? (
+                        <button type="button" className="ml-2 rounded-full bg-green-600 px-3 py-1 font-semibold text-white"
+                          onClick={() => darCupom(c, extras.indicacao!, "indicacao", "AMIGO", "🤝 Obrigado por indicar a gente! Seu amigo comprou e você ganhou:")}>🎁 Dar prêmio ({extras.indicacao}%)</button>
+                      ) : <span className="ml-1 opacity-60">· prêmios entregues: {dados}</span>}
+                    </p>
+                  );
+                })()}
                 {/* ⭐ Fidelidade: progresso e liberar prêmio */}
                 {fiel && c.whatsapp && (() => {
                   const fone = c.whatsapp.slice(-9);

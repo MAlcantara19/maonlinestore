@@ -18,14 +18,14 @@ import { useEffect, useState } from "react";
 import AreaAdmin, { type InfoAdmin } from "@/components/admin/AreaAdmin";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { OPCOES_EFEITO, OPCOES_FONTE, OPCOES_UNIDADE } from "@/lib/opcoes";
-import type { EfeitoPersonalizado, Loja } from "@/lib/tipos";
+import type { EfeitoPersonalizado, Loja, Slide } from "@/lib/tipos";
 import { Bloco, Campo, Interruptor, BarraSalvar, type Mensagem } from "@/components/admin/Campos";
 import AbasLoja from "@/components/admin/AbasLoja";
 import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
 
 const COLUNAS =
-  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
+  "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, aniversario_pct, indicacao_pct, slides, presente, pacote_padrao, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
 
 export default function PainelLoja() {
   return <AreaAdmin>{(info) => <FormularioDaLoja info={info} />}</AreaAdmin>;
@@ -122,7 +122,36 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
               onChange={(e) => mudar("fidelidade_premio_pct", Number(e.target.value.replace(/\D/g, "")) || null)} />
           </Campo>
         </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="🎂 Cupom de aniversário (%) — o cliente informa o dia no carrinho">
+            <input className={input} inputMode="numeric" value={loja.aniversario_pct ?? ""} placeholder="Ex.: 10"
+              onChange={(e) => mudar("aniversario_pct", Number(e.target.value.replace(/\D/g, "")) || null)} />
+          </Campo>
+          <Campo rotulo="🤝 Indique um amigo: prêmio para quem indica (%)">
+            <input className={input} inputMode="numeric" value={loja.indicacao_pct ?? ""} placeholder="Ex.: 10"
+              onChange={(e) => mudar("indicacao_pct", Number(e.target.value.replace(/\D/g, "")) || null)} />
+          </Campo>
+        </div>
         <p className="text-xs opacity-60">Fidelidade: conta o que foi <b>pago</b> nos pedidos (aba Pedidos → 💳 Pagamento). Quando o cliente completa, a aba 👥 Clientes mostra “🎁 Liberar prêmio” e gera o cupom.</p>
+      </Bloco>
+
+      <Bloco titulo="🎁 Embalagem de presente">
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={!!loja.presente?.ativo} onChange={(e) => mudar("presente", { preco: 0, ...(loja.presente ?? {}), ativo: e.target.checked })} />
+          Oferecer embalagem de presente no carrinho
+        </label>
+        {loja.presente?.ativo && (
+          <>
+            <div className="grid gap-3 sm:grid-cols-[140px_1fr]">
+              <Campo rotulo="Preço (R$)"><input className={input} inputMode="decimal" value={loja.presente.preco ? String(loja.presente.preco).replace(".", ",") : ""} placeholder="12,90"
+                onChange={(e) => mudar("presente", { ...loja.presente!, preco: Number(e.target.value.replace(",", ".")) || 0 })} /></Campo>
+              <Campo rotulo="Descrição"><input className={input} value={loja.presente.descricao ?? ""} placeholder="Caixinha 3D branca e dourada com laço (para peças pequenas)"
+                onChange={(e) => mudar("presente", { ...loja.presente!, descricao: e.target.value })} /></Campo>
+            </div>
+            <CampoImagem rotulo="Foto da embalagem" valor={loja.presente.foto ?? null} aoMudar={(url) => mudar("presente", { ...loja.presente!, foto: url })} pasta={`${loja.slug}/presente`}
+              dica="📐 Ideal: 800 × 800 px" recorte={{ proporcao: 1, largura: 800, cores: [loja.cor] }} />
+          </>
+        )}
       </Bloco>
 
       <Bloco titulo="📮 Frete exato (Melhor Envio)">
@@ -130,6 +159,18 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
           <input className={input} inputMode="numeric" maxLength={9} value={loja.cep_origem ?? ""} placeholder="25800-000"
             onChange={(e) => mudar("cep_origem", e.target.value.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2") || null)} />
         </Campo>
+        <div>
+          <span className="text-sm font-semibold">📦 Caixa padrão (usada quando o produto não tem peso/medidas)</span>
+          <div className="mt-1 grid grid-cols-4 gap-2">
+            {([["peso_g", "Peso (g)", "300"], ["altura_cm", "Altura (cm)", "10"], ["largura_cm", "Largura (cm)", "15"], ["comprimento_cm", "Compr. (cm)", "20"]] as const).map(([k, r, ph]) => (
+              <label key={k} className="text-xs">{r}
+                <input className={input} inputMode="decimal" placeholder={ph} value={loja.pacote_padrao?.[k] ?? ""}
+                  onChange={(e) => mudar("pacote_padrao", { ...(loja.pacote_padrao ?? {}), [k]: Number(e.target.value.replace(",", ".")) || undefined })} />
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs opacity-60">Para peças leves: uns 300 g com a caixa e uma caixinha pequena já dão um frete bem próximo do real.</p>
+        </div>
         <p className="text-xs opacity-60">
           Com o CEP aqui, o token do Melhor Envio na Vercel e o peso/medidas no cadastro dos produtos, o cliente vê as opções reais
           (PAC, SEDEX, Jadlog...) com preço e prazo. Sem isso, vale a estimativa por região abaixo.
@@ -220,6 +261,25 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
             </select>
           </Campo>
         </div>
+      </Bloco>
+
+      <Bloco titulo="🎠 Banner rotativo de promoções (dentro da loja)">
+        <p className="text-xs opacity-60">Slides que passam sozinhos no começo da loja: promoções, lançamentos, coleção de Natal... O link pode ser de um produto ou coleção (copie o 🔗 em Categorias).</p>
+        {(loja.slides ?? []).map((s, i) => {
+          const mudarSlide = (c: Partial<Slide>) => mudar("slides", (loja.slides ?? []).map((x, j) => (j === i ? { ...x, ...c } : x)));
+          return (
+            <div key={i} className="space-y-2 rounded-xl border p-3">
+              <div className="flex items-center justify-between"><b className="text-sm">Slide {i + 1}</b>
+                <button type="button" onClick={() => mudar("slides", (loja.slides ?? []).filter((_, j) => j !== i))} className="text-sm text-red-600">🗑️ Tirar</button></div>
+              <CampoImagem rotulo="Imagem (opcional)" valor={s.imagem} aoMudar={(url) => mudarSlide({ imagem: url })} pasta={`${loja.slug}/slides`}
+                dica="📐 Ideal: 1600 × 600 px (bem deitada)" recorte={{ proporcao: 16 / 6, largura: 1600, cores: [loja.cor, loja.cor_secundaria] }} />
+              <input className={input} value={s.titulo} onChange={(e) => mudarSlide({ titulo: e.target.value })} placeholder="Título (ex.: 🎄 Natal com 10% no Pix)" />
+              <input className={input} value={s.texto ?? ""} onChange={(e) => mudarSlide({ texto: e.target.value })} placeholder="Texto curto (opcional)" />
+              <input className={input} value={s.link ?? ""} onChange={(e) => mudarSlide({ link: e.target.value })} placeholder="Link ao tocar (opcional) — ex.: /vitraforma#colecao-..." />
+            </div>
+          );
+        })}
+        <button type="button" onClick={() => mudar("slides", [...(loja.slides ?? []), { imagem: null, titulo: "", texto: "", link: "" }])} className="w-fit rounded-full border px-4 py-2 text-sm">+ Slide</button>
       </Bloco>
 
       <Bloco titulo="🖼️ Banner do topo da loja">

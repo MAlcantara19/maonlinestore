@@ -48,6 +48,7 @@ function ListaDeLojas({ info }: { info: InfoAdmin }) {
             <b className="block">🤝 Parceiros</b>
             <span className="text-xs opacity-60">Adicionar, editar, destacar e desativar parceiros</span>
           </Link>
+          <Link href="/admin/visao-geral" className="clicavel rounded-2xl bg-white p-4 shadow-sm"><b className="block">🌐 Visão geral</b><span className="text-xs opacity-60">Todas as lojas juntas: pedidos, faturamento e comissão.</span></Link>
           <BotaoBackup />
           <NovaLoja />
           <Link href="/admin/administradores" className="clicavel rounded-2xl bg-white p-4 shadow-sm">

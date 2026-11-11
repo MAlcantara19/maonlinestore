@@ -4,6 +4,9 @@
 // e a pessoa cai direto nele — e o link aparece com FOTO e PREÇO na
 // prévia da conversa (generateMetadata, logo abaixo).
 // =====================================================================
+import VendoAgora from "@/components/VendoAgora";
+import ProvadorCores from "@/components/ProvadorCores";
+import CarregarFontes from "@/components/CarregarFontes";
 import BotaoComparar from "@/components/BotaoComparar";
 import CalculoFrete from "@/components/CalculoFrete";
 import GaleriaOu360 from "@/components/GaleriaOu360";
@@ -27,9 +30,9 @@ import { EsqueletoProduto } from "@/components/Esqueleto";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
-const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct";
+const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, aniversario_pct, indicacao_pct, slides, presente";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, personalizacao, tempo_min, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Busca loja + produto (usado pela prévia do link e pela página).
 async function buscar(slug: string, id: string) {
@@ -77,6 +80,12 @@ async function ConteudoDoProduto({ params }: Props) {
   const midias = [...produto.midias].sort((a, b) => a.ordem - b.ordem);
   const foto = midias.find((m) => m.tipo === "foto")?.url; // miniatura que "voa" até o carrinho
 
+  // Cores cadastradas na loja (para o provador, quando o produto não lista cores)
+  const { data: opcoesCor } = produto.previa_cor
+    ? await supabase.from("opcoes_loja").select("valor").eq("loja_id", loja.id).eq("tipo", "cor").order("valor")
+    : { data: [] };
+  const coresDaLoja = ((opcoesCor ?? []) as { valor: string }[]).map((o) => o.valor);
+
   // Avaliações: as deste produto primeiro; completa com as da loja
   const { data: avs } = await supabase.from("avaliacoes").select("id, nome, texto, foto_url, estrelas, produto_id")
     .eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false }).limit(30);
@@ -104,7 +113,8 @@ async function ConteudoDoProduto({ params }: Props) {
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
           {produto.giro_360 && midias.filter((m) => m.tipo === "foto").length >= 4
             ? <GaleriaOu360 midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} />
-            : <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} previaCor={produto.previa_cor} />}
+            : <Galeria midias={midias} nome={produto.nome} cor={cor} produtoId={produto.id} previaCor={produto.previa_cor} personalizacao={produto.personalizacao} />}
+          {produto.personalizacao?.fonte && <CarregarFontes fontes={[produto.personalizacao.fonte]} />}
 
           <div>
             <div className="mt-4 flex items-start justify-between gap-3 md:mt-0">
@@ -132,10 +142,19 @@ async function ConteudoDoProduto({ params }: Props) {
               </div>
             )}
 
+            <VendoAgora produtoId={produto.id} />
             <EscolhaDoProduto produto={produto} slug={slug} cor={cor} foto={foto} sincronizarUrl whatsapp={loja.whatsapp} />
             <CalculoFrete slug={slug} regras={loja.frete_cep} cor={cor} exato={!!loja.cep_origem} itens={[{ produtoId: produto.id, quantidade: 1 }]} />
           </div>
         </div>
+        {/* 🎨 Provador de cores (produtos com "prévia da cor" ligada) */}
+        {produto.previa_cor && foto && (
+          <ProvadorCores foto={foto} produtoId={produto.id} nome={produto.nome}
+            cores={[...new Set(produto.variacoes.filter((v) => v.ativa && v.cor && !/escolher/i.test(v.cor)).map((v) => v.cor!.trim()))].length >= 2
+              ? [...new Set(produto.variacoes.filter((v) => v.ativa && v.cor && !/escolher/i.test(v.cor)).map((v) => v.cor!.trim()))]
+              : coresDaLoja} />
+        )}
+
         <Avaliacoes itens={avaliacoes} cor={cor} />
 
         {/* Aproveite e leve junto */}

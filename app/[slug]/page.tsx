@@ -11,6 +11,7 @@
 //   5. Destaques, categorias (com subcategorias) e coleções antigas
 // Tudo vem do banco: não precisa mexer aqui para cadastrar produto.
 // =====================================================================
+import BannerRotativo from "@/components/BannerRotativo";
 import { familiaDa } from "@/lib/fontes";
 import CarregarFontes from "@/components/CarregarFontes";
 import { nomeColecao } from "@/lib/opcoes";
@@ -34,9 +35,9 @@ import { EsqueletoLoja } from "@/components/Esqueleto";
 type Props = { params: Promise<{ slug: string }> };
 
 // Colunas que a página usa (fica num lugar só para não repetir).
-const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, efeito, efeito_personalizado_id";
+const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, aniversario_pct, indicacao_pct, slides, presente, efeito, efeito_personalizado_id";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, personalizacao, tempo_min, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Título da aba e prévia quando o link da loja é compartilhado.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -114,6 +115,8 @@ async function ConteudoDaLoja({ params }: Props) {
     // LayoutDaLoja: banner (com busca), menu lateral e painel direito
     <LayoutDaLoja loja={loja} menu={menu}>
       <RegistrarVisita slug={slug} />
+      {/* 🖼️ Banner rotativo de promoções */}
+      {(loja.slides ?? []).length > 0 && <BannerRotativo slides={loja.slides!} cor={cor} />}
       {/* Fontes próprias das coleções */}
       <CarregarFontes fontes={colecoes.map((c) => c.fonte)} />
       <EfeitosDaLoja cor={cor} logo={loja.logo_url} tipoPadrao={efeito} personalizadoPadrao={personalizadoDaLoja} secoes={secoes} borda={{ cor: loja.logo_borda_cor, largura: loja.logo_borda }} />

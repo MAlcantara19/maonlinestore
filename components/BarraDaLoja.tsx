@@ -22,6 +22,9 @@ export default function BarraDaLoja({ slug, cor }: { slug: string; cor: string }
         sessionStorage.setItem(`lembrete:${slug}`, "1");
       }
       localStorage.setItem(`ultima-visita:${slug}`, String(Date.now()));
+      // 🤝 Chegou por indicação de um amigo? Guarda para ir junto no pedido
+      const ind = new URLSearchParams(window.location.search).get("indicacao")?.replace(/\D/g, "");
+      if (ind && ind.length >= 9) localStorage.setItem(`indicacao:${slug}`, ind.slice(-9));
     } catch {}
   }, [slug]);
 
