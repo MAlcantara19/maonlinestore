@@ -120,6 +120,44 @@ const ANIMACOES = `
   html[data-tema="escuro"] .border, html[data-tema="escuro"] .border-b, html[data-tema="escuro"] .border-t { border-color: rgb(255 255 255 / 0.12); }
   html[data-tema="escuro"] input, html[data-tema="escuro"] textarea, html[data-tema="escuro"] select { background-color: #1e1b24; color: #ece8f1; }
   html[data-tema="escuro"] .brilho-esqueleto { background: rgb(255 255 255 / 0.08); }
+  /* ===== MODO ESCURO: avisos e selos coloridos =====
+     Caixas clarinhas (amarelo, verde, vermelho...) viram uma versão escura
+     transparente da mesma cor, e o texto delas fica claro (legível). */
+  html[data-tema="escuro"] .bg-amber-50  { background-color: rgb(245 158 11 / 0.14) !important; }
+  html[data-tema="escuro"] .bg-green-50  { background-color: rgb(34 197 94 / 0.14) !important; }
+  html[data-tema="escuro"] .bg-red-50    { background-color: rgb(239 68 68 / 0.14) !important; }
+  html[data-tema="escuro"] .bg-orange-50 { background-color: rgb(249 115 22 / 0.14) !important; }
+  html[data-tema="escuro"] .bg-sky-50    { background-color: rgb(14 165 233 / 0.14) !important; }
+  html[data-tema="escuro"] .bg-pink-50   { background-color: rgb(236 72 153 / 0.14) !important; }
+  html[data-tema="escuro"] .bg-amber-100 { background-color: rgb(245 158 11 / 0.22) !important; }
+  html[data-tema="escuro"] .bg-green-100 { background-color: rgb(34 197 94 / 0.22) !important; }
+  html[data-tema="escuro"] .bg-red-100   { background-color: rgb(239 68 68 / 0.22) !important; }
+  html[data-tema="escuro"] .bg-sky-100   { background-color: rgb(14 165 233 / 0.22) !important; }
+  html[data-tema="escuro"] .bg-purple-100{ background-color: rgb(168 85 247 / 0.22) !important; }
+  html[data-tema="escuro"] .bg-orange-100{ background-color: rgb(249 115 22 / 0.22) !important; }
+  html[data-tema="escuro"] .text-amber-700, html[data-tema="escuro"] .text-amber-800, html[data-tema="escuro"] .text-amber-900 { color: #fcd34d !important; }
+  html[data-tema="escuro"] .text-green-700, html[data-tema="escuro"] .text-green-800 { color: #86efac !important; }
+  html[data-tema="escuro"] .text-red-600, html[data-tema="escuro"] .text-red-700 { color: #fca5a5 !important; }
+  html[data-tema="escuro"] .text-orange-600, html[data-tema="escuro"] .text-orange-700, html[data-tema="escuro"] .text-orange-800, html[data-tema="escuro"] .text-orange-900 { color: #fdba74 !important; }
+  html[data-tema="escuro"] .text-sky-800, html[data-tema="escuro"] .text-sky-900 { color: #7dd3fc !important; }
+  html[data-tema="escuro"] .text-purple-800 { color: #d8b4fe !important; }
+  /* Textos cinza-escuros ficam claros */
+  html[data-tema="escuro"] .text-stone-500 { color: #a8a29e !important; }
+  html[data-tema="escuro"] .text-stone-600, html[data-tema="escuro"] .text-stone-700, html[data-tema="escuro"] .text-stone-800 { color: #d6d3d1 !important; }
+  /* Botões escuros não "somem" no fundo escuro */
+  html[data-tema="escuro"] .bg-stone-900, html[data-tema="escuro"] .bg-stone-800 { background-color: #3b3446 !important; }
+  html[data-tema="escuro"] .bg-stone-300 { background-color: #4a4454 !important; }
+  /* Botões amarelos (fidelidade/avaliação) mantêm o texto escuro */
+  html[data-tema="escuro"] .bg-amber-400 { color: #1c1917 !important; }
+  html[data-tema="escuro"] .bg-amber-400 * { color: #1c1917 !important; }
+  /* Botões coloridos fortes mantêm o texto branco */
+  html[data-tema="escuro"] .bg-green-600, html[data-tema="escuro"] .bg-red-600, html[data-tema="escuro"] .bg-red-700, html[data-tema="escuro"] .bg-pink-500 { color: #fff; }
+  /* Lista suspensa: opções legíveis */
+  html[data-tema="escuro"] option { background-color: #1e1b24; color: #ece8f1; }
+  /* Quadros tracejados e bordas finas */
+  html[data-tema="escuro"] .border-dashed { border-color: rgb(255 255 255 / 0.25); }
+  html[data-tema="escuro"] .border-stone-300, html[data-tema="escuro"] .border-stone-400 { border-color: rgb(255 255 255 / 0.25) !important; }
+
   /* Preços e destaques na cor da loja: no escuro viram cinza bem claro (legível) */
   html[data-tema="escuro"] .texto-cor { color: #e7e3ee !important; }
   html[data-tema="escuro"] .borda-cor { border-color: rgb(255 255 255 / 0.55) !important; }
