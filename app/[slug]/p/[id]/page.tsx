@@ -14,6 +14,8 @@ import Avaliacoes from "@/components/Avaliacoes";
 import BotaoFavorito from "@/components/BotaoFavorito";
 import RegistrarVisita from "@/components/RegistrarVisita";
 import type { Metadata } from "next";
+import { ehNovidade } from "@/lib/novidade";
+import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -32,7 +34,7 @@ type Props = { params: Promise<{ slug: string; id: string }> };
 
 const COLUNAS_LOJA = "id, slug, nome, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, descricao, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, aniversario_pct, indicacao_pct, slides, presente";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, personalizacao, tempo_min, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, criado_em, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, personalizacao, tempo_min, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Busca loja + produto (usado pela prévia do link e pela página).
 async function buscar(slug: string, id: string) {
@@ -109,6 +111,10 @@ async function ConteudoDoProduto({ params }: Props) {
     // LayoutDaLoja: banner, menu lateral e painel direito (iguais aos da loja)
     <LayoutDaLoja loja={loja} menu={menu}>
       <RegistrarVisita slug={slug} produtoId={produto.id} />
+        {/* ← Caminho de volta bem visível (para quem se perde fácil) */}
+        <nav aria-label="Caminho" className="mt-3 flex flex-wrap items-center gap-1 text-sm">
+          <Link href={`/${slug}`} className="clicavel inline-flex min-h-10 items-center gap-1 rounded-full border bg-white/80 px-3 py-1.5 font-semibold text-stone-900" style={{ borderColor: `${cor}55` }}>← Voltar para a loja</Link>
+        </nav>
         {/* Celular: uma coluna. Computador (md): fotos à esquerda, informações à direita */}
         <div className="mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6">
           {produto.giro_360 && midias.filter((m) => m.tipo === "foto").length >= 4
@@ -123,6 +129,9 @@ async function ConteudoDoProduto({ params }: Props) {
                   <span className="brilho-texto mb-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: cor }}>
                     {produto.selo}
                   </span>
+                )}
+                {!produto.selo && ehNovidade(produto.criado_em) && (
+                  <span className="mb-1 inline-block rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">🆕 Novidade</span>
                 )}
                 <h1 className="text-2xl font-bold">{produto.nome}</h1>
               </div>

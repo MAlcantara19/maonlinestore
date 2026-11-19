@@ -13,7 +13,7 @@ import PagamentoPedido from "@/components/admin/PagamentoPedido";
 import { CANAIS, rotuloDe } from "@/lib/pagamento";
 import { ETAPAS_PEDIDO, mensagemDeAndamento } from "@/lib/statusPedido";
 import { avisarMudancaDoPedido } from "@/lib/avisos";
-import { imprimirCartao, mensagemDoCartao } from "@/lib/imprimirCartao";
+import { imprimirCartao, mensagemDoCartao, textoDoCupom, type CupomImpresso } from "@/lib/imprimirCartao";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -64,6 +64,16 @@ function Lista() {
     setPedidos((data ?? []) as Pedido[]);
   }, []);
   useEffect(() => { lojaPeloSlug(slug).then((l) => { setLoja(l); if (l) carregar(l); }); }, [slug, carregar]);
+  // 🎟️ Cupom que sai impresso junto com o cartão (lembrado neste aparelho)
+  const [cupons, setCupons] = useState<CupomImpresso[]>([]);
+  const [cupomCartao, setCupomCartao] = useState("");
+  useEffect(() => { try { setCupomCartao(localStorage.getItem(`cupom-cartao:${slug}`) ?? ""); } catch {} }, [slug]);
+  useEffect(() => {
+    if (!loja) return;
+    supabaseNavegador().from("cupons").select("codigo, tipo, valor, minimo, validade").eq("loja_id", loja.id).eq("ativo", true).order("criado_em", { ascending: false })
+      .then(({ data }: { data: CupomImpresso[] | null }) => setCupons((data ?? []).filter((c) => !c.validade || c.validade >= new Date().toISOString().slice(0, 10))));
+  }, [loja]);
+  const cupomEscolhido = cupons.find((c) => c.codigo === cupomCartao) ?? null;
 
   if (!loja) return <p className="opacity-60">Carregando...</p>;
   const cor = loja.cor ?? "#333";
@@ -187,6 +197,15 @@ function Lista() {
         <input type="checkbox" checked={avisarAuto} onChange={(e) => { setAvisarAuto(e.target.checked); try { localStorage.setItem("avisar-cliente-auto", e.target.checked ? "sim" : "nao"); } catch {} }} />
         📲 Ao mudar a etapa, abrir o WhatsApp do cliente com o aviso pronto (é só tocar em enviar)
       </label>
+      <label className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 p-3 text-sm text-pink-900">
+        🎟️ Cupom impresso junto com o cartão:
+        <select value={cupomCartao} onChange={(e) => { setCupomCartao(e.target.value); try { localStorage.setItem(`cupom-cartao:${slug}`, e.target.value); } catch {} }}
+          className="rounded-lg border bg-white px-2 py-1 text-stone-900">
+          <option value="">Nenhum</option>
+          {cupons.map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {textoDoCupom(c)}</option>)}
+        </select>
+        {cupons.length === 0 && <a href={`/admin/${slug}/cupons`} className="font-semibold underline">Criar um cupom (ex.: VOLTE10)</a>}
+      </label>
       {aviso && <p className="fixed inset-x-0 top-4 z-50 mx-auto w-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg">{aviso}</p>}
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
@@ -261,7 +280,9 @@ function Lista() {
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=etiqueta`} className="rounded-lg border px-3 py-2 text-sm">📦 Etiqueta</a>
                   {(() => {
                     const msg = mensagemDoCartao(p.itens);
-                    return msg ? <button type="button" onClick={() => imprimirCartao(msg, { nome: loja.nome, cor })} className="rounded-lg border border-pink-300 bg-pink-50 px-3 py-2 text-sm font-semibold text-pink-800">💌 Imprimir cartão</button> : null;
+                    if (!msg && !cupomEscolhido) return null;
+                    const rotulo = msg ? (cupomEscolhido ? "💌 Cartão + 🎟️ cupom" : "💌 Imprimir cartão") : "🎟️ Imprimir cupom";
+                    return <button type="button" onClick={() => imprimirCartao(msg, { nome: loja.nome, cor, link: `${window.location.origin}/${slug}` }, cupomEscolhido)} className="rounded-lg border border-pink-300 bg-pink-50 px-3 py-2 text-sm font-semibold text-pink-800">{rotulo}</button>;
                   })()}
                   <button type="button" onClick={() => duplicar(p)} className="rounded-lg border px-3 py-2 text-sm">📄 Duplicar</button>
                   <button type="button" onClick={() => atualizar(p, { teste: !p.teste })} className="rounded-lg border px-3 py-2 text-sm"

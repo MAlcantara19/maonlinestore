@@ -64,3 +64,28 @@ button:active:not(:disabled),
     transition: none;
   }
 }
+/* =====================================================================
+   MAIS FÁCIL DE USAR (atualização 34)
+   - Rolagem suave ao tocar nos atalhos
+   - Contorno bem visível em quem navega pelo teclado
+   - No celular, campos com letra 16px (o iPhone não dá zoom sozinho)
+   ===================================================================== */
+html {
+  scroll-behavior: smooth;
+}
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

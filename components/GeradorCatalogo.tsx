@@ -10,6 +10,12 @@
 //   3. Até 16 produtos por página (menos páginas = mais gente vê tudo).
 //   4. 📄 PDF de verdade (arquivo limpo, sem data/endereço do navegador),
 //      📲 compartilhar no WhatsApp e 📥 baixar as imagens.
+//   Extras (atualização 34):
+//   ⭐ "Meus temas": salve um visual com nome ("Meu Natal roxo") e use de novo
+//   🔁 Repetir último catálogo: volta tudo como estava no último PDF/imagem
+//   💧 Logo como marca d'água · 🗂️ uma página por categoria com título
+//   📷 QR Code em cada produto (ótimo na folha A4) · 📸 modo "só fotos"
+//   (temas e último catálogo ficam guardados neste aparelho/navegador)
 // =====================================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
@@ -21,6 +27,7 @@ export type ProdutoCatalogo = {
   id: string; nome: string; preco: number | null; precoCheio: number | null; aPartir: boolean; promoPct: number | null;
   esgotado: boolean; destaque: boolean; foto: string | null; categorias: string[]; colecoes: string[];
   cores?: number; tamanhos?: number; escolheCor?: boolean; // 🎨 várias cores · 📏 tamanhos
+  novo?: boolean; // 🆕 cadastrado há poucos dias
 };
 type LojaCatalogo = { nome: string; slug: string; cor: string; logo_url: string | null; whatsapp: string | null; instagram: string | null };
 type Grupo = { id: string; nome: string; descricao?: string | null; parent_id?: string | null };
@@ -44,8 +51,28 @@ function carregar(src: string | null) {
 }
 const fatorFonte = (f: string) => (/Great Vibes/.test(f) ? 1.35 : /Dancing/.test(f) ? 1.15 : /Bebas/.test(f) ? 1.3 : /Cinzel/.test(f) ? 0.85 : 1);
 
-type Mostrar = { preco: boolean; opcoes: boolean; capa: boolean; final: boolean; qr: boolean; numero: boolean; cartao: boolean };
-type Opcoes = { tema: Tema; formato: Formato; porPagina: string; titulo: string; subtitulo: string; link: string; prazo: string; mostrar: Mostrar };
+type Mostrar = { preco: boolean; opcoes: boolean; capa: boolean; final: boolean; qr: boolean; numero: boolean; cartao: boolean; nome: boolean; novidade: boolean };
+const MOSTRAR_PADRAO: Mostrar = { preco: true, opcoes: true, capa: true, final: true, qr: true, numero: true, cartao: true, nome: true, novidade: true };
+type Opcoes = {
+  tema: Tema; formato: Formato; porPagina: string; titulo: string; subtitulo: string; link: string; prazo: string; mostrar: Mostrar;
+  marcaDagua: boolean; qrProduto: boolean; site: string;
+};
+type Secao = { titulo: string | null; produtos: ProdutoCatalogo[] };
+
+// ---------- ⭐ temas salvos e 🔁 último catálogo (guardados no aparelho) ----------
+type Config = {
+  filtro: string; ate: number | null; semEsgotados: boolean; ordem: "padrao" | "menor" | "maior" | "az"; fora: string[];
+  temaId: string; fundo1: string | null; fundo2: string | null; destaque: string | null; fonte: string; enfeites: Enfeite[];
+  titulo: string; subtitulo: string; prazoLigado: boolean; prazo: string; formato: Formato; porPagina: string; mostrar: Mostrar;
+  marcaDagua: boolean; porCategoria: boolean; qrProduto: boolean; quando?: string;
+};
+type Visual = Pick<Config, "temaId" | "fundo1" | "fundo2" | "destaque" | "fonte" | "enfeites" | "titulo" | "subtitulo" | "marcaDagua"> & { id: string; nome: string };
+function ler<T>(chave: string, padrao: T): T {
+  try { const t = localStorage.getItem(chave); return t ? (JSON.parse(t) as T) : padrao; } catch { return padrao; }
+}
+function gravar(chave: string, valor: unknown) {
+  try { localStorage.setItem(chave, JSON.stringify(valor)); } catch {}
+}
 
 export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, site, inicial, prazoLoja }: {
   loja: LojaCatalogo; produtos: ProdutoCatalogo[]; colecoes: Grupo[]; categorias: Grupo[]; site: string;
@@ -80,7 +107,17 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
   });
   const [formato, setFormato] = useState<Formato>("feed");
   const [porPagina, setPorPagina] = useState("9");
-  const [mostrar, setMostrar] = useState<Mostrar>({ preco: true, opcoes: true, capa: true, final: true, qr: true, numero: true, cartao: true });
+  const [mostrar, setMostrar] = useState<Mostrar>(MOSTRAR_PADRAO);
+  const [marcaDagua, setMarcaDagua] = useState(false);
+  const [porCategoria, setPorCategoria] = useState(false);
+  const [qrProduto, setQrProduto] = useState(false);
+  // ---------- ⭐ meus temas e 🔁 último catálogo ----------
+  const chaveTemas = `catalogo-temas:${loja.slug}`, chaveUltimo = `catalogo-ultimo:${loja.slug}`;
+  const [meusTemas, setMeusTemas] = useState<Visual[]>([]);
+  const [ultimo, setUltimo] = useState<Config | null>(null);
+  const [nomeTema, setNomeTema] = useState<string | null>(null); // null = caixinha fechada
+  const [aviso, setAviso] = useState("");
+  useEffect(() => { setMeusTemas(ler<Visual[]>(chaveTemas, [])); setUltimo(ler<Config | null>(chaveUltimo, null)); }, [chaveTemas, chaveUltimo]);
   // ---------- resultado ----------
   const [paginas, setPaginas] = useState<string[]>([]);
   const [gerando, setGerando] = useState(false);
@@ -117,10 +154,60 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
   }
   const alternarEnfeite = (e: Enfeite) => setEnfeites((l) => (l.includes(e) ? l.filter((x) => x !== e) : [...l, e]));
   const mudarMostrar = (k: keyof Mostrar) => setMostrar((m) => ({ ...m, [k]: !m[k] }));
+  const avisar = (t: string) => { setAviso(t); setTimeout(() => setAviso(""), 3500); };
 
+  // ⭐ Salvar / usar / apagar um visual ("Meu Natal roxo")
+  const visualAtual = (): Omit<Visual, "id" | "nome"> => ({ temaId, fundo1, fundo2, destaque, fonte, enfeites, titulo, subtitulo, marcaDagua });
+  function aplicarVisual(v: Partial<Omit<Visual, "id" | "nome">>) {
+    if (v.temaId && TEMAS.some((t) => t.id === v.temaId)) setTemaId(v.temaId);
+    if (v.fundo1 !== undefined) setFundo1(v.fundo1);
+    if (v.fundo2 !== undefined) setFundo2(v.fundo2);
+    if (v.destaque !== undefined) setDestaque(v.destaque);
+    if (v.fonte !== undefined) setFonte(v.fonte);
+    if (v.enfeites) setEnfeites(v.enfeites);
+    if (v.titulo !== undefined) setTitulo(v.titulo);
+    if (v.subtitulo !== undefined) setSubtitulo(v.subtitulo);
+    if (v.marcaDagua !== undefined) setMarcaDagua(v.marcaDagua);
+  }
+  function salvarTema() {
+    const nome = (nomeTema ?? "").trim() || `Meu ${tema.nome}`;
+    const lista = [{ ...visualAtual(), id: String(Date.now()), nome }, ...meusTemas.filter((t) => t.nome !== nome)].slice(0, 12);
+    setMeusTemas(lista); gravar(chaveTemas, lista); setNomeTema(null); avisar(`⭐ “${nome}” salvo nos seus temas!`);
+  }
+  function apagarTema(id: string) {
+    const lista = meusTemas.filter((t) => t.id !== id);
+    setMeusTemas(lista); gravar(chaveTemas, lista);
+  }
+  // 🔁 Guarda tudo quando a pessoa baixa/envia, para repetir depois
+  function guardarUltimo() {
+    const c: Config = { filtro, ate, semEsgotados, ordem, fora, ...visualAtual(), prazoLigado, prazo, formato, porPagina, mostrar, porCategoria, qrProduto, quando: new Date().toISOString() };
+    setUltimo(c); gravar(chaveUltimo, c);
+  }
+  function repetirUltimo() {
+    if (!ultimo) return;
+    const existe = (f: string) => f === "todos" || f === "destaques" || f === "promocoes" || colecoes.some((c) => `col:${c.id}` === f) || categorias.some((c) => `cat:${c.id}` === f);
+    setFiltro(existe(ultimo.filtro) ? ultimo.filtro : "todos");
+    setAte(ultimo.ate); setSemEsgotados(ultimo.semEsgotados); setOrdem(ultimo.ordem); setFora(ultimo.fora ?? []);
+    aplicarVisual(ultimo);
+    setPrazoLigado(ultimo.prazoLigado); setPrazo(ultimo.prazo);
+    if (ultimo.formato in FORMATOS) setFormato(ultimo.formato);
+    if (ultimo.porPagina in GRADES) setPorPagina(ultimo.porPagina);
+    setMostrar({ ...MOSTRAR_PADRAO, ...ultimo.mostrar });
+    setPorCategoria(!!ultimo.porCategoria); setQrProduto(!!ultimo.qrProduto);
+    avisar("🔁 Pronto! Voltei tudo como estava no último catálogo.");
+  }
+  // 📸 Só fotos (para o Instagram): sem preço, sem cores/tamanhos, formato Feed
+  const soFotos = !mostrar.preco && !mostrar.opcoes;
+  function modoSoFotos() {
+    if (soFotos) { setMostrar((m) => ({ ...m, preco: true, opcoes: true })); return; }
+    setMostrar((m) => ({ ...m, preco: false, opcoes: false, final: false }));
+    setFormato("feed"); setQrProduto(false); setPrazoLigado(false);
+    avisar("📸 Modo só fotos ligado: sem preços, ideal para o Instagram.");
+  }
+
+  const subsDe = (id: string) => [id, ...categorias.filter((c) => c.parent_id === id).map((c) => c.id)];
   // Quais produtos entram
   const doFiltro = useMemo(() => {
-    const subsDe = (id: string) => [id, ...categorias.filter((c) => c.parent_id === id).map((c) => c.id)];
     let lista = produtos.filter((p) => {
       if (semEsgotados && p.esgotado) return false;
       if (ate != null && (p.preco == null || p.preco > ate)) return false;
@@ -135,8 +222,29 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     if (ordem === "maior") lista = [...lista].sort((a, b) => (valor(b) === Infinity ? -1 : valor(b)) - (valor(a) === Infinity ? -1 : valor(a)));
     if (ordem === "az") lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     return lista;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [produtos, filtro, semEsgotados, ordem, categorias, ate]);
   const escolhidos = doFiltro.filter((p) => !fora.includes(p.id));
+
+  // 🗂️ Uma página (ou mais) por categoria, cada uma com o nome no topo.
+  // Se o filtro já é uma categoria, separa pelas subcategorias dela.
+  const secoes: Secao[] = (() => {
+    if (!porCategoria) return [{ titulo: null, produtos: escolhidos }];
+    const dentroDe = filtro.startsWith("cat:") ? filtro.slice(4) : null;
+    const grupos = categorias.filter((c) => (dentroDe ? c.parent_id === dentroDe : !c.parent_id));
+    const usados = new Set<string>();
+    const lista: Secao[] = [];
+    grupos.forEach((g) => {
+      const ids = subsDe(g.id);
+      const ps = escolhidos.filter((p) => !usados.has(p.id) && p.categorias.some((c) => ids.includes(c)));
+      ps.forEach((p) => usados.add(p.id));
+      if (ps.length) lista.push({ titulo: g.nome, produtos: ps });
+    });
+    const sobra = escolhidos.filter((p) => !usados.has(p.id));
+    if (sobra.length) lista.push({ titulo: dentroDe ? nomeDoGrupo(filtro) : lista.length ? "Outros" : null, produtos: sobra });
+    return lista;
+  })();
+  const chaveSecoes = secoes.map((s) => `${s.titulo}:${s.produtos.map((p) => p.id).join(",")}`).join("|");
 
   const link = filtro.startsWith("col:") ? `${site}/${loja.slug}/colecao/${filtro.slice(4)}` : filtro.startsWith("cat:") ? `${site}/${loja.slug}#categoria-${filtro.slice(4)}` : `${site}/${loja.slug}`;
 
@@ -146,13 +254,13 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     const t = setTimeout(async () => {
       setGerando(true);
       try {
-        const feitas = await gerarPaginas(loja, escolhidos, { tema, formato, porPagina, titulo, subtitulo, link, prazo: prazoLigado ? prazo : "", mostrar });
+        const feitas = await gerarPaginas(loja, secoes, { tema, formato, porPagina, titulo, subtitulo, link, prazo: prazoLigado ? prazo : "", mostrar, marcaDagua, qrProduto, site });
         if (minhaVez === vez.current) setPaginas(feitas);
       } finally { if (minhaVez === vez.current) setGerando(false); }
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tema, formato, porPagina, titulo, subtitulo, link, prazo, prazoLigado, mostrar, escolhidos.map((p) => p.id).join(",")]);
+  }, [tema, formato, porPagina, titulo, subtitulo, link, prazo, prazoLigado, mostrar, marcaDagua, qrProduto, chaveSecoes]);
 
   const nomeBase = `catalogo-${loja.slug}-${tema.id}`;
   const nomeArquivo = (i: number) => `${nomeBase}-${String(i + 1).padStart(2, "0")}.jpg`;
@@ -169,9 +277,9 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     const a = document.createElement("a"); a.href = url; a.download = arquivo.name; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
-  async function baixarPdf() { setFazendoPdf(true); try { baixarArquivo(await arquivoPdf()); } finally { setFazendoPdf(false); } }
+  async function baixarPdf() { guardarUltimo(); setFazendoPdf(true); try { baixarArquivo(await arquivoPdf()); } finally { setFazendoPdf(false); } }
   async function compartilharPdf() {
-    setFazendoPdf(true);
+    guardarUltimo(); setFazendoPdf(true);
     try {
       const pdf = await arquivoPdf();
       if (navigator.canShare?.({ files: [pdf] })) await navigator.share({ files: [pdf], title: titulo, text: `${titulo} · ${loja.nome}\n${link}` }).catch(() => {});
@@ -179,18 +287,21 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     } finally { setFazendoPdf(false); }
   }
   async function compartilharImagens() {
+    guardarUltimo();
     const lista = await arquivosImagens();
     if (navigator.canShare?.({ files: lista })) await navigator.share({ files: lista, title: titulo, text: `${titulo} · ${loja.nome}\n${link}` }).catch(() => {});
     else baixarTodas();
   }
   function baixar(i: number) { const a = document.createElement("a"); a.href = paginas[i]; a.download = nomeArquivo(i); a.click(); }
-  function baixarTodas() { paginas.forEach((_, i) => setTimeout(() => baixar(i), i * 350)); }
+  function baixarTodas() { guardarUltimo(); paginas.forEach((_, i) => setTimeout(() => baixar(i), i * 350)); }
 
   const cor = loja.cor;
   const caixa = "rounded-xl border bg-white px-3 py-2 text-sm text-stone-900";
   const ocupado = !paginas.length || gerando || fazendoPdf;
   const marcado = (on: boolean) => (on ? { background: cor, color: "#fff", borderColor: cor } : {});
   const [cols, linhas] = GRADES[porPagina][formato];
+  const paginasProdutos = secoes.reduce((s, x) => s + Math.ceil(x.produtos.length / (cols * linhas)), 0);
+  const dataCurta = (d?: string) => (d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "");
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900">
@@ -201,7 +312,14 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
             <h1 className="text-xl font-bold">🎨 Catálogo · {loja.nome}</h1>
             <p className="text-sm opacity-90">Escolha os produtos, o tema e personalize. Sai em PDF e em imagens para o WhatsApp e Instagram.</p>
           </div>
+          {ultimo && (
+            <button type="button" onClick={repetirUltimo} className="rounded-full bg-white px-4 py-2 text-sm font-bold shadow" style={{ color: cor }}
+              title="Volta os mesmos produtos, tema, cores e formato do último catálogo que você baixou ou enviou">
+              🔁 Repetir último catálogo{ultimo.quando ? ` (${dataCurta(ultimo.quando)})` : ""}
+            </button>
+          )}
         </header>
+        {aviso && <p role="status" className="mb-3 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">{aviso}</p>}
 
         <div className="grid gap-4 lg:grid-cols-[23rem_1fr]">
           <aside className="space-y-4">
@@ -243,6 +361,26 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
             {/* 2 — TEMA */}
             <section className="rounded-2xl bg-white p-4 shadow-sm">
               <h2 className="mb-2 font-bold">2. Tema</h2>
+              {/* ⭐ Meus temas (salvos neste aparelho) */}
+              {meusTemas.length > 0 && (
+                <div className="mb-3">
+                  <p className="mb-1 text-xs font-semibold opacity-70">⭐ Meus temas</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {meusTemas.map((t) => {
+                      const base = TEMAS.find((x) => x.id === t.temaId) ?? TEMAS[0];
+                      const a = t.fundo1 ?? base.fundo[0], b = t.fundo2 ?? t.fundo1 ?? base.fundo[1];
+                      return (
+                        <span key={t.id} className="flex items-center overflow-hidden rounded-full border shadow-sm">
+                          <button type="button" onClick={() => { aplicarVisual(t); avisar(`⭐ Usando “${t.nome}”`); }} className="flex items-center gap-1.5 py-1 pl-1 pr-2 text-xs font-semibold">
+                            <span className="h-5 w-5 rounded-full border" style={{ background: `linear-gradient(${a}, ${b})` }} />{t.nome}
+                          </button>
+                          <button type="button" onClick={() => apagarTema(t.id)} aria-label={`Apagar ${t.nome}`} className="px-1.5 text-xs opacity-50 hover:opacity-100">✕</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1">
                 {TEMAS.map((t) => {
                   const f = t.id === "loja" ? [loja.cor, escurecer(loja.cor, 0.55)] : t.fundo;
@@ -291,12 +429,31 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
                 <label className="flex shrink-0 items-center gap-1 text-sm font-semibold"><input type="checkbox" checked={prazoLigado} onChange={(e) => setPrazoLigado(e.target.checked)} /> ⏳ Selo</label>
                 <input value={prazo} onChange={(e) => setPrazo(e.target.value)} disabled={!prazoLigado} maxLength={34} placeholder="Ex.: Pedidos até 15/12" className={`${caixa} min-w-0 flex-1 disabled:opacity-40`} />
               </div>
+              <label className={`flex items-center gap-1 text-sm font-semibold ${loja.logo_url ? "" : "opacity-40"}`}>
+                <input type="checkbox" checked={marcaDagua} disabled={!loja.logo_url} onChange={(e) => setMarcaDagua(e.target.checked)} /> 💧 Logo clarinha no fundo (marca d’água)
+              </label>
+              {/* ⭐ Salvar o visual com um nome */}
+              {nomeTema == null ? (
+                <button type="button" onClick={() => setNomeTema(`Meu ${tema.nome}`)} className="w-full rounded-xl border-2 border-dashed px-3 py-2 text-sm font-semibold" style={{ borderColor: cor, color: cor }}>
+                  ⭐ Salvar este visual nos meus temas
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <input autoFocus value={nomeTema} onChange={(e) => setNomeTema(e.target.value)} onKeyDown={(e) => e.key === "Enter" && salvarTema()} maxLength={30}
+                    placeholder="Ex.: Meu Natal roxo" aria-label="Nome do tema" className={`${caixa} min-w-0 flex-1`} />
+                  <button type="button" onClick={salvarTema} className="rounded-xl px-3 text-sm font-semibold text-white" style={{ background: cor }}>Salvar</button>
+                  <button type="button" onClick={() => setNomeTema(null)} aria-label="Cancelar" className="rounded-xl border px-3 text-sm">✕</button>
+                </div>
+              )}
             </section>
 
             {/* 4 — FORMATO E O QUE MOSTRAR */}
             <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
               <h2 className="font-bold">4. Formato</h2>
-              <select value={formato} onChange={(e) => setFormato(e.target.value as Formato)} className={`${caixa} w-full`} aria-label="Formato">
+              <button type="button" onClick={modoSoFotos} className="w-full rounded-xl border px-3 py-2 text-left text-sm font-semibold" style={marcado(soFotos)}>
+                📸 Só fotos, sem preço (para o Instagram){soFotos ? " ✓" : ""}
+              </button>
+              <select value={formato} onChange={(e) => { const f = e.target.value as Formato; setFormato(f); if (f === "a4") setQrProduto(true); }} className={`${caixa} w-full`} aria-label="Formato">
                 {Object.entries(FORMATOS).map(([k, f]) => <option key={k} value={k}>{f.nome}</option>)}
               </select>
               <div>
@@ -307,10 +464,14 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
                     return <button key={n} type="button" onClick={() => setPorPagina(n)} className="rounded-full border px-3 py-1 text-xs font-semibold" style={marcado(porPagina === n)}>{c * l} <span className="opacity-60">({c}×{l})</span></button>;
                   })}
                 </div>
-                <p className="mt-1 text-xs opacity-60">{escolhidos.length} produtos → {Math.ceil(escolhidos.length / (cols * linhas)) || 0} {Math.ceil(escolhidos.length / (cols * linhas)) === 1 ? "página" : "páginas"} de produtos</p>
+                <p className="mt-1 text-xs opacity-60">{escolhidos.length} produtos → {paginasProdutos} {paginasProdutos === 1 ? "página" : "páginas"} de produtos</p>
               </div>
+              <label className="flex items-start gap-1.5 text-sm"><input type="checkbox" className="mt-1" checked={porCategoria} onChange={(e) => setPorCategoria(e.target.checked)} />
+                <span><b>🗂️ Separar por categoria</b><br /><span className="text-xs opacity-60">Cada categoria começa numa página nova, com o nome dela no topo</span></span></label>
+              <label className="flex items-start gap-1.5 text-sm"><input type="checkbox" className="mt-1" checked={qrProduto} onChange={(e) => setQrProduto(e.target.checked)} />
+                <span><b>📷 QR Code em cada produto</b><br /><span className="text-xs opacity-60">O cliente aponta a câmera e abre o produto no site (ótimo na folha A4)</span></span></label>
               <div className="grid grid-cols-2 gap-1 text-sm">
-                {([["preco", "💲 Preços"], ["opcoes", "🎨 Cores/tamanhos"], ["cartao", "🔲 Cartão branco"], ["qr", "📷 QR Code"], ["capa", "📕 Capa"], ["final", "📞 Como pedir"], ["numero", "🔢 Nº da página"]] as [keyof Mostrar, string][]).map(([k, r]) => (
+                {([["preco", "💲 Preços"], ["nome", "🏷️ Nomes"], ["opcoes", "🎨 Cores/tamanhos"], ["novidade", "🆕 Selo Novidade"], ["cartao", "🔲 Cartão branco"], ["qr", "📷 QR da loja"], ["capa", "📕 Capa"], ["final", "📞 Como pedir"], ["numero", "🔢 Nº da página"]] as [keyof Mostrar, string][]).map(([k, r]) => (
                   <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={mostrar[k]} onChange={() => mudarMostrar(k)} /> {r}</label>
                 ))}
               </div>
@@ -359,19 +520,32 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
 // =====================================================================
 // DESENHO DAS PÁGINAS
 // =====================================================================
-async function gerarPaginas(loja: LojaCatalogo, produtos: ProdutoCatalogo[], o: Opcoes): Promise<string[]> {
+// QR Codes já feitos (o mesmo link não é refeito a cada mudança)
+const qrFeitos = new Map<string, Promise<string>>();
+const qrDe = (link: string, largura: number) => {
+  const chave = `${largura}:${link}`;
+  if (!qrFeitos.has(chave)) qrFeitos.set(chave, QRCode.toDataURL(link, { margin: 1, width: largura, color: { dark: "#1c1917", light: "#ffffff" } }));
+  return qrFeitos.get(chave)!;
+};
+
+async function gerarPaginas(loja: LojaCatalogo, secoes: Secao[], o: Opcoes): Promise<string[]> {
   const { L, A } = FORMATOS[o.formato];
   const [cols, linhas] = GRADES[o.porPagina][o.formato];
   const porPag = cols * linhas;
+  const produtos = secoes.flatMap((s) => s.produtos);
   try { await document.fonts.load(`700 80px ${o.tema.fonteTitulo}`); } catch {}
   const [logo, qr] = await Promise.all([
     carregar(loja.logo_url),
-    o.mostrar.qr ? carregar(await QRCode.toDataURL(o.link, { margin: 1, width: 400, color: { dark: "#1c1917", light: "#ffffff" } })) : Promise.resolve(null),
+    o.mostrar.qr ? carregar(await qrDe(o.link, 400)) : Promise.resolve(null),
   ]);
   const fotos = new Map(await Promise.all(produtos.map(async (p) => [p.id, await carregar(p.foto)] as const)));
+  // 📷 QR de cada produto → página do produto no site
+  const qrs: Fotos = o.qrProduto
+    ? new Map(await Promise.all(produtos.map(async (p) => [p.id, await carregar(await qrDe(`${o.site}/${loja.slug}/p/${p.id}`, 220))] as const)))
+    : new Map();
 
-  const blocos: ProdutoCatalogo[][] = [];
-  for (let i = 0; i < produtos.length; i += porPag) blocos.push(produtos.slice(i, i + porPag));
+  const blocos: { titulo: string | null; itens: ProdutoCatalogo[] }[] = [];
+  secoes.forEach((s) => { for (let i = 0; i < s.produtos.length; i += porPag) blocos.push({ titulo: s.titulo, itens: s.produtos.slice(i, i + porPag) }); });
   const total = (o.mostrar.capa ? 1 : 0) + blocos.length + (o.mostrar.final ? 1 : 0);
   const saida: string[] = [];
   let n = 0;
@@ -382,6 +556,7 @@ async function gerarPaginas(loja: LojaCatalogo, produtos: ProdutoCatalogo[], o: 
     const ctx = c.getContext("2d")!;
     ctx.scale(ESCALA, ESCALA);
     desenharFundo(ctx, o.tema, L, A, 1234 + n * 97);
+    if (o.marcaDagua && logo) desenharMarcaDagua(ctx, logo, L, A);
     return { c, ctx };
   };
   const fechar = (c: HTMLCanvasElement) => { saida.push(c.toDataURL("image/jpeg", 0.9)); n++; };
@@ -389,7 +564,7 @@ async function gerarPaginas(loja: LojaCatalogo, produtos: ProdutoCatalogo[], o: 
   if (o.mostrar.capa) { const { c, ctx } = nova(); desenharCapa(ctx, L, A, loja, produtos, fotos, logo, qr, o); fechar(c); }
   blocos.forEach((bloco) => {
     const { c, ctx } = nova();
-    desenharPaginaProdutos(ctx, L, A, cols, linhas, bloco, fotos, logo, qr, loja, o, n + 1, total);
+    desenharPaginaProdutos(ctx, L, A, cols, linhas, bloco.itens, fotos, logo, qr, loja, o, n + 1, total, bloco.titulo, qrs);
     fechar(c);
   });
   if (o.mostrar.final) { const { c, ctx } = nova(); desenharFinal(ctx, L, A, loja, logo, qr, o); fechar(c); }
@@ -414,6 +589,16 @@ function logoRedonda(ctx: Ctx, logo: HTMLImageElement | null, x: number, y: numb
   ctx.restore();
 }
 
+// 💧 Logo bem clarinha no meio da página (inteira, sem cortar)
+function desenharMarcaDagua(ctx: Ctx, logo: HTMLImageElement, L: number, A: number) {
+  const lado = Math.min(L, A) * 0.62;
+  const e = Math.min(lado / logo.width, lado / logo.height);
+  const w = logo.width * e, h = logo.height * e;
+  ctx.save(); ctx.globalAlpha = 0.07;
+  ctx.drawImage(logo, (L - w) / 2, A * 0.54 - h / 2, w, h);
+  ctx.restore();
+}
+
 function textoCentro(ctx: Ctx, texto: string, x: number, y: number, fonte: string, cor: string, largura?: number) {
   ctx.font = fonte; ctx.fillStyle = cor; ctx.textAlign = "center";
   let t = texto;
@@ -434,27 +619,32 @@ function textoOpcoes(p: ProdutoCatalogo) {
 }
 
 // Cabeçalho das páginas de produtos: mais baixinho quando tem muitos produtos
-function desenharCabecalho(ctx: Ctx, L: number, loja: LojaCatalogo, logo: HTMLImageElement | null, o: Opcoes, compacto: boolean) {
+// "secao" = nome da categoria (quando o catálogo é separado por categoria)
+function desenharCabecalho(ctx: Ctx, L: number, loja: LojaCatalogo, logo: HTMLImageElement | null, o: Opcoes, compacto: boolean, secao: string | null) {
   const t = o.tema;
+  const titulo = secao ?? o.titulo;
+  const linhaPequena = (secao ? `${o.titulo} · ${loja.nome}` : loja.nome).toUpperCase();
   if (compacto) {
     logoRedonda(ctx, logo, 92, 88, 40, t.destaque);
     const tam = Math.round(50 * fatorFonte(t.fonteTitulo));
     ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = 6;
     ctx.font = `700 ${tam}px ${t.fonteTitulo}`; ctx.fillStyle = corTitulo(t); ctx.textAlign = "left";
-    ctx.fillText(quebrarTexto(ctx, o.titulo, L - 300, 1)[0] ?? "", 150, 80 + tam * 0.35);
+    ctx.fillText(quebrarTexto(ctx, titulo, L - 300, 1)[0] ?? "", 150, 80 + tam * 0.35);
     ctx.restore();
     ctx.save(); ctx.letterSpacing = "4px"; ctx.font = "700 18px system-ui, sans-serif"; ctx.fillStyle = t.texto; ctx.globalAlpha = 0.85;
-    ctx.fillText(loja.nome.toUpperCase(), 152, 136); ctx.restore();
+    ctx.fillText(quebrarTexto(ctx, linhaPequena, L - 300, 1)[0] ?? "", 152, 136); ctx.restore();
+    if (secao) { ctx.fillStyle = t.destaque; retanguloRedondo(ctx, 152, 146, 90, 5, 2.5); ctx.fill(); }
     return 160;
   }
   logoRedonda(ctx, logo, L / 2, 86, 42, t.destaque);
   ctx.save(); ctx.letterSpacing = "6px";
-  textoCentro(ctx, loja.nome.toUpperCase(), L / 2, 154, "700 20px system-ui, sans-serif", t.texto, L - 300);
+  textoCentro(ctx, linhaPequena, L / 2, 154, "700 20px system-ui, sans-serif", t.texto, L - 300);
   ctx.restore();
   const tam = Math.round(58 * fatorFonte(t.fonteTitulo));
   ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = 8;
-  textoCentro(ctx, o.titulo, L / 2, 158 + tam * 0.95, `700 ${tam}px ${t.fonteTitulo}`, corTitulo(t), L - 120);
+  textoCentro(ctx, titulo, L / 2, 158 + tam * 0.95, `700 ${tam}px ${t.fonteTitulo}`, corTitulo(t), L - 120);
   ctx.restore();
+  if (secao) { ctx.fillStyle = t.destaque; retanguloRedondo(ctx, L / 2 - 50, 158 + tam * 0.95 + 14, 100, 5, 2.5); ctx.fill(); }
   return 158 + tam * 0.95 + 34;
 }
 
@@ -487,10 +677,11 @@ function desenharRodape(ctx: Ctx, L: number, A: number, loja: LojaCatalogo, qr: 
 }
 
 function desenharPaginaProdutos(ctx: Ctx, L: number, A: number, cols: number, linhas: number, bloco: ProdutoCatalogo[], fotos: Fotos,
-  logo: HTMLImageElement | null, qr: HTMLImageElement | null, loja: LojaCatalogo, o: Opcoes, pagina: number, total: number) {
+  logo: HTMLImageElement | null, qr: HTMLImageElement | null, loja: LojaCatalogo, o: Opcoes, pagina: number, total: number,
+  secao: string | null, qrs: Fotos) {
   const t = o.tema;
   const compacto = cols * linhas >= 9;
-  const topo = desenharCabecalho(ctx, L, loja, logo, o, compacto) + (compacto ? 10 : 0);
+  const topo = desenharCabecalho(ctx, L, loja, logo, o, compacto, secao) + (compacto ? 10 : 0);
   const margem = cols >= 4 ? 32 : 40, vao = cols >= 4 ? 12 : cols === 3 ? 16 : 22;
   const base = A - ALTURA_RODAPE - (o.prazo.trim() ? 52 : 0);
   const w = (L - margem * 2 - vao * (cols - 1)) / cols;
@@ -502,7 +693,7 @@ function desenharPaginaProdutos(ctx: Ctx, L: number, A: number, cols: number, li
   const mostrarOpc = o.mostrar.opcoes && bloco.some((p) => textoOpcoes(p));
   const pad = o.mostrar.cartao ? Math.max(6, w * 0.03) : 0;
   // espaço do texto embaixo da foto: nome (2 linhas) + cores/tamanhos + preço
-  const areaTexto = 6 + fNome * 2.4 + (mostrarOpc ? fOpc * 1.35 : 0) + (o.mostrar.preco ? fPreco * 1.55 + 8 : 0) + pad;
+  const areaTexto = 6 + (o.mostrar.nome ? fNome * 2.4 : 0) + (mostrarOpc ? fOpc * 1.35 : 0) + (o.mostrar.preco ? fPreco * 1.55 + 8 : 0) + pad;
   const corNome = o.mostrar.cartao ? t.textoCartao : t.texto;
 
   bloco.forEach((p, i) => {
@@ -525,10 +716,25 @@ function desenharPaginaProdutos(ctx: Ctx, L: number, A: number, cols: number, li
       ctx.fillStyle = "#e11d48"; retanguloRedondo(ctx, fx + 8, fy + 8, sw, sh, sh / 2); ctx.fill();
       textoCentro(ctx, `-${p.promoPct}%`, fx + 8 + sw / 2, fy + 8 + sh * 0.7, `800 ${Math.round(fPreco * 0.95)}px system-ui`, "#fff");
     }
+    // 🆕 Novidade (canto de cima, à direita)
+    if (p.novo && o.mostrar.novidade) {
+      const f = Math.round(Math.max(12, fPreco * 0.8));
+      ctx.font = `800 ${f}px system-ui, sans-serif`;
+      const sw = ctx.measureText("NOVIDADE").width + f * 1.3, sh = f * 1.8;
+      ctx.save(); sombra(ctx, true); ctx.fillStyle = "#059669"; retanguloRedondo(ctx, fx + fw - sw - 8, fy + 8, sw, sh, sh / 2); ctx.fill(); ctx.restore();
+      textoCentro(ctx, "NOVIDADE", fx + fw - sw / 2 - 8, fy + 8 + sh * 0.68, `800 ${f}px system-ui, sans-serif`, "#fff");
+    }
+    // 📷 QR do produto (canto de baixo da foto, à direita)
+    const qrP = qrs.get(p.id);
+    if (qrP) {
+      const q = Math.max(54, Math.min(fw * 0.3, fh * 0.42, 130)), b = Math.max(4, q * 0.07);
+      ctx.save(); sombra(ctx, true); ctx.fillStyle = "#fff"; retanguloRedondo(ctx, fx + fw - q - b * 2 - 6, fy + fh - q - b * 2 - 6, q + b * 2, q + b * 2, b * 1.6); ctx.fill(); ctx.restore();
+      ctx.drawImage(qrP, fx + fw - q - b - 6, fy + fh - q - b - 6, q, q);
+    }
     // nome (até 2 linhas)
     ctx.fillStyle = corNome; ctx.font = `700 ${fNome}px system-ui, sans-serif`;
     let ty = fy + fh + 6 + fNome;
-    quebrarTexto(ctx, p.nome, fw, 2).forEach((l) => { ctx.fillText(l, fx, ty); ty += fNome * 1.2; });
+    if (o.mostrar.nome) quebrarTexto(ctx, p.nome, fw, 2).forEach((l) => { ctx.fillText(l, fx, ty); ty += fNome * 1.2; });
     // 🎨 cores · 📏 tamanhos (logo abaixo do nome, nunca por cima)
     const opc = o.mostrar.opcoes ? textoOpcoes(p) : "";
     if (opc) {

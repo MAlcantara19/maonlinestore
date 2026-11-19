@@ -17,6 +17,7 @@ import { comPromocao, promocaoAtiva } from "@/lib/promocao";
 import { categoriasDoProduto } from "@/lib/opcoes";
 import { SITE } from "@/lib/config";
 import { FONTES_CATALOGO } from "@/lib/catalogo";
+import { ehNovidade } from "@/lib/novidade";
 import CarregarFontes from "@/components/CarregarFontes";
 import GeradorCatalogo, { type ProdutoCatalogo } from "@/components/GeradorCatalogo";
 import type { Produto } from "@/lib/tipos";
@@ -36,7 +37,7 @@ async function Catalogo({ params, searchParams }: Props) {
   if (!loja) notFound();
 
   const [prodRes, colRes, catRes, prazoRes] = await Promise.all([
-    supabase.from("produtos").select("id, nome, preco, disponibilidade, destaque, categoria_id, promocao_pct, promocao_ate, previa_cor, variacoes(preco, ativa, cor, tamanho), midias(url, tipo, ordem), produtos_categorias(categoria_id)")
+    supabase.from("produtos").select("id, nome, preco, disponibilidade, destaque, criado_em, categoria_id, promocao_pct, promocao_ate, previa_cor, variacoes(preco, ativa, cor, tamanho), midias(url, tipo, ordem), produtos_categorias(categoria_id)")
       .eq("loja_id", loja.id).eq("ativo", true).order("ordem").order("nome"),
     supabase.from("colecoes").select("id, nome, descricao, produtos_colecoes(produto_id)").eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
     supabase.from("categorias").select("id, nome, parent_id, ordem").eq("loja_id", loja.id).order("ordem").order("nome"),
@@ -64,6 +65,7 @@ async function Catalogo({ params, searchParams }: Props) {
       cores: new Set(p.variacoes.filter((v) => v.ativa && v.cor).map((v) => v.cor!.trim().toLowerCase())).size,
       tamanhos: new Set(p.variacoes.filter((v) => v.ativa && v.tamanho).map((v) => v.tamanho!.trim().toLowerCase())).size,
       escolheCor: !!p.previa_cor,
+      novo: ehNovidade(p.criado_em), // 🆕 cadastrado há poucos dias
     };
   });
   // Categorias em ordem de "árvore": a principal e logo abaixo as subcategorias

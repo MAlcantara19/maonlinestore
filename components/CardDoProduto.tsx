@@ -13,6 +13,7 @@ import { formatarPreco, precoMinimo, textoDisponibilidade } from "@/lib/formato"
 import ImagemSuave from "@/components/ImagemSuave";
 import AdicionarRapido from "@/components/AdicionarRapido";
 import SeloMaisVendido from "@/components/SeloMaisVendido";
+import { ehNovidade } from "@/lib/novidade";
 
 type Props = { produto: Produto; cor: string; slug: string; indice?: number };
 
@@ -24,6 +25,8 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
   const esgotado = produto.disponibilidade === "esgotado" || semEstoque(estoque);
   const ultimas = textoUltimas(estoque);
   const emPromocao = promocaoAtiva(produto);
+  // 🆕 Novidade automática (cadastrado há poucos dias e sem selo próprio)
+  const novidade = !produto.selo && ehNovidade(produto.criado_em);
 
   return (
     // Os cartões aparecem um depois do outro (efeito "cascata")
@@ -51,8 +54,12 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
             </span>
           )}
 
+          {novidade && (
+            <span className="absolute left-2 top-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white shadow">🆕 Novidade</span>
+          )}
+
           {/* 🔥 Mais vendido (automático, pelos pedidos) */}
-          <SeloMaisVendido slug={slug} produtoId={produto.id} abaixo={!!produto.selo} />
+          <SeloMaisVendido slug={slug} produtoId={produto.id} abaixo={!!produto.selo || novidade} />
 
           {/* Promoção: selo vermelho com o desconto */}
           {emPromocao && (

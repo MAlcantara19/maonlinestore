@@ -32,6 +32,8 @@ import LayoutDaLoja from "@/components/LayoutDaLoja";
 import ConteudoComBusca from "@/components/ConteudoComBusca";
 import EfeitosDaLoja from "@/components/EfeitosDaLoja";
 import { EsqueletoLoja } from "@/components/Esqueleto";
+import AtalhosDaLoja from "@/components/AtalhosDaLoja";
+import { ehNovidade } from "@/lib/novidade";
 
 // Next.js entrega o slug do endereço dentro de "params".
 type Props = { params: Promise<{ slug: string }> };
@@ -39,7 +41,7 @@ type Props = { params: Promise<{ slug: string }> };
 // Colunas que a página usa (fica num lugar só para não repetir).
 const COLUNAS_LOJA = "id, slug, nome, descricao, cor, logo_url, logo_ajuste, logo_zoom, logo_fundo, whatsapp, aviso_pedido, cor_secundaria, cor_fundo, fonte, instagram, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, razao_social, documento, endereco, email_contato, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, aniversario_pct, indicacao_pct, slides, presente, efeito, efeito_personalizado_id";
 const COLUNAS_PRODUTO =
-  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, personalizacao, tempo_min, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
+  "id, nome, descricao, restricoes, preco, disponibilidade, prazo, destaque, selo, criado_em, categoria_id, ordem, promocao_pct, promocao_ate, giro_360, estoque, previa_cor, personalizacao, tempo_min, variacoes(id, tipo, nome, descricao, tamanho, cor, preco, disponibilidade, prazo, ativa, ordem, estoque), produtos_categorias(categoria_id), midias(id, tipo, url, ordem, cor)";
 
 // Título da aba e prévia quando o link da loja é compartilhado.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -93,6 +95,8 @@ async function ConteudoDaLoja({ params }: Props) {
 
   // Atalhos do menu (lateral no computador, barra + gaveta no celular)
   const menu = montarMenu(categorias, colecoes, produtos);
+  // 🆕 Cadastrados há poucos dias (aparecem numa seção própria)
+  const novidades = produtos.filter((p) => !p.selo && ehNovidade(p.criado_em)).slice(0, 8);
 
   // Efeito animado: o escolhido nas Configurações da loja tem prioridade.
   // Se a loja estiver em "Nenhum", vale o da coleção em destaque (ex.: neve no Natal).
@@ -119,6 +123,11 @@ async function ConteudoDaLoja({ params }: Props) {
       <RegistrarVisita slug={slug} />
       {/* 🖼️ Banner rotativo de promoções */}
       {(loja.slides ?? []).length > 0 && <BannerRotativo slides={loja.slides!} cor={cor} />}
+      {/* 🧭 Atalhos grandes + "como comprar em 3 passos" (primeira visita) */}
+      {produtos.length > 0 && (
+        <AtalhosDaLoja slug={slug} cor={cor} nome={loja.nome} whatsapp={loja.whatsapp ?? null}
+          temNovidades={novidades.length > 0} temDestaques={produtos.some((p) => p.destaque)} />
+      )}
       {/* Fontes próprias das coleções */}
       <CarregarFontes fontes={colecoes.map((c) => c.fonte)} />
       <EfeitosDaLoja cor={cor} logo={loja.logo_url} tipoPadrao={efeito} personalizadoPadrao={personalizadoDaLoja} secoes={secoes} borda={{ cor: loja.logo_borda_cor, largura: loja.logo_borda }} />
@@ -135,6 +144,7 @@ async function ConteudoDaLoja({ params }: Props) {
               fonte={c.fonte} estilo="colecao" link={`/${slug}/colecao/${c.id}`} colecaoId={c.id} produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
           ))}
           <Secao id="destaques" titulo="⭐ Produtos em destaque" cor={cor} slug={slug} estilo="destaque" produtos={produtos.filter((p) => p.destaque)} />
+          <Secao id="novidades" titulo="🆕 Novidades" descricao="Acabaram de chegar na loja" cor={cor} slug={slug} produtos={novidades} />
 
           {/* ===== 🗂️ CATEGORIAS ===== */}
           {principais.length > 0 && <TituloGrupo icone="🗂️" texto="Categorias" cor={cor} />}

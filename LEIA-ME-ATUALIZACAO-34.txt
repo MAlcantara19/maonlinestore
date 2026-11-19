@@ -1,0 +1,42 @@
+ATUALIZAÇÃO 34 — CATÁLOGO AINDA MAIS FÁCIL + LISTA DE NATAL + LOJA MAIS SIMPLES
+==============================================================================
+SÓ 3 PASSOS (nada para instalar, nenhuma chave nova):
+ 1) Copie as pastas por cima do projeto (substituir).
+ 2) Supabase → SQL Editor → rode supabase/atualizacao-34-listas-e-sem-visitas.sql
+    (se ainda não rodou a 33, rode ela antes)
+ 3) git add . / git commit / git push
+
+ONDE FICA CADA COISA
+  🎨 Catálogo ........ menu "Vendas e visual" → Catálogo temático
+       ⭐ Meus temas ........ passo 3 → "Salvar este visual" (ex.: "Meu Natal roxo");
+                             aparecem no topo do passo 2, um toque para usar
+       🔁 Repetir último ..... botão no topo; volta produtos, tema, cores e formato
+                             do último PDF/imagem que você baixou ou enviou
+       💧 Marca d'água ....... passo 3 → "Logo clarinha no fundo"
+       🗂️ Por categoria ...... passo 4 → "Separar por categoria" (cada categoria
+                             começa numa página nova, com o nome dela no topo)
+       📷 QR em cada produto . passo 4 (liga sozinho ao escolher "Folha A4")
+       📸 Só fotos ........... passo 4 → "Só fotos, sem preço (para o Instagram)"
+       🆕 Selo Novidade ...... aparece sozinho nos produtos novos
+     (temas salvos e último catálogo ficam guardados no aparelho/navegador usado)
+  🆕 Novidade ........ automático: produto cadastrado nos últimos 20 dias
+                       (para mudar o prazo: lib/novidade.ts → DIAS_NOVIDADE)
+                       Também ganhou uma seção "🆕 Novidades" na página da loja.
+  🎟️ Cupom impresso .. Pedidos → no topo, "Cupom impresso junto com o cartão".
+                       O botão vira "💌 Cartão + 🎟️ cupom" (sai um 2º cartão
+                       "10% OFF · use o cupom VOLTE10"). Crie o cupom em Cupons.
+  🎄 Lista de Natal .. Favoritos → "Enviar minha lista" agora cria um link
+                       /vitraforma/lista/CODIGO com contador: "3 de 8 presentes
+                       garantidos · 4 pessoas já presentearam" e o botão
+                       "🎁 Vou dar este" (ninguém repete presente).
+  👀 Ninguém vê ...... menu "Loja" → "Produtos que ninguém vê": quem ninguém
+                       abriu, quem abrem e não compram. Um toque para
+                       ⭐ destacar, 🏷️ 10% por 7 dias ou 🙈 esconder.
+
+LOJA MAIS FÁCIL PARA QUEM NÃO TEM PRÁTICA
+  - Atalhos grandes no topo: Novidades, Mais procurados, Favoritos, Ajuda no WhatsApp
+  - "👋 Primeira vez aqui? Comprar é fácil" em 3 passos (some ao fechar)
+  - Página do produto com "← Voltar para a loja" bem visível
+  - Campos com letra maior no celular (o iPhone não dá zoom sozinho)
+  - Contorno visível para quem navega pelo teclado
+  - Painel: atalhos "➕ Novo produto · 🧾 Ver pedidos · 🎄 Fazer catálogo"

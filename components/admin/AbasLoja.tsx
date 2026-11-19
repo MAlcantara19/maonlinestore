@@ -30,6 +30,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       { href: base, rotulo: "⚙️ Configurações", exato: true },
       { href: `${base}/estatisticas`, rotulo: "📊 Estatísticas" },
       { href: `${base}/buscas`, rotulo: "🔎 O que os clientes buscam" },
+      { href: `${base}/sem-visitas`, rotulo: "👀 Produtos que ninguém vê" },
       { href: `${base}/pedidos`, rotulo: "🧾 Pedidos" },
       { href: `${base}/financeiro`, rotulo: "💰 Financeiro" },
       { href: `${base}/clientes`, rotulo: "👥 Clientes" },
@@ -82,6 +83,19 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{nome}</h1>
         <Link href={`/${slug}`} target="_blank" className="rounded-full border px-3 py-1.5 text-sm">👁️ Ver loja</Link>
+      </div>
+
+      {/* ⚡ O que mais se faz no dia a dia, a um toque */}
+      <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        {[
+          { href: `${base}/produtos/novo`, rotulo: "➕ Novo produto" },
+          { href: `${base}/pedidos`, rotulo: "🧾 Ver pedidos" },
+          { href: `/${slug}/catalogo`, rotulo: "🎄 Fazer catálogo" },
+          { href: `${base}/sem-visitas`, rotulo: "👀 Ninguém vê" },
+        ].map((a) => (
+          <Link key={a.href} href={a.href} className="flex min-h-10 shrink-0 items-center rounded-full border bg-white px-4 py-2 text-sm font-semibold shadow-sm"
+            style={caminho === a.href ? { background: cor, color: "#fff", borderColor: cor } : { borderColor: `${cor}44` }}>{a.rotulo}</Link>
+        ))}
       </div>
 
       {/* Tela grande: menu lateral fixo */}

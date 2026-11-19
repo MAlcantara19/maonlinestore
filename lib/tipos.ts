@@ -115,6 +115,7 @@ export type Produto = {
   prazo: string | null;
   destaque: boolean;
   selo: string | null; // fitinha no canto da foto (ex.: Novo)
+  criado_em?: string | null; // 🆕 data do cadastro (etiqueta "Novidade" automática)
   categoria_id: string | null;
   produtos_categorias?: { categoria_id: string }[]; // todas as categorias do produto
   ordem?: number; // ordem manual na loja
