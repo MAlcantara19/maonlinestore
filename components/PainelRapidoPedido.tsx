@@ -9,6 +9,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
+import { avisarMudancaDoPedido } from "@/lib/avisos";
 import { ETAPAS_PEDIDO, mensagemDeAndamento } from "@/lib/statusPedido";
 import { linkWhatsApp } from "@/lib/whatsapp";
 
@@ -35,6 +36,7 @@ export default function PainelRapidoPedido({ codigo }: { codigo: string }) {
     }
     const { error } = await supabaseNavegador().from("pedidos").update({ status, atualizado_em: new Date().toISOString() }).eq("id", p.id);
     if (error) return setAviso(`Erro: ${error.message}`);
+    avisarMudancaDoPedido(p.id); // 🔔 push para o cliente + estoque/meta
     setP({ ...p, status });
     setAviso(p.cliente_whatsapp ? "✓ Atualizado! Toque em enviar no WhatsApp." : "✓ Atualizado! (O cliente não deixou o WhatsApp.)");
     router.refresh(); // atualiza a linha do tempo abaixo

@@ -4,7 +4,7 @@
 //   - ninguém pode colocar o site dentro de outro site (golpe de "clique falso")
 //   - o navegador não "adivinha" o tipo dos arquivos
 //   - os outros sites recebem só o endereço básico de onde o cliente veio
-//   - câmera e microfone ficam bloqueados (o site não usa)
+//   - câmera bloqueada; microfone só do próprio site (busca por voz 🎤)
 //   - CSP (Content-Security-Policy): a "lista de convidados" — o navegador
 //     só carrega scripts, fontes, imagens e conexões dos lugares abaixo.
 //     Se um dia entrar um serviço novo (ex.: outro mapa, um chat), ele
@@ -46,7 +46,7 @@ export function proxy(_req: NextRequest) {
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set("Permissions-Policy", "camera=(), microphone=(), payment=(), usb=()");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(self), payment=(), usb=()");
   res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   // Isola a janela do site das janelas que ele abre (WhatsApp, Instagram...)
   res.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");

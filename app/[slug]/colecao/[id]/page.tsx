@@ -58,11 +58,13 @@ async function Conteudo({ params }: Props) {
   if (!colecao) notFound();
 
   const ids = colecao.produtos_colecoes.map((pc) => pc.produto_id);
-  const [prodRes, menu, outrasRes] = await Promise.all([
+  const [prodRes, menu, outrasRes, bannerRes] = await Promise.all([
     ids.length ? supabase.from("produtos").select(COLUNAS_PRODUTO).in("id", ids).eq("ativo", true).order("ordem").order("nome") : Promise.resolve({ data: [] }),
     buscarMenuDaLoja(loja.id),
     supabase.from("colecoes").select("id, nome").eq("loja_id", loja.id).eq("ativa", true).neq("id", id).order("ordem"),
+    supabase.from("colecoes").select("banner_url").eq("id", id).maybeSingle(), // atualização 32
   ]);
+  const banner = bannerRes.error ? null : (bannerRes.data?.banner_url as string | null) ?? null;
   const produtos = (prodRes.data ?? []) as Produto[];
   const cor = loja.cor ?? "#333";
   // A faixa do topo usa as cores do tema da coleção (Natal = vermelho e dourado...)
@@ -78,7 +80,8 @@ async function Conteudo({ params }: Props) {
       {colecao.efeito && colecao.efeito !== "nenhum" && <EfeitosDaLoja cor={cor} logo={loja.logo_url} tipoPadrao={colecao.efeito} personalizadoPadrao={null} secoes={{}} borda={{ cor: loja.logo_borda_cor, largura: loja.logo_borda }} />}
 
       <Link href={`/${slug}`} className="text-sm opacity-70">← Ver a loja toda</Link>
-      <section className="relative mt-2 overflow-hidden rounded-3xl p-6 shadow-lg sm:p-10" style={{ background: fundo, color: textoFaixa }}>
+      <section className="relative mt-2 overflow-hidden rounded-3xl p-6 shadow-lg sm:p-10"
+        style={banner ? { background: `linear-gradient(90deg, rgba(0,0,0,.65), rgba(0,0,0,.15)), url(${JSON.stringify(banner)}) center/cover`, color: "#fff", minHeight: 260 } : { background: fundo, color: textoFaixa }}>
         <span className="pointer-events-none absolute -right-4 -top-6 select-none text-[8rem] opacity-20" aria-hidden>{tema?.emoji ?? "✨"}</span>
         <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-80">{loja.nome}</p>
         <h1 className="mt-1 text-4xl font-bold sm:text-5xl" style={{ fontFamily: familiaDa(colecao.fonte) }}>{nomeColecao(colecao.nome)}</h1>

@@ -3,7 +3,7 @@
 // =====================================================================
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 
-export type TipoIA = "descricao" | "legenda" | "resposta" | "nomes" | "livre";
+export type TipoIA = "descricao" | "legenda" | "resposta" | "nomes" | "catalogo" | "livre";
 
 export async function pedirIA(slug: string, tipo: TipoIA, entrada: Record<string, string>): Promise<string> {
   const { data: { session } } = await supabaseNavegador().auth.getSession();

@@ -22,6 +22,7 @@ import MenuLateral from "@/components/MenuLateral";
 import IconeInstagram from "@/components/IconeInstagram";
 import CupomDoLink from "@/components/CupomDoLink";
 import LojaAbertaAgora from "@/components/LojaAbertaAgora";
+import FaixaContagem from "@/components/FaixaContagem";
 
 export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; menu: ItemMenu[]; children: ReactNode }) {
   const cor = loja.cor ?? "#333";
@@ -39,6 +40,7 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
         <MenuLateral slug={loja.slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} whatsapp={loja.whatsapp ?? null} />
 
         <main className="min-w-0 flex-1 px-4 pt-4 pb-10 lg:px-0">
+          <FaixaContagem lojaId={loja.id} cor={cor} />
           <LojaAbertaAgora lojaId={loja.id} />
           {/* Telas menores: "Como funciona o pedido" recolhível */}
           {loja.aviso_pedido && (
@@ -78,6 +80,12 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
               </div>
             </section>
           )}
+          {/* 💌 Cartão de presente digital */}
+          <a href={`/${loja.slug}/cartao-presente`} className="clicavel flex items-center gap-3 rounded-2xl border p-4 text-sm shadow-sm"
+            style={{ borderColor: `${cor}55`, background: `linear-gradient(${fundoSuave}, ${fundoSuave}), #ffffff`, color: "#1c1917" }}>
+            <span className="text-2xl">💌</span>
+            <span><b style={{ color: cor }}>É presente?</b><br />Monte um cartão digital com a sua mensagem.</span>
+          </a>
         </aside>
       </div>
     </TemaDaLoja>

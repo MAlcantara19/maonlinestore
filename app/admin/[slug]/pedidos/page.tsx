@@ -12,6 +12,7 @@ import NovoPedidoManual from "@/components/admin/NovoPedidoManual";
 import PagamentoPedido from "@/components/admin/PagamentoPedido";
 import { CANAIS, rotuloDe } from "@/lib/pagamento";
 import { ETAPAS_PEDIDO, mensagemDeAndamento } from "@/lib/statusPedido";
+import { avisarMudancaDoPedido } from "@/lib/avisos";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -85,6 +86,7 @@ function Lista() {
   async function atualizar(p: Pedido, campos: Partial<Pedido>) {
     const { error } = await supabaseNavegador().from("pedidos").update({ ...campos, atualizado_em: new Date().toISOString() }).eq("id", p.id);
     if (error) return avisar(`Erro: ${error.message}`);
+    if (campos.status && campos.status !== p.status) avisarMudancaDoPedido(p.id); // 🔔 push para o cliente + estoque/meta
     setPedidos((lista) => (lista ?? []).map((x) => (x.id === p.id ? { ...x, ...campos } : x)));
     avisar("✓ Atualizado! O cliente já vê no acompanhamento.");
   }

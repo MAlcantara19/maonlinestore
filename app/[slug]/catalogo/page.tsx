@@ -35,12 +35,15 @@ async function Catalogo({ params, searchParams }: Props) {
   const { data: loja } = await supabase.from("lojas").select("id, slug, nome, cor, logo_url, whatsapp, instagram").eq("slug", slug).eq("ativa", true).maybeSingle();
   if (!loja) notFound();
 
-  const [prodRes, colRes, catRes] = await Promise.all([
+  const [prodRes, colRes, catRes, prazoRes] = await Promise.all([
     supabase.from("produtos").select("id, nome, preco, disponibilidade, destaque, categoria_id, promocao_pct, promocao_ate, variacoes(preco, ativa), midias(url, tipo, ordem), produtos_categorias(categoria_id)")
       .eq("loja_id", loja.id).eq("ativo", true).order("ordem").order("nome"),
     supabase.from("colecoes").select("id, nome, descricao, produtos_colecoes(produto_id)").eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
     supabase.from("categorias").select("id, nome, parent_id, ordem").eq("loja_id", loja.id).order("ordem").order("nome"),
+    // contagem regressiva da loja (atualização 32; se não rodou, vem erro e só não mostra)
+    supabase.from("lojas").select("contagem_ate, contagem_texto").eq("id", loja.id).maybeSingle(),
   ]);
+  const prazo = prazoRes.error || !prazoRes.data ? null : { ate: prazoRes.data.contagem_ate as string | null, texto: prazoRes.data.contagem_texto as string | null };
 
   const colecoes = (colRes.data ?? []) as { id: string; nome: string; descricao: string | null; produtos_colecoes: { produto_id: string }[] }[];
   const produtos: ProdutoCatalogo[] = ((prodRes.data ?? []) as unknown as Produto[]).map((p) => {
@@ -73,6 +76,7 @@ async function Catalogo({ params, searchParams }: Props) {
         categorias={categorias}
         site={SITE.url}
         inicial={{ colecao: busca.colecao, categoria: busca.categoria, tema: busca.tema }}
+        prazoLoja={prazo && prazo.ate && new Date(prazo.ate).getTime() > Date.now() ? prazo : null}
       />
     </>
   );

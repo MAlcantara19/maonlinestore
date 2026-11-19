@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { formatarPreco, telefoneBonito, usuarioInstagram } from "@/lib/formato";
+import { pedirIA } from "@/lib/ia";
 import { TEMAS, desenharFundo, escurecer, fotoCobrindo, quebrarTexto, retanguloRedondo, temaPeloNome, type Tema } from "@/lib/catalogo";
 
 export type ProdutoCatalogo = {
@@ -47,11 +48,13 @@ const fatorFonte = (f: string) => (/Great Vibes/.test(f) ? 1.35 : /Dancing/.test
 type Opcoes = {
   tema: Tema; formato: keyof typeof FORMATOS; porPagina: string; titulo: string; subtitulo: string;
   mostrarPreco: boolean; capa: boolean; final: boolean; link: string;
+  prazo: string; // "🎄 Pedidos até 15/12" (vazio = não mostra)
 };
 
-export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, site, inicial }: {
+export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, site, inicial, prazoLoja }: {
   loja: LojaCatalogo; produtos: ProdutoCatalogo[]; colecoes: Grupo[]; categorias: Grupo[]; site: string;
   inicial: { colecao?: string; categoria?: string; tema?: string };
+  prazoLoja?: { ate: string | null; texto: string | null } | null; // contagem regressiva da loja
 }) {
   const nomeDoGrupo = (filtro: string) => filtro.startsWith("col:") ? colecoes.find((c) => `col:${c.id}` === filtro)?.nome ?? "" : filtro.startsWith("cat:") ? categorias.find((c) => `cat:${c.id}` === filtro)?.nome ?? "" : "";
   const filtroInicial = inicial.colecao ? `col:${inicial.colecao}` : inicial.categoria ? `cat:${inicial.categoria}` : "todos";
@@ -69,6 +72,15 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
   const [final, setFinal] = useState(true);
   const [ordem, setOrdem] = useState<"padrao" | "menor" | "maior" | "az">("padrao");
   const [fora, setFora] = useState<string[]>([]);
+  const [ate, setAte] = useState<number | null>(null);
+  const [prazo, setPrazo] = useState(() => {
+    if (!prazoLoja?.ate) return "";
+    const d = new Date(prazoLoja.ate);
+    return `${prazoLoja.texto?.trim() || "Pedidos até"} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [legendas, setLegendas] = useState<string[]>([]);
+  const [escrevendo, setEscrevendo] = useState(false);
+  const [avisoIA, setAvisoIA] = useState("");
   const [paginas, setPaginas] = useState<string[]>([]);
   const [gerando, setGerando] = useState(false);
   const [aberta, setAberta] = useState<number | null>(null);
@@ -97,6 +109,7 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     const subsDe = (id: string) => [id, ...categorias.filter((c) => c.parent_id === id).map((c) => c.id)];
     let lista = produtos.filter((p) => {
       if (semEsgotados && p.esgotado) return false;
+      if (ate != null && (p.preco == null || p.preco > ate)) return false;
       if (filtro === "destaques") return p.destaque;
       if (filtro === "promocoes") return !!p.promoPct;
       if (filtro.startsWith("col:")) return p.colecoes.includes(filtro.slice(4));
@@ -108,7 +121,7 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     if (ordem === "maior") lista = [...lista].sort((a, b) => (valor(b) === Infinity ? -1 : valor(b)) - (valor(a) === Infinity ? -1 : valor(a)));
     if (ordem === "az") lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     return lista;
-  }, [produtos, filtro, semEsgotados, ordem, categorias]);
+  }, [produtos, filtro, semEsgotados, ordem, categorias, ate]);
   const escolhidos = doFiltro.filter((p) => !fora.includes(p.id));
 
   // Link do QR Code: página da coleção (se escolheu uma) ou a loja
@@ -120,13 +133,30 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
     const t = setTimeout(async () => {
       setGerando(true);
       try {
-        const feitas = await gerarPaginas(loja, escolhidos, { tema, formato, porPagina, titulo, subtitulo, mostrarPreco, capa, final, link });
+        const feitas = await gerarPaginas(loja, escolhidos, { tema, formato, porPagina, titulo, subtitulo, mostrarPreco, capa, final, link, prazo });
         if (minhaVez === vez.current) setPaginas(feitas);
       } finally { if (minhaVez === vez.current) setGerando(false); }
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tema, formato, porPagina, titulo, subtitulo, mostrarPreco, capa, final, link, escolhidos.map((p) => p.id).join(",")]);
+  }, [tema, formato, porPagina, titulo, subtitulo, mostrarPreco, capa, final, link, prazo, escolhidos.map((p) => p.id).join(",")]);
+  useEffect(() => setLegendas([]), [paginas.length, filtro, temaId]);
+
+  // ✨ Uma legenda pronta para cada página (precisa estar logado no painel neste aparelho)
+  async function escreverLegendas() {
+    setEscrevendo(true); setAvisoIA("");
+    const [cols, linhas] = GRADES[porPagina][formato];
+    const porPag = cols * linhas;
+    const blocos: string[] = [];
+    if (capa) blocos.push(`CAPA do catálogo "${titulo}" — ${subtitulo}`);
+    for (let i = 0; i < escolhidos.length; i += porPag) blocos.push(escolhidos.slice(i, i + porPag).map((p) => `${p.nome}${p.preco != null ? ` (${formatarPreco(p.preco)})` : ""}`).join("; "));
+    if (final) blocos.push("Página final: como fazer o pedido pelo WhatsApp / QR Code");
+    try {
+      const texto = await pedirIA(loja.slug, "catalogo", { titulo, tema: tema.nome, prazo, link, paginas: blocos.map((b, i) => `Página ${i + 1}: ${b}`).join("\n") });
+      setLegendas(texto.split(/^\s*={3,}\s*$/m).map((t) => t.replace(/^\s*P[áa]gina \d+\s*[:\-–]?\s*/i, "").trim()).filter(Boolean));
+    } catch (e) { setAvisoIA(`😕 ${(e as Error).message} (o assistente só funciona com o painel aberto e logado neste aparelho)`); }
+    setEscrevendo(false);
+  }
 
   const nomeArquivo = (i: number) => `catalogo-${loja.slug}-${tema.id}-${String(i + 1).padStart(2, "0")}.jpg`;
   async function arquivos() {
@@ -184,6 +214,9 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
                 <select value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)} className={caixa} aria-label="Ordem">
                   <option value="padrao">Ordem da loja</option><option value="menor">Menor preço</option><option value="maior">Maior preço</option><option value="az">A–Z</option>
                 </select>
+                <select value={ate ?? ""} onChange={(e) => setAte(e.target.value ? Number(e.target.value) : null)} className={caixa} aria-label="Faixa de preço">
+                  <option value="">💰 Qualquer preço</option><option value="50">🎁 Até R$ 50</option><option value="100">🎁 Até R$ 100</option><option value="200">🎁 Até R$ 200</option>
+                </select>
                 <label className="flex items-center gap-1"><input type="checkbox" checked={semEsgotados} onChange={(e) => setSemEsgotados(e.target.checked)} /> Sem esgotados</label>
               </div>
               <p className="mt-3 text-xs opacity-60">Toque para tirar/colocar um produto ({escolhidos.length} de {doFiltro.length}):</p>
@@ -222,6 +255,7 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
               <h2 className="font-bold">3. Textos e formato</h2>
               <label className="block text-sm font-semibold">Título<input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={40} className={`${caixa} mt-1 w-full`} /></label>
               <label className="block text-sm font-semibold">Frase<input value={subtitulo} onChange={(e) => setSubtitulo(e.target.value)} maxLength={60} className={`${caixa} mt-1 w-full`} /></label>
+              <label className="block text-sm font-semibold">⏳ Selo de prazo (vazio = sem selo)<input value={prazo} onChange={(e) => setPrazo(e.target.value)} maxLength={34} placeholder="Ex.: Pedidos de Natal até 15/12" className={`${caixa} mt-1 w-full`} /></label>
               <div className="flex gap-2">
                 <select value={formato} onChange={(e) => setFormato(e.target.value as typeof formato)} className={`${caixa} flex-1`} aria-label="Formato">
                   {Object.entries(FORMATOS).map(([k, f]) => <option key={k} value={k}>{f.nome}</option>)}
@@ -245,15 +279,25 @@ export default function GeradorCatalogo({ loja, produtos, colecoes, categorias, 
               <b className="flex-1 text-sm">{gerando ? "⏳ Desenhando as páginas..." : `✅ ${paginas.length} ${paginas.length === 1 ? "página pronta" : "páginas prontas"}`}</b>
               <button type="button" disabled={!paginas.length || gerando} onClick={compartilhar} className="rounded-full px-4 py-2 text-sm font-semibold text-white disabled:opacity-40" style={{ background: "#25D366" }}>📲 Compartilhar</button>
               <button type="button" disabled={!paginas.length || gerando} onClick={baixarTodas} className="rounded-full border px-4 py-2 text-sm font-semibold disabled:opacity-40">📥 Baixar imagens</button>
+              <button type="button" disabled={!paginas.length || gerando || escrevendo} onClick={escreverLegendas} className="rounded-full border border-violet-300 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-800 disabled:opacity-40">{escrevendo ? "✨ Escrevendo..." : "✨ Legendas com IA"}</button>
               <button type="button" disabled={!paginas.length || gerando} onClick={() => window.print()} className="rounded-full px-4 py-2 text-sm font-semibold text-white disabled:opacity-40" style={{ background: cor }}>📄 Salvar PDF</button>
             </div>
+            {avisoIA && <p className="mb-2 text-sm text-red-600">{avisoIA}</p>}
             <p className="mb-3 text-xs opacity-60">💡 PDF: na janela que abrir, escolha <b>&quot;Salvar como PDF&quot;</b> e deixe as margens em <b>&quot;Nenhuma&quot;</b>. No celular, &quot;Compartilhar&quot; manda todas as imagens de uma vez para o WhatsApp.</p>
             <div className={`grid gap-3 ${formato === "story" ? "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4" : "grid-cols-2 xl:grid-cols-3"}`}>
               {paginas.map((url, i) => (
-                <button key={i} type="button" onClick={() => setAberta(i)} className="group relative overflow-hidden rounded-xl shadow-md transition-transform hover:scale-[1.02]" style={{ opacity: gerando ? 0.5 : 1 }}>
-                  <img src={url} alt={`Página ${i + 1}`} className="w-full" />
-                  <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{i + 1}</span>
-                </button>
+                <div key={i}>
+                  <button type="button" onClick={() => setAberta(i)} className="group relative block w-full overflow-hidden rounded-xl shadow-md transition-transform hover:scale-[1.02]" style={{ opacity: gerando ? 0.5 : 1 }}>
+                    <img src={url} alt={`Página ${i + 1}`} className="w-full" />
+                    <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{i + 1}</span>
+                  </button>
+                  {legendas[i] && (
+                    <div className="mt-1.5 rounded-lg bg-white p-2 text-xs shadow-sm">
+                      <p className="max-h-28 overflow-y-auto whitespace-pre-line">{legendas[i]}</p>
+                      <button type="button" onClick={() => navigator.clipboard.writeText(legendas[i]).catch(() => {})} className="mt-1 font-semibold text-violet-700">📋 Copiar legenda</button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </main>
@@ -373,6 +417,13 @@ function desenharRodape(ctx: Ctx, L: number, A: number, loja: LojaCatalogo, qr: 
   const insta = usuarioInstagram(loja.instagram);
   ctx.fillText(`${insta ? `@${insta}  ·  ` : ""}${o.link.replace(/^https?:\/\//, "").replace(/#.*/, "")}`, tx, y + 76);
   ctx.globalAlpha = 1;
+  if (o.prazo.trim()) {
+    ctx.font = "800 22px system-ui, sans-serif";
+    const txt = `⏳ ${o.prazo.trim()}`, w = ctx.measureText(txt).width + 32;
+    // selo logo ACIMA do rodapé, à direita (não briga com o WhatsApp)
+    ctx.save(); sombra(ctx, true); ctx.fillStyle = t.destaque; retanguloRedondo(ctx, L - 48 - w, y - 58, w, 42, 21); ctx.fill(); ctx.restore();
+    ctx.fillStyle = contraste(t.destaque); ctx.textAlign = "right"; ctx.fillText(txt, L - 64, y - 29); ctx.textAlign = "left";
+  }
   if (pagina && total) {
     ctx.textAlign = "right"; ctx.font = "700 20px system-ui, sans-serif"; ctx.globalAlpha = 0.75;
     ctx.fillText(`${pagina}/${total}`, L - 48, y + 76); ctx.globalAlpha = 1; ctx.textAlign = "left";
@@ -383,7 +434,7 @@ function desenharPaginaProdutos(ctx: Ctx, L: number, A: number, cols: number, li
   logo: HTMLImageElement | null, qr: HTMLImageElement | null, loja: LojaCatalogo, o: Opcoes, pagina: number, total: number) {
   const t = o.tema;
   desenharCabecalho(ctx, L, loja, logo, o);
-  const topo = 300, base = A - 160, margem = 48, vao = cols === 3 ? 22 : 28;
+  const topo = 300, base = A - (o.prazo.trim() ? 200 : 160), margem = 48, vao = cols === 3 ? 22 : 28;
   const w = (L - margem * 2 - vao * (cols - 1)) / cols;
   const h = (base - topo - vao * (linhas - 1)) / linhas;
   const pequeno = cols === 3 || linhas >= 4;
@@ -453,8 +504,9 @@ function desenharCapa(ctx: Ctx, L: number, A: number, loja: LojaCatalogo, produt
 
   // "Polaroids" com as fotos dos produtos
   const comFoto = produtos.filter((p) => fotos.get(p.id)).slice(0, 3);
-  const meio = (ty + 40 + A - 190) / 2;
-  const lado = Math.min(L * 0.4, A - 190 - (ty + 60) - 40);
+  const fundoUtil = A - (o.prazo.trim() ? 240 : 190);
+  const meio = (ty + 40 + fundoUtil) / 2;
+  const lado = Math.min(L * 0.4, fundoUtil - (ty + 60) - 40);
   const posicoes = comFoto.length >= 3 ? [[-0.6, 0.08, -0.13, 0.78], [0.6, 0.1, 0.13, 0.78], [0, 0, 0, 1]] : comFoto.length === 2 ? [[-0.36, 0.04, -0.08, 0.9], [0.36, 0, 0.08, 0.9]] : [[0, 0, 0, 1]];
   comFoto.forEach((p, i) => {
     const [dx, dy, ang, k] = posicoes[i];
@@ -486,7 +538,7 @@ function desenharFinal(ctx: Ctx, L: number, A: number, loja: LojaCatalogo, logo:
     ls.forEach((l, k) => ctx.fillText(l, 200, y + (ls.length === 1 ? 64 : 48 + k * 34)));
     y += 134;
   });
-  const q = Math.min(300, A - y - 230);
+  const q = Math.min(300, A - y - (o.prazo.trim() ? 290 : 230));
   if (qr && q > 120) {
     ctx.save(); sombra(ctx, true); ctx.fillStyle = "#fff"; retanguloRedondo(ctx, L / 2 - q / 2 - 16, y + 20, q + 32, q + 32, 24); ctx.fill(); ctx.restore();
     ctx.drawImage(qr, L / 2 - q / 2, y + 36, q, q);

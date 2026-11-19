@@ -5,7 +5,7 @@
 // os aparelhos de quem cuida da loja. (Ninguém consegue "inventar" aviso.)
 // =====================================================================
 import { NextResponse } from "next/server";
-import { avisarLoja, clienteSecreto, pushConfigurado } from "@/lib/push";
+import { avisarLoja, clienteSecreto, conferirMeta, pushConfigurado } from "@/lib/push";
 import { formatarPreco } from "@/lib/formato";
 
 export async function POST(req: Request) {
@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       url: `/admin/${p.lojas.slug}/pedidos`,
       tag: `pedido-${p.codigo}`,
     });
+    await conferirMeta(p.loja_id).catch(() => {}); // 🎯 esse pedido fez bater a meta do mês?
     return NextResponse.json({ ok: true, enviados });
   } catch (e) {
     return NextResponse.json({ ok: false, erro: (e as Error).message }, { status: 500 });

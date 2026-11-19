@@ -11,9 +11,10 @@
 // =====================================================================
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { formatarPreco } from "@/lib/formato";
+import BotaoVoz from "@/components/BotaoVoz";
 
 type Sugestao = { id: string; nome: string; preco: number | null; foto?: string };
 
@@ -24,6 +25,7 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
   const [texto, setTexto] = useState("");
   const [sugestoes, setSugestoes] = useState<Sugestao[] | null>(null);
   const [aberto, setAberto] = useState(false);
+  const guardar = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Ao abrir a loja com ?busca=..., já começa com o texto
   useEffect(() => {
@@ -44,6 +46,11 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
     const t = setTimeout(async () => {
       if (naLoja) window.dispatchEvent(new CustomEvent("busca-loja", { detail: texto }));
       if (!termo) return setSugestoes(null);
+      // 🔥 guarda o termo para o "Mais buscados" (só quando a pessoa para de digitar)
+      if (termo.length >= 3) {
+        clearTimeout(guardar.current);
+        guardar.current = setTimeout(() => { supabaseNavegador().rpc("registrar_busca", { p_slug: slug, p_termo: termo }).then(() => {}, () => {}); }, 1800);
+      }
       // 1º) busca inteligente no banco (atualização 31)
       const inteligente = await supabaseNavegador().rpc("buscar_produtos", { p_termo: termo, p_loja: lojaId, p_limite: 6 });
       if (!inteligente.error) {
@@ -64,7 +71,7 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
       }));
     }, 250);
     return () => clearTimeout(t);
-  }, [texto, lojaId, naLoja]);
+  }, [texto, lojaId, naLoja, slug]);
 
   function confirmar() {
     setAberto(false);
@@ -78,7 +85,8 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
         onFocus={() => setAberto(true)}
         onBlur={() => setTimeout(() => setAberto(false), 150)}
         onKeyDown={(e) => { if (e.key === "Enter") confirmar(); if (e.key === "Escape") setAberto(false); }}
-        className="w-full rounded-full border border-white/30 bg-white/95 px-4 py-2 text-sm text-stone-900 shadow outline-none focus:ring-2 focus:ring-white/60" />
+        className="w-full rounded-full border border-white/30 bg-white/95 py-2 pl-4 pr-10 text-sm text-stone-900 shadow outline-none focus:ring-2 focus:ring-white/60" />
+      <BotaoVoz className="absolute right-1 top-1/2 -translate-y-1/2" aoOuvir={(t) => { setTexto(t); setAberto(true); }} />
 
       {aberto && texto.trim() && sugestoes && (
         <div className="deslizar absolute inset-x-0 top-full z-40 mt-1 overflow-hidden rounded-xl bg-white text-stone-900 shadow-2xl">

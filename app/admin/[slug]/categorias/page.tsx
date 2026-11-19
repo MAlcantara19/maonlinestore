@@ -15,6 +15,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
 import AbasLoja from "@/components/admin/AbasLoja";
+import BannerColecao from "@/components/admin/BannerColecao";
 import { Bloco } from "@/components/admin/Campos";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { lojaPeloSlug, type LojaResumo } from "@/lib/admin";
@@ -188,6 +189,7 @@ function Conteudo() {
               <button type="button" className={botao} onClick={() => salvarColecao(c)}>Salvar</button>
               <button type="button" className={`${botao} text-red-600`} onClick={() => excluirColecao(c)}>🗑️</button>
             </div>
+            <BannerColecao colecaoId={c.id} slug={slug} />
           </div>
         ))}
         <NovoItem placeholder="Nova coleção (ex.: Dia das Mães)" aoCriar={criarColecao} />

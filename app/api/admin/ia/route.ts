@@ -2,7 +2,7 @@
 // 🤖 ASSISTENTE DE IA DO PAINEL — roda NO SERVIDOR (a chave da IA nunca
 // vai para o navegador).
 //   POST { slug, tipo, entrada }  (com o login de quem pediu)
-//   tipo: "descricao" | "legenda" | "resposta" | "nomes" | "livre"
+//   tipo: "descricao" | "legenda" | "resposta" | "nomes" | "catalogo" | "livre"
 // Confere se a pessoa cuida da loja e tem um limite por hora (para a
 // conta da IA não subir sem querer).
 // Precisa de ANTHROPIC_API_KEY no .env.local e na Vercel.
@@ -26,6 +26,11 @@ Formato: gancho na 1ª linha, 2 a 4 linhas curtas com emojis na medida, chamada 
 ${e.detalhes ? `O que eu quero responder / informações: ${e.detalhes}` : ""}
 Escreva a RESPOSTA, pronta para copiar e colar: simpática, curta, natural de WhatsApp, sem markdown. Se faltar informação (preço, prazo), deixe [entre colchetes] para eu preencher.`,
   nomes: (e) => `Sugira 10 NOMES criativos e vendáveis para: ${e.detalhes || e.nome}. Um por linha, numerados, com no máximo 5 palavras cada. Sem explicações.`,
+  catalogo: (e) => `Vou postar um catálogo "${e.titulo}" (tema: ${e.tema}) no Instagram e no Status do WhatsApp, uma imagem por vez.
+${e.prazo ? `Prazo importante: ${e.prazo}.` : ""} Link da loja: ${e.link}
+As páginas são:
+${e.paginas}
+Escreva UMA legenda curta para CADA página, na mesma ordem (2 a 4 linhas, emojis na medida, chamada para pedir pelo WhatsApp; na legenda da capa inclua 6 a 10 hashtags). Separe as legendas com uma linha contendo só ===. Não escreva "Página 1" nem títulos.`,
   livre: (e) => e.detalhes || "",
 };
 
@@ -41,7 +46,7 @@ export async function POST(req: Request) {
 
     const corpo = (await req.json()) as { slug?: string; tipo?: string; entrada?: Record<string, string> };
     const tipo = corpo.tipo && PEDIDOS[corpo.tipo] ? corpo.tipo : "livre";
-    const entrada = Object.fromEntries(Object.entries(corpo.entrada ?? {}).map(([k, v]) => [k, String(v ?? "").slice(0, 2500)]));
+    const entrada = Object.fromEntries(Object.entries(corpo.entrada ?? {}).map(([k, v]) => [k, String(v ?? "").slice(0, 4000)]));
     const { data: loja } = await sb.from("lojas").select("id, nome, descricao, sobre, instagram").eq("slug", corpo.slug ?? "").maybeSingle();
     if (!loja) return NextResponse.json({ erro: "Loja não encontrada." }, { status: 404 });
 
@@ -67,7 +72,7 @@ Regras: escreva sempre em português do Brasil, tom acolhedor, próximo e profis
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": chave, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODELO, max_tokens: 900, system: sistema, messages: [{ role: "user", content: pedido }] }),
+      body: JSON.stringify({ model: MODELO, max_tokens: tipo === "catalogo" ? 2000 : 900, system: sistema, messages: [{ role: "user", content: pedido }] }),
     });
     const j = await r.json();
     if (!r.ok) return NextResponse.json({ erro: `A IA não respondeu (${j?.error?.message ?? r.status}).` }, { status: 502 });

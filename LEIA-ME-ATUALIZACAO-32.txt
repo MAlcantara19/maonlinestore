@@ -1,0 +1,22 @@
+ATUALIZAÇÃO 32 — NATAL, AVISOS, BUSCAS E NOVOS TEMAS
+=====================================================
+1) Supabase → SQL Editor → rodar:  supabase/atualizacao-32-natal-avisos-buscas.sql
+   (precisa da 31 rodada antes)
+2) Nada novo para instalar. As chaves VAPID da 31 servem para tudo.
+3) Redeploy.
+
+ONDE FICA CADA COISA
+  ⏳ Contagem "Pedidos de Natal até 15/12" ... painel → Configurações → Contagem regressiva (botão "🎄 Natal (15/12)")
+                                              aparece no topo da loja e vira selo no catálogo
+  🎁 Até R$ 50 / 100 / 200 ................... botões em cima dos produtos na loja + filtro no catálogo
+  🔔 Push para o cliente ..................... página do pedido → "Me avise quando o pedido andar"
+                                              (dispara quando você muda a etapa no painel)
+  ⚠️ Estoque baixo / 🎯 Meta batida .......... automáticos (limite do estoque em Configurações → Busca e avisos;
+                                              meta = a meta do mês do Financeiro)
+  🖼️ Banner da coleção ....................... painel → Categorias e coleções → "🖼️ Banner e página da coleção"
+  ✨ Legendas com IA no catálogo ............. botão no catálogo (com o painel logado no mesmo aparelho)
+  🎤 Busca por voz ........................... microfone dentro da caixa de busca
+  🔎 Sinônimos ............................... painel → Configurações → "Busca da loja e avisos de estoque"
+  💌 Cartão de presente ...................... /vitraforma/cartao-presente (link no pedido e no painel direito da loja)
+  🎨 Temas novos ............................. Ano Novo, Dia dos Pais, Halloween e Casamento (catálogo e cartão)
+  🔥 Mais buscados ........................... aparece sozinho na loja quando um termo é buscado 2+ vezes em 30 dias

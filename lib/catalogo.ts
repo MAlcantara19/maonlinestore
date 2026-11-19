@@ -9,7 +9,7 @@
 // a fonte e a lista de "enfeites".
 // =====================================================================
 
-export type Enfeite = "flocos" | "estrelas" | "bolas" | "pinheiros" | "baloes" | "confete" | "nuvens" | "ovos" | "flores" | "coracoes" | "brilhos" | "listras";
+export type Enfeite = "flocos" | "estrelas" | "bolas" | "pinheiros" | "baloes" | "confete" | "nuvens" | "ovos" | "flores" | "coracoes" | "brilhos" | "listras" | "fogos" | "aboboras" | "morcegos" | "argolas";
 
 export type Tema = {
   id: string;
@@ -49,22 +49,38 @@ export const TEMAS: Tema[] = [
   { id: "black", nome: "Black Friday / Ofertas", emoji: "🖤", fundo: ["#161616", "#000000"], destaque: "#facc15", texto: "#ffffff", cartao: "#1f1f1f", textoCartao: "#ffffff",
     fonteTitulo: "'Bebas Neue', Impact, sans-serif", enfeites: ["listras", "brilhos"], titulo: "OFERTAS", subtitulo: "Só por tempo limitado ⚡",
     coresFesta: ["#facc15"] },
+  { id: "ano-novo", nome: "Ano Novo / Réveillon", emoji: "🥂", fundo: ["#0b1a3a", "#020617"], destaque: "#e9c46a", texto: "#ffffff", cartao: "#ffffff", textoCartao: "#0b1a3a",
+    fonteTitulo: "'Cinzel', Georgia, serif", enfeites: ["fogos", "estrelas", "brilhos"], titulo: "Feliz Ano Novo", subtitulo: "Comece o ano com estilo ✨",
+    coresFesta: ["#e9c46a", "#ffffff", "#c0c0c0", "#f4a261"] },
+  { id: "pais", nome: "Dia dos Pais", emoji: "👔", fundo: ["#1e3a5f", "#0b1726"], destaque: "#d4a373", texto: "#f8f4ee", cartao: "#ffffff", textoCartao: "#1e2a38",
+    fonteTitulo: "'Playfair Display', Georgia, serif", enfeites: ["estrelas", "brilhos"], titulo: "Dia dos Pais", subtitulo: "Para o herói da família 💙",
+    coresFesta: ["#d4a373", "#ffffff"] },
+  { id: "halloween", nome: "Halloween", emoji: "🎃", fundo: ["#2b0f3a", "#0d0512"], destaque: "#ff7b00", texto: "#ffe8cc", cartao: "#ffffff", textoCartao: "#2b0f3a",
+    fonteTitulo: "'Righteous', sans-serif", enfeites: ["morcegos", "aboboras", "estrelas"], titulo: "Halloween", subtitulo: "Doces ou travessuras? 👻",
+    coresFesta: ["#ff7b00", "#9d4edd", "#ffffff"] },
+  { id: "casamento", nome: "Casamento / Noivas", emoji: "💍", fundo: ["#fffaf6", "#f6e3dc"], destaque: "#b07d62", texto: "#5a3e36", cartao: "#ffffff", textoCartao: "#4a332c",
+    fonteTitulo: "'Great Vibes', cursive", enfeites: ["argolas", "flores", "brilhos"], titulo: "Para o grande dia", subtitulo: "Lembranças que ficam para sempre 💐",
+    coresFesta: ["#e8b4b8", "#f6d6ad", "#ffffff", "#d8a48f"] },
   { id: "loja", nome: "Cores da loja", emoji: "🛍️", fundo: ["#3B1260", "#1a0830"], destaque: "#f5c542", texto: "#ffffff", cartao: "#ffffff", textoCartao: "#1c1917",
     fonteTitulo: "'Playfair Display', Georgia, serif", enfeites: ["brilhos", "estrelas"], titulo: "Nosso catálogo", subtitulo: "Feito à mão, pensado para você",
     coresFesta: ["#ffffff"] },
 ];
 
 // Fontes que os temas usam (a página carrega todas do Google Fonts)
-export const FONTES_CATALOGO = ["cursiva", "classica", "divertida", "manuscrita", "marcante", "elegante"];
+export const FONTES_CATALOGO = ["cursiva", "classica", "divertida", "manuscrita", "marcante", "elegante", "retro"];
 
 // Sugere o tema pelo nome da coleção/categoria ("Natal" → natal, "Páscoa" → páscoa...)
 export function temaPeloNome(nome: string): string | null {
   const n = nome.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  if (/natal|noel|papai/.test(n)) return "natal";
+  if (/natal|noel/.test(n)) return "natal";
   if (/pascoa|coelh/.test(n)) return "pascoa";
   if (/crianc|kids|infantil|brinquedo|bebe/.test(n)) return "crianca";
   if (/maes|mae|namorad|amor/.test(n)) return "maes";
   if (/black|oferta|promo/.test(n)) return "black";
+  if (/ano novo|reveillon|virada/.test(n)) return "ano-novo";
+  if (/pais|pai\b|papai(?! noel)/.test(n)) return "pais";
+  if (/halloween|bruxa|terror/.test(n)) return "halloween";
+  if (/casamento|noiv|bodas|madrinha|padrinho/.test(n)) return "casamento";
   return null;
 }
 
@@ -184,6 +200,43 @@ function flor(ctx: Ctx, x: number, y: number, r: number, cor: string) {
   ctx.fillStyle = "#ffd166"; ctx.beginPath(); ctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 }
 
+function fogo(ctx: Ctx, x: number, y: number, r: number, cor: string) {
+  ctx.save(); ctx.translate(x, y); ctx.strokeStyle = cor; ctx.fillStyle = cor; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, r / 14);
+  for (let i = 0; i < 16; i++) {
+    const a = (Math.PI * 2 * i) / 16;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.25, Math.sin(a) * r * 0.25); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke();
+    ctx.beginPath(); ctx.arc(Math.cos(a) * r * 1.12, Math.sin(a) * r * 1.12, r / 16, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function abobora(ctx: Ctx, x: number, y: number, r: number) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = "#3a5a1a"; ctx.fillRect(-r * 0.1, -r * 1.15, r * 0.2, r * 0.35);
+  [[-0.45, 0.75], [0.45, 0.75], [0, 0.8]].forEach(([dx, k]) => { ctx.fillStyle = dx === 0 ? "#ff8c1a" : "#e66a00"; ctx.beginPath(); ctx.ellipse(dx * r, 0, r * k * 0.75, r * 0.85, 0, 0, Math.PI * 2); ctx.fill(); });
+  ctx.fillStyle = "#2b1200";
+  [[-0.35, -0.15], [0.35, -0.15]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.moveTo(dx * r - r * 0.13, dy * r + r * 0.1); ctx.lineTo(dx * r, dy * r - r * 0.12); ctx.lineTo(dx * r + r * 0.13, dy * r + r * 0.1); ctx.fill(); });
+  ctx.beginPath(); ctx.moveTo(-r * 0.45, r * 0.25); ctx.quadraticCurveTo(0, r * 0.65, r * 0.45, r * 0.25); ctx.quadraticCurveTo(0, r * 0.45, -r * 0.45, r * 0.25); ctx.fill();
+  ctx.restore();
+}
+
+function morcego(ctx: Ctx, x: number, y: number, r: number, cor: string) {
+  ctx.save(); ctx.translate(x, y); ctx.fillStyle = cor; ctx.beginPath();
+  ctx.moveTo(0, -r * 0.2);
+  ctx.quadraticCurveTo(r * 0.5, -r * 0.6, r, -r * 0.3); ctx.quadraticCurveTo(r * 0.8, 0, r * 0.85, r * 0.25);
+  ctx.quadraticCurveTo(r * 0.55, r * 0.05, r * 0.4, r * 0.3); ctx.quadraticCurveTo(r * 0.2, r * 0.1, 0, r * 0.35);
+  ctx.quadraticCurveTo(-r * 0.2, r * 0.1, -r * 0.4, r * 0.3); ctx.quadraticCurveTo(-r * 0.55, r * 0.05, -r * 0.85, r * 0.25);
+  ctx.quadraticCurveTo(-r * 0.8, 0, -r, -r * 0.3); ctx.quadraticCurveTo(-r * 0.5, -r * 0.6, 0, -r * 0.2);
+  ctx.fill(); ctx.restore();
+}
+
+function argolas(ctx: Ctx, x: number, y: number, r: number, cor: string) {
+  ctx.save(); ctx.strokeStyle = cor; ctx.lineWidth = r * 0.16;
+  ctx.beginPath(); ctx.arc(x - r * 0.45, y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x + r * 0.45, y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
 function coracao(ctx: Ctx, x: number, y: number, r: number, cor: string) {
   ctx.save(); ctx.translate(x, y); ctx.fillStyle = cor; ctx.beginPath();
   ctx.moveTo(0, r * 0.35);
@@ -226,6 +279,9 @@ export function desenharFundo(ctx: Ctx, tema: Tema, L: number, A: number, sement
     }
     if (e === "nuvens") { ctx.globalAlpha = 1; for (let i = 0; i < 5; i++) nuvem(ctx, rnd() * L, 40 + rnd() * A * 0.9, 30 + rnd() * 30); }
     if (e === "flores") for (let i = 0; i < 12; i++) { ctx.globalAlpha = 0.35 + rnd() * 0.35; flor(ctx, rnd() * L, rnd() * A, 12 + rnd() * 16, pega()); }
+    if (e === "fogos") for (let i = 0; i < 7; i++) { ctx.globalAlpha = 0.25 + rnd() * 0.4; fogo(ctx, rnd() * L, rnd() * A * 0.95, 40 + rnd() * 70, pega()); }
+    if (e === "morcegos") for (let i = 0; i < 9; i++) { ctx.globalAlpha = 0.35 + rnd() * 0.4; morcego(ctx, rnd() * L, rnd() * A * 0.4, 18 + rnd() * 22, "#000000"); }
+    if (e === "argolas") { ctx.globalAlpha = 0.5; argolas(ctx, 90, 95, 30, tema.destaque); argolas(ctx, L - 90, 95, 30, tema.destaque); }
     if (e === "coracoes") for (let i = 0; i < 18; i++) { ctx.globalAlpha = 0.18 + rnd() * 0.35; coracao(ctx, rnd() * L, rnd() * A, 10 + rnd() * 22, pega()); }
     ctx.globalAlpha = 1;
   }
@@ -245,6 +301,10 @@ export function desenharFundo(ctx: Ctx, tema: Tema, L: number, A: number, sement
     balao(ctx, 70, 120, 34, cores[0]); balao(ctx, 140, 70, 28, cores[2 % cores.length]);
     balao(ctx, L - 80, 110, 34, cores[1 % cores.length]); balao(ctx, L - 150, 60, 26, cores[3 % cores.length]);
     ctx.globalAlpha = 1;
+  }
+  if (tema.enfeites.includes("aboboras")) {
+    ctx.globalAlpha = 1;
+    abobora(ctx, 75, 105, 40); abobora(ctx, L - 75, 105, 40); abobora(ctx, 155, 80, 24); abobora(ctx, L - 155, 80, 24);
   }
   if (tema.enfeites.includes("ovos")) {
     // nos cantos de cima (embaixo fica o QR Code)

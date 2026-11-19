@@ -10,6 +10,7 @@ import Portal from "@/components/Portal";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { formatarPreco } from "@/lib/formato";
 import { nota } from "@/lib/busca";
+import BotaoVoz from "@/components/BotaoVoz";
 
 type Achado = { id: string; nome: string; preco: number | null; foto?: string; loja: { slug: string; nome: string; cor: string | null } };
 type LojaSimples = { slug: string; nome: string; cor: string | null };
@@ -60,7 +61,8 @@ export default function BuscaGlobal({ lojas }: { lojas: LojaSimples[] }) {
     <div ref={caixa} className="relative mx-auto mt-6 max-w-xl text-left">
       <input type="search" value={texto} onChange={(e) => { setTexto(e.target.value); setAberto(true); }}
         onFocus={() => setAberto(true)} onBlur={() => setTimeout(() => setAberto(false), 150)}
-        placeholder="🔍 Buscar em todas as lojas..." className="w-full rounded-full border border-white/30 bg-white/95 px-5 py-3 text-stone-900 shadow-lg outline-none focus:ring-2 focus:ring-white/60" />
+        placeholder="🔍 Buscar em todas as lojas..." className="w-full rounded-full border border-white/30 bg-white/95 py-3 pl-5 pr-12 text-stone-900 shadow-lg outline-none focus:ring-2 focus:ring-white/60" />
+      <BotaoVoz className="absolute right-2 top-1/2 h-9 w-9 -translate-y-1/2" aoOuvir={(t) => { setTexto(t); setAberto(true); }} />
       {aberto && termo && pos && (achados || lojasAchadas.length > 0) && (
         <Portal>
         <div className="deslizar fixed z-[60] max-h-[60vh] overflow-y-auto rounded-2xl bg-white text-left text-stone-900 shadow-2xl"

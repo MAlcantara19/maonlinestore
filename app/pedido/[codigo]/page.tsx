@@ -7,6 +7,7 @@
 import AvaliarPedido from "@/components/AvaliarPedido";
 import { ETAPAS_PEDIDO } from "@/lib/statusPedido";
 import PainelRapidoPedido from "@/components/PainelRapidoPedido";
+import AvisarMeuPedido from "@/components/AvisarMeuPedido";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { IconeTelefone } from "@/components/Icones";
 import type { Metadata } from "next";
@@ -86,6 +87,15 @@ async function Conteudo({ params }: Props) {
       </header>
 
       <main className="mx-auto w-full max-w-xl px-4 py-6">
+        {/* 🔔 Avisos de cada etapa no celular + 💌 cartão para o presente */}
+        {!["entregue", "cancelado"].includes(status) && <AvisarMeuPedido codigo={p.codigo as string} cor={cor} />}
+        {p.tipo !== "orcamento" && status !== "cancelado" && (
+          <Link href={`/${p.loja_slug}/cartao-presente`} className="mb-5 flex items-center gap-3 rounded-2xl p-3 text-sm shadow-sm" style={{ background: `${cor}12` }}>
+            <span className="text-2xl">💌</span>
+            <span className="flex-1"><b>É presente?</b> Faça um cartão digital com a sua mensagem e mande junto pelo WhatsApp.</span>
+            <span style={{ color: cor }}>→</span>
+          </Link>
+        )}
         {/* Andamento */}
         {status === "cancelado" ? (
           <p className="rounded-xl bg-red-50 p-4 text-center font-semibold text-red-700">❌ Este pedido foi cancelado.</p>

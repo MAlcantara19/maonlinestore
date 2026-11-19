@@ -63,13 +63,21 @@ const tolerancia = (p: string) => (p.length <= 3 ? 0 : p.length <= 5 ? 1 : 2);
 
 const palavrasDe = (t: string) => normalizar(t).split(" ").filter((p) => p && !VAZIAS.has(p)).map(singular);
 
-function variantes(p: string): string[] {
-  const grupo = SINONIMOS.find((g) => g.map(singular).includes(p));
-  return grupo ? [...new Set([p, ...grupo.map(singular)])] : [p];
+export type Sinonimos = string[][];
+
+// Sinônimos próprios da loja (painel → Configurações), um grupo por linha:
+//   "caneca = xícara, copo"   ou   "caneca, xícara, copo"
+export function lerSinonimos(texto: string | null | undefined): Sinonimos {
+  return (texto ?? "").split("\n").map((l) => l.split(/[=,;]/).map((p) => normalizar(p)).filter(Boolean)).filter((g) => g.length > 1);
+}
+
+function variantes(p: string, extra: Sinonimos = []): string[] {
+  const grupos = [...SINONIMOS, ...extra].filter((g) => g.map(singular).includes(p));
+  return grupos.length ? [...new Set([p, ...grupos.flat().map(singular)])] : [p];
 }
 
 // Nota de 0 a 1: quanto o texto combina com a busca (0 = não combina)
-export function nota(texto: string, busca: string): number {
+export function nota(texto: string, busca: string, extra: Sinonimos = []): number {
   const termos = palavrasDe(busca);
   if (!termos.length) return 1;
   const alvo = normalizar(texto);
@@ -77,7 +85,7 @@ export function nota(texto: string, busca: string): number {
   let soma = 0;
   for (const termo of termos) {
     let melhor = 0;
-    for (const v of variantes(termo)) {
+    for (const v of variantes(termo, extra)) {
       const sinonimo = v !== termo ? 0.85 : 1;
       if (alvo.includes(v)) { melhor = Math.max(melhor, 1 * sinonimo); continue; }
       for (const pal of palavras) {
@@ -95,10 +103,10 @@ export function nota(texto: string, busca: string): number {
 }
 
 // Filtra e ordena uma lista pelo que mais combina
-export function buscarNaLista<T>(lista: T[], busca: string, textoDe: (item: T) => string): T[] {
+export function buscarNaLista<T>(lista: T[], busca: string, textoDe: (item: T) => string, extra: Sinonimos = []): T[] {
   if (!normalizar(busca)) return lista;
   return lista
-    .map((item, i) => ({ item, i, n: nota(textoDe(item), busca) }))
+    .map((item, i) => ({ item, i, n: nota(textoDe(item), busca, extra) }))
     .filter((x) => x.n > 0)
     .sort((a, b) => b.n - a.n || a.i - b.i)
     .map((x) => x.item);

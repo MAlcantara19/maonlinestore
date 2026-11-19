@@ -27,9 +27,9 @@ self.addEventListener("notificationclick", (e) => {
   const url = (e.notification.data && e.notification.data.url) || "/admin";
   e.waitUntil((async () => {
     const abertas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const c of abertas) {
-      if (c.url.includes("/admin") && "focus" in c) { await c.focus(); if ("navigate" in c) c.navigate(url).catch(() => {}); return; }
-    }
+    // Aviso do painel: reaproveita a janela do painel. Aviso do cliente: a do pedido.
+    const alvo = url.startsWith("/admin") ? abertas.find((c) => c.url.includes("/admin")) : abertas.find((c) => c.url.includes(url));
+    if (alvo && "focus" in alvo) { await alvo.focus(); if ("navigate" in alvo) alvo.navigate(url).catch(() => {}); return; }
     await self.clients.openWindow(url);
   })());
 });
