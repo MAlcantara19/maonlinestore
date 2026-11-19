@@ -1,0 +1,34 @@
+ATUALIZAÇÃO 31 — CATÁLOGO TEMÁTICO, PÁGINA DA COLEÇÃO, PUSH, BUSCA INTELIGENTE, IA E "ABERTA AGORA"
+==================================================================================================
+
+1) INSTALAR (no terminal, dentro de C:\PROJETOS\maonlinestore)
+     npm install web-push
+     npm install -D @types/web-push
+   (sem isso a Vercel NÃO compila — igual aconteceu com o qrcode)
+
+2) SUPABASE → SQL Editor → rodar:  supabase/atualizacao-31-busca-push-ia-horario.sql
+
+3) CHAVES DAS NOTIFICAÇÕES PUSH (uma vez só)
+     npx web-push generate-vapid-keys
+   Copie as duas chaves e coloque no .env.local E na Vercel (Settings → Environment Variables):
+     NEXT_PUBLIC_VAPID_PUBLIC_KEY = (Public Key)
+     VAPID_PRIVATE_KEY            = (Private Key)
+     VAPID_EMAIL                  = seu e-mail (ex.: matheus@...)
+   Confira que SUPABASE_SECRET_KEY também está na Vercel (já usada pelos administradores).
+   Depois: painel → qualquer loja → "🔔 Ativar avisos de pedido no celular" → "Testar".
+   iPhone: Safari → Compartilhar → Adicionar à Tela de Início → abrir o "MA Painel" → ativar.
+
+4) ASSISTENTE DE IA (opcional)
+   Crie uma chave em https://console.anthropic.com (API Keys) e coloque na Vercel:
+     ANTHROPIC_API_KEY = sk-ant-...
+   (opcional) IA_MODELO = claude-haiku-5-5   ← modelo barato e rápido (padrão)
+   Limite: 40 pedidos por hora por pessoa.
+
+5) Redeploy na Vercel (as variáveis novas só valem depois de um novo deploy).
+
+ONDE FICA CADA COISA
+   🎄 Catálogo temático ........ painel → menu "Vendas e visual" → Catálogo temático  (/vitraforma/catalogo)
+   ✨ Página da coleção ........ /vitraforma/colecao/ID  (link "Ver coleção →" em cada coleção da loja)
+   🤖 Assistente de IA ......... painel → "Assistente de IA"  e  botão "✨ Escrever com IA" na descrição do produto
+   🟢 Horário / Aberta agora ... painel → Configurações → "Horário de atendimento" (desligado = sempre aberta)
+   🔎 Busca inteligente ........ automática (aceita erros: "arvori natau", "chavero", "xicara")

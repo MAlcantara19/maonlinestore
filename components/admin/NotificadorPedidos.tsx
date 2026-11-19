@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
+import AtivarPush from "@/components/admin/AtivarPush";
 
 function plim() {
   try {
@@ -73,7 +74,9 @@ export default function NotificadorPedidos({ slug, cor }: { slug: string; cor: s
           <button type="button" onClick={marcarVistos} aria-label="Fechar" className="opacity-80">✕</button>
         </div>
       )}
-      {permissao === "default" && "Notification" in globalThis && (
+      {/* Push de verdade (chega com o painel fechado). Sem as chaves VAPID, fica o aviso antigo */}
+      <AtivarPush cor={cor} />
+      {!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && permissao === "default" && "Notification" in globalThis && (
         <button type="button" onClick={async () => setPermissao(await Notification.requestPermission())} className="mb-3 w-full rounded-xl border border-dashed px-3 py-2 text-left text-xs">
           🔔 Ativar avisos de pedido novo neste aparelho (com o painel aberto)
         </button>

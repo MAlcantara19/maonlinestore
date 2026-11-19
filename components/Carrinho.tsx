@@ -154,6 +154,8 @@ export default function Carrinho({ loja }: { loja: Loja }) {
       });
       codigo = (r as string) ?? null;
     } catch {}
+    // 🔔 Avisa no celular de quem cuida da loja (notificação push)
+    if (codigo) fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ codigo }), keepalive: true }).catch(() => {});
 
     // Estatísticas: o pedido entra no histórico com o código e o nome que a pessoa digitou
     registrarEvento(loja.slug, tipo === "orcamento" ? "whatsapp" : "pedido", null, codigo ? `#${codigo}${nome.trim() ? ` · ${nome.trim()}` : ""}` : null);

@@ -3,7 +3,8 @@
 // GRADE COM BUSCA E ORDENAÇÃO (página da loja)
 //   - A caixa de busca fica no banner (BuscaNoBanner). A cada letra,
 //     ela avisa aqui (evento "busca-loja") e a grade mostra SÓ os
-//     produtos que têm o texto no NOME.
+//     produtos que têm o texto no NOME — com a busca inteligente
+//     (aceita erro de digitação, sem acento, plural e sinônimos).
 //   - Sem busca e sem ordenação, mostra a loja normal (destaques,
 //     categorias, coleções), que chega como "children".
 // =====================================================================
@@ -11,11 +12,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Produto } from "@/lib/tipos";
 import { precoMinimo } from "@/lib/formato";
 import CardDoProduto from "@/components/CardDoProduto";
+import { buscarNaLista, normalizar, sugestao } from "@/lib/busca";
 
 type Ordem = "padrao" | "menor" | "maior" | "az";
-
-// Tira acentos e maiúsculas: "Árvore" vira "arvore"
-const normalizar = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 export default function ConteudoComBusca({ produtos, slug, cor, children }: {
   produtos: Produto[]; slug: string; cor: string; children: ReactNode;
@@ -41,8 +40,8 @@ export default function ConteudoComBusca({ produtos, slug, cor, children }: {
 
   const busca = normalizar(termo.trim());
   const ativo = busca !== "" || ordem !== "padrao";
-  const resultados = produtos
-    .filter((p) => normalizar(p.nome).includes(busca)) // só pelo NOME
+  // Busca inteligente: os que mais combinam vêm primeiro
+  const resultados = buscarNaLista(produtos, termo, (p) => p.nome)
     .sort((a, b) => {
       const pa = precoMinimo(a) ?? Infinity; // "sob consulta" vai para o fim
       const pb = precoMinimo(b) ?? Infinity;
@@ -51,6 +50,8 @@ export default function ConteudoComBusca({ produtos, slug, cor, children }: {
       if (ordem === "az") return a.nome.localeCompare(b.nome, "pt-BR");
       return 0;
     });
+  const quisDizer = busca && resultados.length === 0 ? sugestao(termo, produtos.map((p) => p.nome)) : null;
+  const buscar = (t: string) => window.dispatchEvent(new CustomEvent("busca-loja", { detail: t }));
 
   return (
     <>
@@ -73,7 +74,14 @@ export default function ConteudoComBusca({ produtos, slug, cor, children }: {
             {busca && <> com “{termo.trim()}” no nome</>}
           </p>
           {resultados.length === 0 ? (
-            <p className="mt-6 text-center opacity-70">Nenhum produto encontrado 😕</p>
+            <div className="mt-6 text-center">
+              <p className="opacity-70">Nenhum produto encontrado 😕</p>
+              {quisDizer && (
+                <button type="button" onClick={() => buscar(quisDizer)} className="mt-2 rounded-full border px-4 py-1.5 text-sm" style={{ borderColor: cor, color: cor }}>
+                  Você quis dizer <b>“{quisDizer}”</b>?
+                </button>
+              )}
+            </div>
           ) : (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-4">
               {resultados.map((p, i) => <CardDoProduto key={p.id} produto={p} cor={cor} slug={slug} indice={i} />)}

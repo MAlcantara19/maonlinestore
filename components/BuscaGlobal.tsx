@@ -2,12 +2,14 @@
 // =====================================================================
 // BUSCA EM TODAS AS LOJAS (página inicial) — digitou "chocolate",
 // aparecem as lojas e os produtos de qualquer loja com isso no nome.
+// Busca inteligente: "xocolate" ou "chaveiro" sem acento também acham.
 // =====================================================================
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Portal from "@/components/Portal";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
 import { formatarPreco } from "@/lib/formato";
+import { nota } from "@/lib/busca";
 
 type Achado = { id: string; nome: string; preco: number | null; foto?: string; loja: { slug: string; nome: string; cor: string | null } };
 type LojaSimples = { slug: string; nome: string; cor: string | null };
@@ -32,6 +34,13 @@ export default function BuscaGlobal({ lojas }: { lojas: LojaSimples[] }) {
     const termo = texto.trim();
     const t = setTimeout(async () => {
       if (!termo) return setAchados(null);
+      // 1º) busca inteligente no banco (atualização 31)
+      const inteligente = await supabaseNavegador().rpc("buscar_produtos", { p_termo: termo, p_limite: 8 });
+      if (!inteligente.error) {
+        return setAchados(((inteligente.data ?? []) as { id: string; nome: string; preco: number | null; foto: string | null; loja_slug: string; loja_nome: string; loja_cor: string | null }[])
+          .map((p) => ({ id: p.id, nome: p.nome, preco: p.preco, foto: p.foto ?? undefined, loja: { slug: p.loja_slug, nome: p.loja_nome, cor: p.loja_cor } })));
+      }
+      // 2º) se a atualização 31 ainda não rodou, busca do jeito antigo
       const { data } = await supabaseNavegador().from("produtos")
         .select("id, nome, preco, midias(url, tipo, ordem), lojas!inner(slug, nome, cor, ativa, em_breve)")
         .eq("ativo", true).is("excluido_em", null).eq("lojas.ativa", true).eq("lojas.em_breve", false)
@@ -45,7 +54,7 @@ export default function BuscaGlobal({ lojas }: { lojas: LojaSimples[] }) {
   }, [texto]);
 
   const termo = texto.trim().toLowerCase();
-  const lojasAchadas = termo ? lojas.filter((l) => l.nome.toLowerCase().includes(termo)) : [];
+  const lojasAchadas = termo ? lojas.filter((l) => nota(l.nome, termo) > 0) : [];
 
   return (
     <div ref={caixa} className="relative mx-auto mt-6 max-w-xl text-left">

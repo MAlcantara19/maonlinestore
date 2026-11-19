@@ -21,6 +21,7 @@ import CabecalhoDaLoja from "@/components/CabecalhoDaLoja";
 import MenuLateral from "@/components/MenuLateral";
 import IconeInstagram from "@/components/IconeInstagram";
 import CupomDoLink from "@/components/CupomDoLink";
+import LojaAbertaAgora from "@/components/LojaAbertaAgora";
 
 export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; menu: ItemMenu[]; children: ReactNode }) {
   const cor = loja.cor ?? "#333";
@@ -38,6 +39,7 @@ export default function LayoutDaLoja({ loja, menu, children }: { loja: Loja; men
         <MenuLateral slug={loja.slug} cor={cor} corSecundaria={loja.cor_secundaria ?? null} menu={menu} whatsapp={loja.whatsapp ?? null} />
 
         <main className="min-w-0 flex-1 px-4 pt-4 pb-10 lg:px-0">
+          <LojaAbertaAgora lojaId={loja.id} />
           {/* Telas menores: "Como funciona o pedido" recolhível */}
           {loja.aviso_pedido && (
             <details className="mt-2 rounded-xl border p-3 text-sm xl:hidden" style={{ borderColor: `${cor}55`, background: fundoSuave }}>

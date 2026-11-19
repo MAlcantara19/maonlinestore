@@ -23,6 +23,7 @@ import { Bloco, Campo, Interruptor, BarraSalvar, type Mensagem } from "@/compone
 import AbasLoja from "@/components/admin/AbasLoja";
 import CampoImagem from "@/components/admin/CampoImagem";
 import AjusteLogo from "@/components/admin/AjusteLogo";
+import EditorHorario from "@/components/admin/EditorHorario";
 
 const COLUNAS =
   "id, slug, nome, descricao, cor, cor_secundaria, cor_fundo, fonte, efeito, logo_url, logo_ajuste, logo_zoom, logo_fundo, sobre, unidade_tamanho, prazo_padrao, lancamento_em, efeito_personalizado_id, fundo_tipo, fundo_url, fundo_opacidade, fundo_animacao, fundo_cor, logo_borda_cor, logo_borda, banner_url, banner_escurecer, fretes, frete_cep, cep_origem, desconto_pix, boas_vindas_pct, fidelidade_a_cada, fidelidade_premio_pct, aniversario_pct, indicacao_pct, slides, presente, pacote_padrao, razao_social, documento, endereco, email_contato, responsavel, termos_aceitos_em, termos_aceitos_por, whatsapp, instagram, aviso_pedido, em_breve, ativa";
@@ -222,6 +223,8 @@ function FormularioDaLoja({ info }: { info: InfoAdmin }) {
           )}
         </div>
       </Bloco>
+
+      <EditorHorario lojaId={loja.id} cor={cor} />
 
       <Bloco titulo="📞 Contato">
         <Campo rotulo="WhatsApp que recebe os pedidos (55 + DDD + número)">

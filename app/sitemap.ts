@@ -18,16 +18,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/quem-somos`, changeFrequency: "monthly", priority: 0.5 },
   ];
   try {
-    const [{ data: lojas }, { data: produtos }, { data: parceiros }] = await Promise.all([
+    const [{ data: lojas }, { data: produtos }, { data: parceiros }, { data: colecoes }] = await Promise.all([
       supabase.from("lojas").select("id, slug").eq("ativa", true).eq("em_breve", false),
       supabase.from("produtos").select("id, loja_id, atualizado_em, criado_em").eq("ativo", true).limit(5000),
       supabase.from("parceiros").select("slug").eq("ativo", true),
+      supabase.from("colecoes").select("id, loja_id").eq("ativa", true),
     ]);
     const slugDe = new Map((lojas ?? []).map((l: { id: string; slug: string }) => [l.id, l.slug]));
     (lojas ?? []).forEach((l: { slug: string }) => paginas.push({ url: `${base}/${l.slug}`, changeFrequency: "daily", priority: 0.9 }));
     (produtos ?? []).forEach((p: { id: string; loja_id: string; atualizado_em: string | null; criado_em: string }) => {
       const slug = slugDe.get(p.loja_id);
       if (slug) paginas.push({ url: `${base}/${slug}/p/${p.id}`, lastModified: p.atualizado_em ?? p.criado_em, priority: 0.7 });
+    });
+    // Páginas das coleções (Natal, Páscoa...)
+    (colecoes ?? []).forEach((c: { id: string; loja_id: string }) => {
+      const slug = slugDe.get(c.loja_id);
+      if (slug) paginas.push({ url: `${base}/${slug}/colecao/${c.id}`, changeFrequency: "weekly", priority: 0.8 });
     });
     (parceiros ?? []).forEach((p: { slug: string }) => paginas.push({ url: `${base}/parceiros/${p.slug}`, priority: 0.4 }));
   } catch {

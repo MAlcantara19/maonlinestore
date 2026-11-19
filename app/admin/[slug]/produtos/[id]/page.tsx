@@ -18,6 +18,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import AreaAdmin from "@/components/admin/AreaAdmin";
 import AbasLoja from "@/components/admin/AbasLoja";
+import BotaoIA from "@/components/admin/BotaoIA";
 import { Bloco, Campo, Interruptor, BarraSalvar, estiloInput, type Mensagem } from "@/components/admin/Campos";
 import ListaSugestoes from "@/components/admin/ListaSugestoes";
 import { supabaseNavegador } from "@/lib/supabase-navegador";
@@ -353,6 +354,10 @@ function Formulario() {
       <Bloco titulo="📝 Informações">
         <Campo rotulo="Nome"><input className={estiloInput} value={dados.nome} onChange={(e) => mudar("nome", e.target.value)} /></Campo>
         <Campo rotulo="Descrição (pode usar emojis 😊)"><textarea rows={4} className={estiloInput} value={dados.descricao} onChange={(e) => mudar("descricao", e.target.value)} /></Campo>
+        {dados.nome.trim() && (
+          <BotaoIA slug={slug} tipo="descricao" aoUsar={(t) => mudar("descricao", t)}
+            entrada={{ nome: dados.nome, atual: dados.descricao, detalhes: [dados.restricoes && `Observações: ${dados.restricoes}`, dados.prazo && `Prazo: ${dados.prazo}`].filter(Boolean).join(". ") }} />
+        )}
         <Campo rotulo="📌 Importante saber (destaque para o cliente: cores, prazo maior para personalizados...)">
           <textarea rows={2} className={estiloInput} value={dados.restricoes} onChange={(e) => mudar("restricoes", e.target.value)} />
         </Campo>

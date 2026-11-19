@@ -2,7 +2,8 @@
 // =====================================================================
 // BUSCA NO BANNER (todas as páginas da loja)
 //   - Enquanto digita, mostra sugestões com foto e preço, buscando
-//     só pelo NOME do produto.
+//     pelo NOME do produto — busca inteligente: aceita erro de
+//     digitação e falta de acento (função buscar_produtos no banco).
 //   - Na página da loja, a grade de produtos também vai sendo filtrada
 //     ao vivo (avisa a grade pelo evento "busca-loja").
 //   - Na página do produto ou do carrinho, Enter leva para a loja já
@@ -43,6 +44,13 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
     const t = setTimeout(async () => {
       if (naLoja) window.dispatchEvent(new CustomEvent("busca-loja", { detail: texto }));
       if (!termo) return setSugestoes(null);
+      // 1º) busca inteligente no banco (atualização 31)
+      const inteligente = await supabaseNavegador().rpc("buscar_produtos", { p_termo: termo, p_loja: lojaId, p_limite: 6 });
+      if (!inteligente.error) {
+        return setSugestoes(((inteligente.data ?? []) as { id: string; nome: string; preco: number | null; foto: string | null }[])
+          .map((p) => ({ id: p.id, nome: p.nome, preco: p.preco != null ? Number(p.preco) : null, foto: p.foto ?? undefined })));
+      }
+      // 2º) se a atualização 31 ainda não rodou, busca do jeito antigo
       const { data } = await supabaseNavegador().from("produtos")
         .select("id, nome, preco, midias(url, tipo, ordem), variacoes(preco, ativa)")
         .eq("loja_id", lojaId).eq("ativo", true).is("excluido_em", null).ilike("nome", `%${termo}%`).limit(6);
@@ -75,7 +83,7 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
       {aberto && texto.trim() && sugestoes && (
         <div className="deslizar absolute inset-x-0 top-full z-40 mt-1 overflow-hidden rounded-xl bg-white text-stone-900 shadow-2xl">
           {sugestoes.length === 0 ? (
-            <p className="p-4 text-sm opacity-60">Nenhum produto com “{texto.trim()}” no nome 😕</p>
+            <p className="p-4 text-sm opacity-60">Nenhum produto parecido com “{texto.trim()}” 😕</p>
           ) : (
             <ul>
               {sugestoes.map((s, i) => (
