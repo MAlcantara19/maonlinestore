@@ -25,7 +25,31 @@ export type Tema = {
   titulo: string; // título sugerido
   subtitulo: string;
   coresFesta?: string[]; // cores dos balões/confete/bolas
+  corTitulo?: string; // cor do título (vazio = mesma do texto)
 };
+
+// Todos os enfeites, para ligar/desligar no catálogo
+export const ENFEITES: { id: Enfeite; nome: string }[] = [
+  { id: "bolas", nome: "🎄 Bolinhas penduradas" }, { id: "flocos", nome: "❄️ Flocos de neve" }, { id: "estrelas", nome: "⭐ Estrelas" },
+  { id: "pinheiros", nome: "🌲 Pinheiros" }, { id: "brilhos", nome: "✨ Brilhos" }, { id: "baloes", nome: "🎈 Balões" },
+  { id: "confete", nome: "🎊 Confete" }, { id: "nuvens", nome: "☁️ Nuvens" }, { id: "ovos", nome: "🥚 Ovos de Páscoa" },
+  { id: "flores", nome: "🌸 Flores" }, { id: "coracoes", nome: "💗 Corações" }, { id: "fogos", nome: "🎆 Fogos" },
+  { id: "aboboras", nome: "🎃 Abóboras" }, { id: "morcegos", nome: "🦇 Morcegos" }, { id: "argolas", nome: "💍 Alianças" },
+  { id: "listras", nome: "▧ Listras" },
+];
+
+// Fontes do título que dá para escolher no catálogo
+export const FONTES_TITULO: { nome: string; familia: string }[] = [
+  { nome: "Do tema", familia: "" },
+  { nome: "Cursiva elegante", familia: "'Great Vibes', cursive" },
+  { nome: "Manuscrita", familia: "'Dancing Script', cursive" },
+  { nome: "Clássica", familia: "'Cinzel', Georgia, serif" },
+  { nome: "Sofisticada", familia: "'Playfair Display', Georgia, serif" },
+  { nome: "Divertida", familia: "'Baloo 2', 'Comic Sans MS', sans-serif" },
+  { nome: "Marcante", familia: "'Bebas Neue', Impact, sans-serif" },
+  { nome: "Retrô", familia: "'Righteous', sans-serif" },
+  { nome: "Simples", familia: "system-ui, sans-serif" },
+];
 
 export const TEMAS: Tema[] = [
   { id: "natal", nome: "Natal clássico", emoji: "🎄", fundo: ["#8b1a1a", "#3d0808"], destaque: "#f5c542", texto: "#fff8e7", cartao: "#ffffff", textoCartao: "#2b1a12",
@@ -36,9 +60,9 @@ export const TEMAS: Tema[] = [
     coresFesta: ["#c0262d", "#f5c542", "#ffffff", "#d4af37"] },
   { id: "natal-dourado", nome: "Natal branco e dourado", emoji: "✨", fundo: ["#fffdf7", "#f3e6c8"], destaque: "#b8860b", texto: "#4a3410", cartao: "#ffffff", textoCartao: "#3a2a0c",
     fonteTitulo: "'Cinzel', Georgia, serif", enfeites: ["bolas", "estrelas", "flocos", "brilhos"], titulo: "Natal Dourado", subtitulo: "Elegância para presentear",
-    coresFesta: ["#d4af37", "#e9cf7a", "#b8860b", "#f6e7b4"] },
-  { id: "crianca", nome: "Criança / Dia das Crianças", emoji: "🎈", fundo: ["#bfe8ff", "#fff3b0"], destaque: "#ff5a8a", texto: "#1d3557", cartao: "#ffffff", textoCartao: "#1d3557",
-    fonteTitulo: "'Baloo 2', 'Comic Sans MS', sans-serif", enfeites: ["nuvens", "baloes", "confete", "estrelas"], titulo: "Mundo Kids", subtitulo: "Diversão que vira lembrança 🧸",
+    coresFesta: ["#d4af37", "#e9cf7a", "#b8860b", "#f6e7b4"], corTitulo: "#b8860b" },
+  { id: "crianca", nome: "Kids / Infantil", emoji: "🎈", fundo: ["#bfe8ff", "#fff3b0"], destaque: "#ff5a8a", texto: "#1d3557", cartao: "#ffffff", textoCartao: "#1d3557",
+    fonteTitulo: "'Baloo 2', 'Comic Sans MS', sans-serif", enfeites: ["nuvens", "baloes", "confete", "estrelas"], titulo: "Linha Kids", subtitulo: "Cores e alegria para os pequenos 🧸",
     coresFesta: ["#ff5a8a", "#ffb703", "#3a86ff", "#06d6a0", "#8338ec"] },
   { id: "pascoa", nome: "Páscoa", emoji: "🐣", fundo: ["#fde7f3", "#e8f7d4"], destaque: "#8a4fff", texto: "#5a3825", cartao: "#ffffff", textoCartao: "#4a2e1f",
     fonteTitulo: "'Dancing Script', cursive", enfeites: ["ovos", "flores", "brilhos"], titulo: "Especial de Páscoa", subtitulo: "Doçura para toda a família 🐰",
@@ -61,6 +85,21 @@ export const TEMAS: Tema[] = [
   { id: "casamento", nome: "Casamento / Noivas", emoji: "💍", fundo: ["#fffaf6", "#f6e3dc"], destaque: "#b07d62", texto: "#5a3e36", cartao: "#ffffff", textoCartao: "#4a332c",
     fonteTitulo: "'Great Vibes', cursive", enfeites: ["argolas", "flores", "brilhos"], titulo: "Para o grande dia", subtitulo: "Lembranças que ficam para sempre 💐",
     coresFesta: ["#e8b4b8", "#f6d6ad", "#ffffff", "#d8a48f"] },
+  { id: "minimal", nome: "Minimalista branco", emoji: "🤍", fundo: ["#ffffff", "#f4f1ec"], destaque: "#1c1917", texto: "#1c1917", cartao: "#ffffff", textoCartao: "#1c1917",
+    fonteTitulo: "'Playfair Display', Georgia, serif", enfeites: [], titulo: "Catálogo", subtitulo: "Peças feitas à mão",
+    coresFesta: ["#d6d3d1"] },
+  { id: "pastel", nome: "Pastel suave", emoji: "🍬", fundo: ["#efe7ff", "#dff7ef"], destaque: "#7c5cd6", texto: "#3b2f5c", cartao: "#ffffff", textoCartao: "#3b2f5c",
+    fonteTitulo: "'Dancing Script', cursive", enfeites: ["brilhos", "nuvens"], titulo: "Novidades", subtitulo: "Delicadeza em cada detalhe",
+    coresFesta: ["#c3b1ff", "#a8e6cf", "#ffd3e0"] },
+  { id: "candy", nome: "Rosa candy", emoji: "🍭", fundo: ["#ff9ec7", "#ff6fa8"], destaque: "#ffffff", texto: "#ffffff", cartao: "#ffffff", textoCartao: "#5a1033",
+    fonteTitulo: "'Baloo 2', 'Comic Sans MS', sans-serif", enfeites: ["confete", "coracoes", "brilhos"], titulo: "Doce como você", subtitulo: "Mimos para alegrar o dia 💕",
+    coresFesta: ["#ffffff", "#ffe066", "#7bdff2"] },
+  { id: "tropical", nome: "Tropical / Verão", emoji: "🌴", fundo: ["#00b4a6", "#006d77"], destaque: "#ffd166", texto: "#ffffff", cartao: "#ffffff", textoCartao: "#073b3a",
+    fonteTitulo: "'Righteous', sans-serif", enfeites: ["flores", "brilhos"], titulo: "Verão", subtitulo: "Cores e leveza para os dias de sol ☀️",
+    coresFesta: ["#ffd166", "#ff8fab", "#ffffff", "#f78c6b"] },
+  { id: "premium", nome: "Preto e dourado", emoji: "🖤", fundo: ["#1c1c1c", "#050505"], destaque: "#d4af37", texto: "#f5ecd7", cartao: "#ffffff", textoCartao: "#1c1917",
+    fonteTitulo: "'Cinzel', Georgia, serif", enfeites: ["brilhos", "estrelas"], titulo: "Coleção Exclusiva", subtitulo: "Para momentos especiais",
+    coresFesta: ["#d4af37", "#f5ecd7"], corTitulo: "#d4af37" },
   { id: "loja", nome: "Cores da loja", emoji: "🛍️", fundo: ["#3B1260", "#1a0830"], destaque: "#f5c542", texto: "#ffffff", cartao: "#ffffff", textoCartao: "#1c1917",
     fonteTitulo: "'Playfair Display', Georgia, serif", enfeites: ["brilhos", "estrelas"], titulo: "Nosso catálogo", subtitulo: "Feito à mão, pensado para você",
     coresFesta: ["#ffffff"] },
@@ -68,6 +107,20 @@ export const TEMAS: Tema[] = [
 
 // Fontes que os temas usam (a página carrega todas do Google Fonts)
 export const FONTES_CATALOGO = ["cursiva", "classica", "divertida", "manuscrita", "marcante", "elegante", "retro"];
+
+// Cor de texto que dá leitura em cima de uma cor (escuro ou branco)
+export function corDeLeitura(hex: string) {
+  const m = hex.replace("#", "").match(/.{2}/g);
+  if (!m) return "#ffffff";
+  const [r, g, b] = m.map((c) => parseInt(c, 16));
+  return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1c1917" : "#ffffff";
+}
+// Mistura duas cores (para saber se o fundo é claro ou escuro)
+export function mistura(a: string, b: string) {
+  const pa = a.replace("#", "").match(/.{2}/g), pb = b.replace("#", "").match(/.{2}/g);
+  if (!pa || !pb) return a;
+  return `#${pa.map((c, i) => Math.round((parseInt(c, 16) + parseInt(pb[i], 16)) / 2).toString(16).padStart(2, "0")).join("")}`;
+}
 
 // Sugere o tema pelo nome da coleção/categoria ("Natal" → natal, "Páscoa" → páscoa...)
 export function temaPeloNome(nome: string): string | null {
@@ -248,8 +301,7 @@ function coracao(ctx: Ctx, x: number, y: number, r: number, cor: string) {
 export function escurecer(hex: string, quanto: number) {
   const m = hex.replace("#", "").match(/.{2}/g);
   if (!m) return hex;
-  const [r, g, b] = m.map((c) => Math.round(parseInt(c, 16) * (1 - quanto)));
-  return `rgb(${r},${g},${b})`;
+  return `#${m.map((c) => Math.round(parseInt(c, 16) * (1 - quanto)).toString(16).padStart(2, "0")).join("")}`;
 }
 
 // Fundo + enfeites de uma página inteira (L×A). "seguro" = área do miolo,
@@ -261,7 +313,7 @@ export function desenharFundo(ctx: Ctx, tema: Tema, L: number, A: number, sement
   const rnd = sorteio(semente);
   const cores = tema.coresFesta ?? [tema.destaque];
   const pega = () => cores[Math.floor(rnd() * cores.length)];
-  const claro = tema.texto.toLowerCase().startsWith("#f") || tema.texto === "#ffffff";
+  const claro = corDeLeitura(tema.texto) === "#1c1917"; // texto claro = fundo escuro (enfeites brancos)
   const suave = claro ? "rgba(255,255,255," : "rgba(0,0,0,";
 
   for (const e of tema.enfeites) {

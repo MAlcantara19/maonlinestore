@@ -15,15 +15,23 @@ export default function ListaFavoritos({ slug, lojaId, cor }: { slug: string; lo
   const meus = usarFavoritos(slug);
   // 🎁 Lista compartilhada: /vitraforma/favoritos?lista=id1,id2 (lista de presentes/desejos de alguém)
   const [compartilhada, setCompartilhada] = useState<string[] | null>(null);
+  const [dono, setDono] = useState({ nome: "", titulo: "" }); // de quem é a lista recebida
+  const [meuNome, setMeuNome] = useState("");
+  const [ocasiao, setOcasiao] = useState("Minha lista de Natal 🎄");
   useEffect(() => {
-    const l = new URLSearchParams(window.location.search).get("lista");
+    const q = new URLSearchParams(window.location.search);
+    const l = q.get("lista");
     if (l) setCompartilhada(l.split(",").filter(Boolean).slice(0, 60));
+    setDono({ nome: (q.get("nome") ?? "").slice(0, 30), titulo: (q.get("titulo") ?? "").slice(0, 40) });
+    try { setMeuNome(localStorage.getItem("meu-nome-lista") ?? ""); } catch {}
   }, []);
   const ids = compartilhada ?? meus;
   const [aviso, setAviso] = useState("");
   async function compartilhar() {
-    const url = `${window.location.origin}/${slug}/favoritos?lista=${meus.join(",")}`;
-    const texto = "🎁 Minha lista de desejos — se quiser me dar um presente, é por aqui 😊";
+    try { localStorage.setItem("meu-nome-lista", meuNome.trim()); } catch {}
+    const extra = `${meuNome.trim() ? `&nome=${encodeURIComponent(meuNome.trim())}` : ""}&titulo=${encodeURIComponent(ocasiao)}`;
+    const url = `${window.location.origin}/${slug}/favoritos?lista=${meus.join(",")}${extra}`;
+    const texto = `🎁 ${ocasiao}${meuNome.trim() ? ` — ${meuNome.trim()}` : ""}\nSe quiser me dar um presente, é por aqui 😊`;
     if (navigator.share) await navigator.share({ title: "Minha lista", text: texto, url }).catch(() => {});
     else { await navigator.clipboard.writeText(`${texto}\n${url}`).catch(() => {}); setAviso("✓ Link copiado!"); }
   }
@@ -49,7 +57,7 @@ export default function ListaFavoritos({ slug, lojaId, cor }: { slug: string; lo
     <>
     {compartilhada ? (
       <div className="mt-3 rounded-2xl p-4 text-white" style={{ background: cor }}>
-        <b className="text-lg">🎁 Lista de desejos compartilhada</b>
+        <b className="text-lg">🎁 {dono.titulo || "Lista de desejos"}{dono.nome ? ` · ${dono.nome}` : ""}</b>
         <p className="text-sm opacity-90">Toque no ＋ de um produto para colocar no carrinho e presentear. 💜</p>
         <button type="button" className="mt-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold" style={{ color: cor }}
           onClick={() => { compartilhada.forEach((id) => { if (!meus.includes(id)) alternarFavorito(slug, id); }); setAviso("✓ Salvos nos seus favoritos!"); }}>
@@ -57,9 +65,16 @@ export default function ListaFavoritos({ slug, lojaId, cor }: { slug: string; lo
         </button>
       </div>
     ) : (
-      <button type="button" onClick={compartilhar} className="mt-3 rounded-full px-4 py-2 text-sm font-semibold text-white" style={{ background: cor }}>
-        📤 Compartilhar minha lista (presentes / desejos)
-      </button>
+      <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: `${cor}55` }}>
+        <b className="text-sm">📤 Compartilhe sua lista de desejos</b>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <input value={meuNome} onChange={(e) => setMeuNome(e.target.value)} maxLength={30} placeholder="Seu nome (ex.: Ana)" className="rounded-xl border bg-white px-3 py-2 text-sm text-stone-900" />
+          <select value={ocasiao} onChange={(e) => setOcasiao(e.target.value)} className="rounded-xl border bg-white px-3 py-2 text-sm text-stone-900">
+            {["Minha lista de Natal 🎄", "Meu aniversário 🎂", "Amigo secreto 🎁", "Chá de casa nova 🏡", "Dia das Mães 💐", "Minha lista de desejos ✨"].map((o) => <option key={o}>{o}</option>)}
+          </select>
+        </div>
+        <button type="button" onClick={compartilhar} className="mt-2 rounded-full px-4 py-2 text-sm font-semibold text-white" style={{ background: cor }}>📤 Enviar minha lista</button>
+      </div>
     )}
     {aviso && <p className="mt-2 text-sm">{aviso}</p>}
     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-4">

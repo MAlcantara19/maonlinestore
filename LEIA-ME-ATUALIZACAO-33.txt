@@ -1,0 +1,23 @@
+ATUALIZAÇÃO 33 — CATÁLOGO PERSONALIZÁVEL + PDF DE VERDADE + EXTRAS
+==================================================================
+SÓ 3 PASSOS (nada para instalar, nenhuma chave nova):
+ 1) Copie as pastas do zip por cima do projeto (substituir).
+ 2) Supabase → SQL Editor → rode supabase/atualizacao-33-buscas-metas-colecoes.sql
+    (se ainda não rodou a 31 e a 32, rode elas antes, nessa ordem)
+ 3) git add . / git commit / git push  (comandos na mensagem)
+
+ONDE FICA CADA COISA
+  🎨 Catálogo ........ menu "Vendas e visual" → Catálogo temático
+       - 16 temas (Natal, Kids, Páscoa, Minimalista, Pastel, Candy, Tropical, Preto e dourado...)
+       - Personalizar: cor do fundo (cima/baixo), cor do preço, fonte do título,
+         ligar/desligar cada enfeite, selo de prazo liga/desliga
+       - 4, 6, 9, 12 ou 16 produtos por página · formato Feed, Story ou Folha A4
+       - Mostra "🎨 Várias cores" e "📏 3 tamanhos" em cada produto
+       - 📄 Baixar PDF: arquivo PDF de verdade, sem data e sem endereço do navegador
+  🔎 O que buscam .... menu "Loja" → "O que os clientes buscam" (buscaram e não acharam)
+  🎯 Meta por produto  campo "meta do mês" no produto → push quando bater
+  💌 Cartão impresso . no carrinho "Mandar um cartão com mensagem" → no painel, botão "💌 Imprimir cartão"
+  ⏳🖼️ Coleção ....... Categorias e coleções → "Banners, contagem e página da coleção"
+  🎁 Presentes ....... /vitraforma/presentes?ate=50 (menu "Página de presentes")
+  📋 Lista de desejos  Favoritos → nome + ocasião ("Minha lista de Natal")
+  🔥 Mais vendido .... automático nos produtos campeões (60 dias)

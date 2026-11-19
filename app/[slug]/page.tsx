@@ -19,6 +19,7 @@ import Avaliacoes from "@/components/Avaliacoes";
 import RegistrarVisita from "@/components/RegistrarVisita";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ContagemDaColecao } from "@/components/FaixaContagem";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -131,7 +132,7 @@ async function ConteudoDaLoja({ params }: Props) {
           {(colecoes.some((c) => c.em_destaque) || produtos.some((p) => p.destaque)) && <TituloGrupo icone="⭐" texto="Destaques" cor={cor} />}
           {colecoes.filter((c) => c.em_destaque).map((c) => (
             <Secao key={c.id} id={`colecao-${c.id}`} titulo={`✨ ${nomeColecao(c.nome)}`} descricao={c.descricao} cor={cor} slug={slug}
-              fonte={c.fonte} estilo="colecao" link={`/${slug}/colecao/${c.id}`} produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
+              fonte={c.fonte} estilo="colecao" link={`/${slug}/colecao/${c.id}`} colecaoId={c.id} produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
           ))}
           <Secao id="destaques" titulo="⭐ Produtos em destaque" cor={cor} slug={slug} estilo="destaque" produtos={produtos.filter((p) => p.destaque)} />
 
@@ -145,7 +146,7 @@ async function ConteudoDaLoja({ params }: Props) {
           {colecoes.some((c) => !c.em_destaque) && <TituloGrupo icone="✨" texto="Coleções" cor={cor} />}
           {colecoes.filter((c) => !c.em_destaque).map((c) => (
             <Secao key={c.id} id={`colecao-${c.id}`} titulo={nomeColecao(c.nome)} descricao={c.descricao} cor={cor} slug={slug}
-              fonte={c.fonte} estilo="colecao" link={`/${slug}/colecao/${c.id}`} produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
+              fonte={c.fonte} estilo="colecao" link={`/${slug}/colecao/${c.id}`} colecaoId={c.id} produtos={porIds(c.produtos_colecoes.map((pc) => pc.produto_id))} />
           ))}
         </ConteudoComBusca>
       )}
@@ -175,6 +176,7 @@ function Secao(props: {
   fonte?: string | null; // fonte própria (coleções)
   estilo?: "colecao" | "destaque"; // diferença visual: coleção = faixa colorida, destaque = dourado
   link?: string; // página própria (coleções): "Ver coleção →"
+  colecaoId?: string; // ⏳ contagem da coleção ("Páscoa até 30/03")
 }) {
   if (props.produtos.length === 0) return null;
   const faixa = props.estilo === "colecao" ? props.cor : props.estilo === "destaque" ? "#f5c542" : null;
@@ -183,6 +185,7 @@ function Secao(props: {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xl font-bold" style={{ fontFamily: familiaDa(props.fonte), ...(faixa ? { borderLeft: `5px solid ${faixa}`, paddingLeft: 10 } : {}) }}>{props.titulo}</h2>
         {props.link && <Link href={props.link} className="text-sm font-semibold" style={{ color: props.cor }}>Ver coleção →</Link>}
+        {props.colecaoId && <ContagemDaColecao colecaoId={props.colecaoId} cor={props.cor} pequena />}
       </div>
       {props.descricao && <p className="text-sm opacity-70">{props.descricao}</p>}
       <Grade produtos={props.produtos} cor={props.cor} slug={props.slug} />

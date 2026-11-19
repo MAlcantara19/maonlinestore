@@ -90,13 +90,18 @@ export default function Carrinho({ loja }: { loja: Loja }) {
   const [presente, setPresente] = useState(false);
   const [cartao, setCartao] = useState("");
   const [semPreco, setSemPreco] = useState(false);
+  const [querCartao, setQuerCartao] = useState(false);
   const valorPresente = presente && loja.presente?.ativo ? Number(loja.presente.preco) || 0 : 0;
   const total = subtotal - desconto + valorFrete + valorPresente;
   // Itens que vão no pedido (com a embalagem, se escolhida)
-  const itensEnvio: ItemCarrinho[] = presente && loja.presente?.ativo
-    ? [...itens, { chave: "presente", produtoId: "", nome: "🎁 Embalagem de presente", tamanho: null, cor: null, preco: valorPresente, quantidade: 1, prazo: null, foto: loja.presente.foto ?? null,
+  const comEmbalagem = presente && !!loja.presente?.ativo;
+  const itensEnvio: ItemCarrinho[] = comEmbalagem
+    ? [...itens, { chave: "presente", produtoId: "", nome: "🎁 Embalagem de presente", tamanho: null, cor: null, preco: valorPresente, quantidade: 1, prazo: null, foto: loja.presente!.foto ?? null,
         observacao: [cartao.trim() && `Cartão: "${cartao.trim()}"`, semPreco && "Não mandar preço/nota junto (é presente)"].filter(Boolean).join(" · ") } as ItemCarrinho]
-    : itens;
+    : querCartao && cartao.trim()
+      // 💌 Só o cartão (sem embalagem): vai como um item grátis, para a loja imprimir
+      ? [...itens, { chave: "cartao", produtoId: "", nome: "💌 Cartão impresso", tamanho: null, cor: null, preco: 0, quantidade: 1, prazo: null, foto: null, observacao: `Cartão: "${cartao.trim()}"` } as ItemCarrinho]
+      : itens;
   // ⚡ Preço no Pix / à vista (desconto da loja)
   const totalPix = loja.desconto_pix ? Math.round((subtotal - desconto) * (100 - loja.desconto_pix)) / 100 + valorFrete : null;
   useEffect(() => {
@@ -329,6 +334,18 @@ export default function Carrinho({ loja }: { loja: Loja }) {
                 <textarea rows={2} maxLength={200} value={cartao} onChange={(e) => setCartao(e.target.value)} placeholder="💌 Mensagem do cartãozinho (opcional)" className={`${campo} text-sm`} />
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={semPreco} onChange={(e) => setSemPreco(e.target.checked)} /> Não mandar preço junto (é presente)</label>
               </div>
+            )}
+          </div>
+        )}
+        {/* 💌 Cartão com mensagem (grátis, mesmo sem embalagem) */}
+        {!(presente && loja.presente?.ativo) && (
+          <div className="rounded-xl border border-dashed p-3 text-sm" style={querCartao ? { borderColor: cor, background: `${cor}0d` } : {}}>
+            <label className="flex items-center gap-3 font-semibold">
+              <input type="checkbox" checked={querCartao} onChange={(e) => setQuerCartao(e.target.checked)} className="h-5 w-5" />
+              <span className="flex-1">💌 Mandar um cartão com mensagem <span className="block text-xs font-normal opacity-70">A gente imprime e envia junto — grátis</span></span>
+            </label>
+            {querCartao && (
+              <textarea rows={2} maxLength={200} value={cartao} onChange={(e) => setCartao(e.target.value)} placeholder="Ex.: Feliz Natal, vó! Te amo muito 💜 — Ana" className={`${campo} mt-2 text-sm`} />
             )}
           </div>
         )}

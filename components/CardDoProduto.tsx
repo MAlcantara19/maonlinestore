@@ -12,6 +12,7 @@ import type { Produto } from "@/lib/tipos";
 import { formatarPreco, precoMinimo, textoDisponibilidade } from "@/lib/formato";
 import ImagemSuave from "@/components/ImagemSuave";
 import AdicionarRapido from "@/components/AdicionarRapido";
+import SeloMaisVendido from "@/components/SeloMaisVendido";
 
 type Props = { produto: Produto; cor: string; slug: string; indice?: number };
 
@@ -49,6 +50,9 @@ export default function CardDoProduto({ produto, cor, slug, indice = 0 }: Props)
               {produto.selo}
             </span>
           )}
+
+          {/* 🔥 Mais vendido (automático, pelos pedidos) */}
+          <SeloMaisVendido slug={slug} produtoId={produto.id} abaixo={!!produto.selo} />
 
           {/* Promoção: selo vermelho com o desconto */}
           {emPromocao && (

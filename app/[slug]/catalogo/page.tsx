@@ -36,7 +36,7 @@ async function Catalogo({ params, searchParams }: Props) {
   if (!loja) notFound();
 
   const [prodRes, colRes, catRes, prazoRes] = await Promise.all([
-    supabase.from("produtos").select("id, nome, preco, disponibilidade, destaque, categoria_id, promocao_pct, promocao_ate, variacoes(preco, ativa), midias(url, tipo, ordem), produtos_categorias(categoria_id)")
+    supabase.from("produtos").select("id, nome, preco, disponibilidade, destaque, categoria_id, promocao_pct, promocao_ate, previa_cor, variacoes(preco, ativa, cor, tamanho), midias(url, tipo, ordem), produtos_categorias(categoria_id)")
       .eq("loja_id", loja.id).eq("ativo", true).order("ordem").order("nome"),
     supabase.from("colecoes").select("id, nome, descricao, produtos_colecoes(produto_id)").eq("loja_id", loja.id).eq("ativa", true).order("ordem"),
     supabase.from("categorias").select("id, nome, parent_id, ordem").eq("loja_id", loja.id).order("ordem").order("nome"),
@@ -60,6 +60,10 @@ async function Catalogo({ params, searchParams }: Props) {
       foto: [...p.midias].filter((m) => m.tipo === "foto").sort((a, b) => a.ordem - b.ordem)[0]?.url ?? null,
       categorias: categoriasDoProduto(p),
       colecoes: colecoes.filter((c) => c.produtos_colecoes.some((pc) => pc.produto_id === p.id)).map((c) => c.id),
+      // 🎨 quantas cores e 📏 quantos tamanhos o cliente pode escolher
+      cores: new Set(p.variacoes.filter((v) => v.ativa && v.cor).map((v) => v.cor!.trim().toLowerCase())).size,
+      tamanhos: new Set(p.variacoes.filter((v) => v.ativa && v.tamanho).map((v) => v.tamanho!.trim().toLowerCase())).size,
+      escolheCor: !!p.previa_cor,
     };
   });
   // Categorias em ordem de "árvore": a principal e logo abaixo as subcategorias

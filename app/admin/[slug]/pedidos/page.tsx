@@ -13,6 +13,7 @@ import PagamentoPedido from "@/components/admin/PagamentoPedido";
 import { CANAIS, rotuloDe } from "@/lib/pagamento";
 import { ETAPAS_PEDIDO, mensagemDeAndamento } from "@/lib/statusPedido";
 import { avisarMudancaDoPedido } from "@/lib/avisos";
+import { imprimirCartao, mensagemDoCartao } from "@/lib/imprimirCartao";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -258,6 +259,10 @@ function Lista() {
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=recibo`} className="rounded-lg border px-3 py-2 text-sm">🧾 Recibo</a>
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=orcamento`} className="rounded-lg border px-3 py-2 text-sm">📝 Orçamento PDF</a>
                   <a href={`/admin/${slug}/pedidos/${p.id}?modo=etiqueta`} className="rounded-lg border px-3 py-2 text-sm">📦 Etiqueta</a>
+                  {(() => {
+                    const msg = mensagemDoCartao(p.itens);
+                    return msg ? <button type="button" onClick={() => imprimirCartao(msg, { nome: loja.nome, cor })} className="rounded-lg border border-pink-300 bg-pink-50 px-3 py-2 text-sm font-semibold text-pink-800">💌 Imprimir cartão</button> : null;
+                  })()}
                   <button type="button" onClick={() => duplicar(p)} className="rounded-lg border px-3 py-2 text-sm">📄 Duplicar</button>
                   <button type="button" onClick={() => atualizar(p, { teste: !p.teste })} className="rounded-lg border px-3 py-2 text-sm"
                     title="Pedido de teste não entra nas estatísticas">{p.teste ? "✓ É teste" : "🧪 Marcar como teste"}</button>

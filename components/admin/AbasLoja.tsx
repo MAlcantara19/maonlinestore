@@ -29,6 +29,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
     { titulo: "Loja", itens: [
       { href: base, rotulo: "⚙️ Configurações", exato: true },
       { href: `${base}/estatisticas`, rotulo: "📊 Estatísticas" },
+      { href: `${base}/buscas`, rotulo: "🔎 O que os clientes buscam" },
       { href: `${base}/pedidos`, rotulo: "🧾 Pedidos" },
       { href: `${base}/financeiro`, rotulo: "💰 Financeiro" },
       { href: `${base}/clientes`, rotulo: "👥 Clientes" },
@@ -47,7 +48,7 @@ export default function AbasLoja({ slug, nome, cor }: { slug: string; nome: stri
       { href: `${base}/efeitos`, rotulo: "✨ Efeitos" },
       { href: `${base}/cartao`, rotulo: "📇 Cartão com QR" },
       { href: `/${slug}/catalogo`, rotulo: "🎄 Catálogo temático (PDF/imagens)" },
-      { href: `${base}/assistente`, rotulo: "🤖 Assistente de IA" },
+      { href: `/${slug}/presentes`, rotulo: "🎁 Página de presentes" },
       { href: `${base}/historico`, rotulo: "📜 Histórico" },
     ] },
   ];

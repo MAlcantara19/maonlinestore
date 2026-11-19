@@ -90,19 +90,38 @@ export async function avisarCliente(pedidoId: string, aviso: Aviso) {
 export async function conferirMeta(lojaId: string) {
   const sb = clienteSecreto();
   const { data: loja, error } = await sb.from("lojas").select("slug, nome, meta_mensal, meta_avisada_mes").eq("id", lojaId).maybeSingle();
-  if (error || !loja?.meta_mensal) return;
+  if (error || !loja) return;
   const agora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
   const mes = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
-  if (loja.meta_avisada_mes === mes) return;
   const inicio = new Date(`${mes}-01T00:00:00-03:00`).toISOString();
-  const { data: pedidos } = await sb.from("pedidos").select("total, teste").eq("loja_id", lojaId).eq("tipo", "pedido").neq("status", "cancelado").gte("criado_em", inicio);
-  const soma = (pedidos ?? []).filter((p) => !p.teste).reduce((s, p) => s + Number(p.total || 0), 0);
-  if (soma < Number(loja.meta_mensal)) return;
-  // marca antes de avisar (se dois pedidos chegarem juntos, só um avisa)
-  const { data: marcou } = await sb.from("lojas").update({ meta_avisada_mes: mes }).eq("id", lojaId).or(`meta_avisada_mes.is.null,meta_avisada_mes.neq.${mes}`).select("id");
-  if (!marcou?.length) return;
+  const { data: pedidos } = await sb.from("pedidos").select("total, teste, itens").eq("loja_id", lojaId).eq("tipo", "pedido").neq("status", "cancelado").gte("criado_em", inicio);
+  const validos = (pedidos ?? []).filter((p) => !p.teste);
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  await avisarLoja(lojaId, { titulo: `🎯 Meta do mês batida! · ${loja.nome}`, corpo: `Já são ${fmt(soma)} em pedidos (meta: ${fmt(Number(loja.meta_mensal))}). Parabéns! 🎉`, url: `/admin/${loja.slug}/financeiro`, tag: `meta-${mes}` });
+
+  // 🎯 Meta da LOJA (em R$)
+  if (loja.meta_mensal && loja.meta_avisada_mes !== mes) {
+    const soma = validos.reduce((s, p) => s + Number(p.total || 0), 0);
+    if (soma >= Number(loja.meta_mensal)) {
+      // marca antes de avisar (se dois pedidos chegarem juntos, só um avisa)
+      const { data: marcou } = await sb.from("lojas").update({ meta_avisada_mes: mes }).eq("id", lojaId).or(`meta_avisada_mes.is.null,meta_avisada_mes.neq.${mes}`).select("id");
+      if (marcou?.length) await avisarLoja(lojaId, { titulo: `🎯 Meta do mês batida! · ${loja.nome}`, corpo: `Já são ${fmt(soma)} em pedidos (meta: ${fmt(Number(loja.meta_mensal))}). Parabéns! 🎉`, url: `/admin/${loja.slug}/financeiro`, tag: `meta-${mes}` });
+    }
+  }
+
+  // 🎯 Meta de cada PRODUTO (em unidades no mês) — atualização 33
+  const vendidos = new Map<string, number>();
+  validos.forEach((p) => ((p.itens ?? []) as { produto_id?: string | null; quantidade?: number }[]).forEach((i) => {
+    if (i.produto_id) vendidos.set(i.produto_id, (vendidos.get(i.produto_id) ?? 0) + (Number(i.quantidade) || 1));
+  }));
+  if (!vendidos.size) return;
+  const { data: comMeta, error: semColuna } = await sb.from("produtos").select("id, nome, meta_mensal, meta_avisada_mes").eq("loja_id", lojaId).in("id", [...vendidos.keys()]).not("meta_mensal", "is", null);
+  if (semColuna) return;
+  for (const prod of comMeta ?? []) {
+    const qtd = vendidos.get(prod.id as string) ?? 0;
+    if (prod.meta_avisada_mes === mes || qtd < Number(prod.meta_mensal)) continue;
+    const { data: marcou } = await sb.from("produtos").update({ meta_avisada_mes: mes }).eq("id", prod.id).or(`meta_avisada_mes.is.null,meta_avisada_mes.neq.${mes}`).select("id");
+    if (marcou?.length) await avisarLoja(lojaId, { titulo: `🎯 Meta batida: ${prod.nome}`, corpo: `${qtd} vendidos este mês (meta: ${prod.meta_mensal}). Arrasou! 🎉`, url: `/admin/${loja.slug}/produtos`, tag: `meta-${prod.id}-${mes}` });
+  }
 }
 
 // ---------------------------------------------------------------------

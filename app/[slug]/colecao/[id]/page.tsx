@@ -23,6 +23,8 @@ import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import EfeitosDaLoja from "@/components/EfeitosDaLoja";
 import RegistrarVisita from "@/components/RegistrarVisita";
 import { EsqueletoLoja } from "@/components/Esqueleto";
+import FundoRotativo from "@/components/FundoRotativo";
+import { Contagem } from "@/components/FaixaContagem";
 
 type Props = { params: Promise<{ slug: string; id: string }> };
 
@@ -58,13 +60,16 @@ async function Conteudo({ params }: Props) {
   if (!colecao) notFound();
 
   const ids = colecao.produtos_colecoes.map((pc) => pc.produto_id);
-  const [prodRes, menu, outrasRes, bannerRes] = await Promise.all([
+  const [prodRes, menu, outrasRes, bannerRes, extrasRes] = await Promise.all([
     ids.length ? supabase.from("produtos").select(COLUNAS_PRODUTO).in("id", ids).eq("ativo", true).order("ordem").order("nome") : Promise.resolve({ data: [] }),
     buscarMenuDaLoja(loja.id),
     supabase.from("colecoes").select("id, nome").eq("loja_id", loja.id).eq("ativa", true).neq("id", id).order("ordem"),
     supabase.from("colecoes").select("banner_url").eq("id", id).maybeSingle(), // atualização 32
+    supabase.from("colecoes").select("banners, contagem_ate, contagem_texto").eq("id", id).maybeSingle(), // atualização 33
   ]);
   const banner = bannerRes.error ? null : (bannerRes.data?.banner_url as string | null) ?? null;
+  const extras = extrasRes.error ? null : extrasRes.data as { banners: string[] | null; contagem_ate: string | null; contagem_texto: string | null } | null;
+  const imagensBanner = [...new Set([...(extras?.banners ?? []), ...(banner ? [banner] : [])])].filter(Boolean);
   const produtos = (prodRes.data ?? []) as Produto[];
   const cor = loja.cor ?? "#333";
   // A faixa do topo usa as cores do tema da coleção (Natal = vermelho e dourado...)
@@ -81,7 +86,9 @@ async function Conteudo({ params }: Props) {
 
       <Link href={`/${slug}`} className="text-sm opacity-70">← Ver a loja toda</Link>
       <section className="relative mt-2 overflow-hidden rounded-3xl p-6 shadow-lg sm:p-10"
-        style={banner ? { background: `linear-gradient(90deg, rgba(0,0,0,.65), rgba(0,0,0,.15)), url(${JSON.stringify(banner)}) center/cover`, color: "#fff", minHeight: 260 } : { background: fundo, color: textoFaixa }}>
+        style={imagensBanner.length ? { color: "#fff", minHeight: 280 } : { background: fundo, color: textoFaixa }}>
+        {imagensBanner.length > 0 && <FundoRotativo imagens={imagensBanner} />}
+        <div className="relative">
         <span className="pointer-events-none absolute -right-4 -top-6 select-none text-[8rem] opacity-20" aria-hidden>{tema?.emoji ?? "✨"}</span>
         <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-80">{loja.nome}</p>
         <h1 className="mt-1 text-4xl font-bold sm:text-5xl" style={{ fontFamily: familiaDa(colecao.fonte) }}>{nomeColecao(colecao.nome)}</h1>
@@ -91,7 +98,10 @@ async function Conteudo({ params }: Props) {
           <BotaoCompartilhar titulo={`${nomeColecao(colecao.nome)} · ${loja.nome}`} cor={textoFaixa} />
           <Link href={`/${slug}/catalogo?colecao=${colecao.id}`} className="rounded-full border border-white/60 bg-white/15 px-4 py-2 text-sm font-medium">📄 Catálogo em PDF / imagens</Link>
         </div>
+        </div>
       </section>
+      {/* ⏳ "Páscoa até 30/03" */}
+      {extras?.contagem_ate && <Contagem ate={extras.contagem_ate} texto={extras.contagem_texto?.trim() || "Pedidos até"} cor={cor} />}
 
       {produtos.length === 0 ? (
         <p className="mt-8 text-center opacity-70">Os produtos desta coleção chegam em breve 😊</p>

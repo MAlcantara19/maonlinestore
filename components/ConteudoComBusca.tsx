@@ -85,6 +85,7 @@ export default function ConteudoComBusca({ produtos, slug, cor, children }: {
               🎁 Até R$ {v}
             </button>
           ))}
+          {ate != null && <a href={`/${slug}/presentes?ate=${ate}`} className="self-center text-xs underline opacity-70">🔗 página para divulgar</a>}
         </div>
         {ativo && <button type="button" onClick={limpar} className="underline opacity-70">✕ Limpar</button>}
         <select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} aria-label="Ordenar produtos"

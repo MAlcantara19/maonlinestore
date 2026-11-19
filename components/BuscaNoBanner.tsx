@@ -46,21 +46,28 @@ export default function BuscaNoBanner({ slug, lojaId }: { slug: string; lojaId: 
     const t = setTimeout(async () => {
       if (naLoja) window.dispatchEvent(new CustomEvent("busca-loja", { detail: texto }));
       if (!termo) return setSugestoes(null);
-      // 🔥 guarda o termo para o "Mais buscados" (só quando a pessoa para de digitar)
-      if (termo.length >= 3) {
+      // 🔥 guarda o termo (e quantos achou) para o "Mais buscados" e o relatório "buscaram e não acharam"
+      const guardarBusca = (achou: number) => {
+        if (termo.length < 3) return;
         clearTimeout(guardar.current);
-        guardar.current = setTimeout(() => { supabaseNavegador().rpc("registrar_busca", { p_slug: slug, p_termo: termo }).then(() => {}, () => {}); }, 1800);
-      }
+        guardar.current = setTimeout(() => {
+          const sb = supabaseNavegador();
+          sb.rpc("registrar_busca", { p_slug: slug, p_termo: termo, p_resultados: achou })
+            .then(({ error }: { error: unknown }) => { if (error) sb.rpc("registrar_busca", { p_slug: slug, p_termo: termo }).then(() => {}, () => {}); }, () => {});
+        }, 1800);
+      };
       // 1º) busca inteligente no banco (atualização 31)
       const inteligente = await supabaseNavegador().rpc("buscar_produtos", { p_termo: termo, p_loja: lojaId, p_limite: 6 });
       if (!inteligente.error) {
-        return setSugestoes(((inteligente.data ?? []) as { id: string; nome: string; preco: number | null; foto: string | null }[])
-          .map((p) => ({ id: p.id, nome: p.nome, preco: p.preco != null ? Number(p.preco) : null, foto: p.foto ?? undefined })));
+        const lista = (inteligente.data ?? []) as { id: string; nome: string; preco: number | null; foto: string | null }[];
+        guardarBusca(lista.length);
+        return setSugestoes(lista.map((p) => ({ id: p.id, nome: p.nome, preco: p.preco != null ? Number(p.preco) : null, foto: p.foto ?? undefined })));
       }
       // 2º) se a atualização 31 ainda não rodou, busca do jeito antigo
       const { data } = await supabaseNavegador().from("produtos")
         .select("id, nome, preco, midias(url, tipo, ordem), variacoes(preco, ativa)")
         .eq("loja_id", lojaId).eq("ativo", true).is("excluido_em", null).ilike("nome", `%${termo}%`).limit(6);
+      guardarBusca((data ?? []).length);
       setSugestoes((data ?? []).map((p: { id: string; nome: string; preco: number | null; midias: { url: string; tipo: string; ordem: number }[]; variacoes: { preco: number | null; ativa: boolean }[] }) => {
         const precos = p.variacoes.filter((v) => v.ativa && v.preco != null).map((v) => Number(v.preco));
         return {
